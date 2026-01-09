@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(STUDENT)
+  accounts      Account[]
+  sessions      Session[]
+  enrollments   Enrollment[]
+  quizAttempts  QuizAttempt[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum Role {
+  STUDENT
+  PROFESSOR
+  ADMIN
+}
+
+// NextAuth Models
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// LMS Models
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  code        String   @unique
+  description String?  @db.Text
+  slug        String   @unique
+  modules     Module[]
+  enrollments Enrollment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  progress  Float    @default(0) // Percentage 0-100
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model Module {
+  id       String @id @default(cuid())
+  title    String
+  order    Int    @default(0)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
+  weeks    Week[]
+}
+
+model Week {
+  id       String  @id @default(cuid())
+  title    String
+  number   Int
+  moduleId String
+  isVisible Boolean @default(true)
+  module   Module @relation(fields: [moduleId], references: [id])
+  topics   Topic[]
+}
+
+model Topic {
+  id          String   @id @default(cuid())
+  title       String
+  contentMdx  String?  @db.LongText
+  type        TopicType @default(THEORY)
+  weekId      String
+  week        Week     @relation(fields: [weekId], references: [id])
+  quizzes     Quiz[]
+  order       Int      @default(0)
+}
+
+enum TopicType {
+  THEORY
+  LAB
+  PRESENTATION
+}
+
+model Quiz {
+  id        String   @id @default(cuid())
+  title     String
+  topicId   String
+  timeLimit Int?     // Minutes
+  topic     Topic    @relation(fields: [topicId], references: [id])
+  questions Question[]
+  attempts  QuizAttempt[]
+}
+
+model Question {
+  id      String @id @default(cuid())
+  quizId  String
+  text    String @db.Text
+  options Json   // Array of {id, text, isCorrect}
+  points  Int    @default(1)
+  quiz    Quiz   @relation(fields: [quizId], references: [id])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  quizId      String
+  score       Float
+  completedAt DateTime @default(now())
+  answers     Json     // Store user answers
+  user        User     @relation(fields: [userId], references: [id])
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+}
