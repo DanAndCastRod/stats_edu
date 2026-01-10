@@ -1,0 +1,200 @@
+---
+title: "Determinación del Tamaño de Muestra"
+description: "¿Cuántas observaciones necesito? Planificación previa al estudio."
+bloomLevel: "APPLY"
+estimatedMinutes: 45
+order: 4
+---
+
+# Introducción
+
+> **La Pregunta del Millón:** Antes de hacer una encuesta o experimento, ¿cuántas personas/piezas/mediciones necesito?
+
+Demasiado pocas → Intervalos muy anchos (inútiles).
+Demasiadas → Desperdicio de recursos.
+
+La clave es definir **qué tan preciso** quieres ser ANTES de recolectar datos.
+
+<Callout type="info">
+**Aplicación:** Planificación de encuestas electorales, control de calidad, estudios clínicos.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular n para estimar medias con precisión deseada.
+- Calcular n para estimar proporciones.
+- Entender el trade-off costo vs precisión.
+
+---
+
+# 1. Tamaño de Muestra para Estimar μ
+
+Queremos que el margen de error sea como máximo $E$:
+
+$$E = Z_{\alpha/2} \cdot \frac{\sigma}{\sqrt{n}}$$
+
+Despejando $n$:
+
+$$n = \left(\frac{Z_{\alpha/2} \cdot \sigma}{E}\right)^2$$
+
+### El Dilema: ¿De dónde saco σ?
+- Estudio piloto previo
+- Literatura científica
+- Rango/4 (regla empírica)
+- Estimación conservadora (la más grande posible)
+
+<SampleSizeCalculator mode="proportion" />
+
+<Callout type="note">
+**¡Interactúa!** Cambia el nivel de confianza, margen de error y tipo de estimación para ver cómo afectan el tamaño de muestra requerido.
+</Callout>
+
+---
+
+# 2. Ejemplo: Estimando Tiempo de Servicio
+
+**Problema:** Queremos estimar el tiempo promedio de atención en un banco con:
+- 95% de confianza
+- Margen de error de ±2 minutos
+- De estudios previos, σ ≈ 8 minutos
+
+```python
+from scipy.stats import norm
+import numpy as np
+
+# Parámetros
+confianza = 0.95
+E = 2               # Margen de error deseado (minutos)
+sigma = 8           # Desviación estándar estimada
+
+# Cálculo
+alpha = 1 - confianza
+z_critico = norm.ppf(1 - alpha/2)
+
+n = (z_critico * sigma / E) ** 2
+n_redondeado = int(np.ceil(n))  # Siempre redondear hacia arriba
+
+print(f"Z crítico: {z_critico:.3f}")
+print(f"Tamaño de muestra calculado: {n:.2f}")
+print(f"Tamaño de muestra requerido: {n_redondeado} observaciones")
+```
+
+<Callout type="warning">
+**Siempre redondea hacia ARRIBA.** Si necesitas 61.4 observaciones, toma 62.
+</Callout>
+
+---
+
+# 3. Tamaño de Muestra para Estimar p
+
+$$n = \hat{p}(1-\hat{p}) \cdot \left(\frac{Z_{\alpha/2}}{E}\right)^2$$
+
+### ¿Qué valor de p usar?
+Si no tienes idea de p, usa **p = 0.5** (maximiza la varianza, es conservador).
+
+### Ejemplo: Encuesta Electoral
+
+```python
+# Queremos estimar la intención de voto con:
+# - 95% de confianza
+# - Margen de error de ±3 puntos porcentuales
+
+confianza = 0.95
+E = 0.03            # 3% en decimales
+p_estimada = 0.5    # Conservador (máxima varianza)
+
+alpha = 1 - confianza
+z_critico = norm.ppf(1 - alpha/2)
+
+n = p_estimada * (1 - p_estimada) * (z_critico / E) ** 2
+n_redondeado = int(np.ceil(n))
+
+print(f"Tamaño de muestra requerido: {n_redondeado} personas")
+```
+
+---
+
+# 4. Análisis de Sensibilidad
+
+¿Qué pasa si queremos más precisión o más confianza?
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+
+# Fijamos p = 0.5 y confianza = 95%
+p = 0.5
+z = 1.96
+
+# Variamos el margen de error
+errores = np.linspace(0.01, 0.10, 50)  # 1% a 10%
+tamanos = p * (1-p) * (z / errores) ** 2
+
+plt.figure(figsize=(10, 6))
+plt.plot(errores * 100, tamanos, 'b-', linewidth=2)
+plt.xlabel('Margen de Error (%)')
+plt.ylabel('Tamaño de Muestra Requerido')
+plt.title('Trade-off: Precisión vs Costo')
+plt.grid(True, alpha=0.3)
+
+# Marcar puntos específicos
+for e in [0.03, 0.05, 0.10]:
+    n_e = p * (1-p) * (z / e) ** 2
+    plt.plot(e*100, n_e, 'ro', markersize=8)
+    plt.annotate(f'n={int(n_e)}', xy=(e*100, n_e), xytext=(e*100+0.5, n_e+100))
+
+plt.show()
+```
+
+---
+
+# 5. Tabla de Referencia Rápida
+
+| Margen de Error | n (p=0.5, 95% conf) |
+|-----------------|---------------------|
+| ±1% | 9,604 |
+| ±2% | 2,401 |
+| ±3% | 1,068 |
+| ±5% | 385 |
+| ±10% | 97 |
+
+<Callout type="info">
+**Observación:** Para reducir el margen de error a la mitad, necesitas **4 veces** más muestra (relación cuadrática).
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Tamaño de Muestra"
+  questions={[
+    {
+      id: "tm1",
+      text: "Si quieres un margen de error MÁS pequeño (más precisión), necesitas:",
+      options: [
+        { id: "a", text: "Menos muestra", isCorrect: false, explanation: "¡Al revés! Más precisión = más datos." },
+        { id: "b", text: "Más muestra", isCorrect: true, explanation: "¡Correcto! n aumenta cuando E disminuye." },
+        { id: "c", text: "Cambiar el nivel de confianza", isCorrect: false, explanation: "Puedes hacerlo, pero afecta la confianza, no directamente n." }
+      ]
+    },
+    {
+      id: "tm2",
+      text: "Cuando no conoces p para una encuesta, usas p=0.5 porque:",
+      options: [
+        { id: "a", text: "Es el valor más probable", isCorrect: false, explanation: "No sabemos cuál es el más probable." },
+        { id: "b", text: "Maximiza p(1-p), dando el n más conservador", isCorrect: true, explanation: "¡Exacto! p(1-p) es máximo en p=0.5." },
+        { id: "c", text: "Es más fácil de calcular", isCorrect: false, explanation: "La facilidad no es la razón estadística." }
+      ]
+    },
+    {
+      id: "tm3",
+      text: "Para reducir el margen de error a la MITAD, debes:",
+      options: [
+        { id: "a", text: "Duplicar n", isCorrect: false, explanation: "Duplicar n solo reduce el error por √2 ≈ 1.41, no a la mitad." },
+        { id: "b", text: "Cuadruplicar n (×4)", isCorrect: true, explanation: "¡Correcto! E ∝ 1/√n, así que mitad de E requiere 4n." },
+        { id: "c", text: "Aumentar el nivel de confianza", isCorrect: false, explanation: "Aumentar confianza AUMENTA el margen, no lo reduce." }
+      ]
+    }
+  ]}
+/>

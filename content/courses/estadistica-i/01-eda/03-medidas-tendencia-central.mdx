@@ -1,0 +1,124 @@
+---
+title: "Centralidad: Más allá del Promedio"
+description: "Media, Mediana y Moda en contextos industriales."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+order: 3
+---
+
+# Introducción
+> "El promedio de profundidad del río es 1 metro, pero me ahogué cruzándolo".
+
+El promedio (media) es la métrica más abusada en la ingeniería. Si tienes un proceso donde el 99% de las piezas tardan 1 minuto y una pieza tarda 100 minutos, el promedio te mentirá. Aquí aprendemos a usar la herramienta correcta para cada distribución.
+
+<Callout type="warning">
+**Concepto Clave:** En distribuciones con "colas largas" (como salarios o tiempos de reparación), la **Mediana** es mucho más representativa que el Promedio.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular e interpretar Media, Mediana y Moda.
+- Identificar cuándo el promedio es engañoso (Outliers).
+- Visualizar la ubicación de estas medidas en una curva de distribución.
+
+---
+
+# 1. Las Tres M's
+
+### 1.1 Media Aritmética ($\bar{x}$)
+Es el centro de gravedad de los datos. Se calcula sumando todo y dividiendo por $n$.
+
+$$
+\bar{x} = \frac{\sum x_i}{n}
+$$
+
+*   **Pros:** Usa toda la información. Es base para la varianza.
+*   **Contras:** Muy sensible a valores extremos (Outliers).
+
+### 1.2 Mediana ($\tilde{x}$)
+Es el valor que divide los datos en dos mitades iguales (50% arriba, 50% abajo).
+
+*   **Pros:** Robusta a outliers. Ideal para tiempos de ciclo, salarios, precios de vivienda.
+*   **Contras:** Matemáticamente más difícil de manipular.
+
+### 1.3 Moda ($Mo$)
+Es el valor más frecuente (el pico de la montaña).
+
+*   **Uso:** Vital en variables cualitativas o para detectar procesos multimodales (e.g., dos turnos de trabajo con rendimientos diferentes).
+
+<SkewedHistogram initialSkew={1} />
+
+<Callout type="note">
+**¡Interactúa!** Mueve el slider de sesgo para ver cómo la asimetría afecta la posición relativa de la Media y la Mediana.
+</Callout>
+
+<DataTransformer initialSkew={1.5} />
+
+<Callout type="note">
+**Transformaciones:** Cuando los datos son muy sesgados, podemos aplicar transformaciones (log, √) para normalizarlos. Experimenta con diferentes transformaciones.
+</Callout>
+
+---
+
+# 2. Visualización Dinámica: Simetría vs. Sesgo
+
+Observa cómo se comportan las medidas en una distribución **Normal (Simétrica)**. Aquí, la Media y la Mediana coinciden en el centro.
+
+<StatsChart 
+    type="distribution"
+    xKey="val"
+    yKey="prob"
+    color="#2563EB"
+    mean={50}
+    median={50}
+    data={[
+        {val: 0, prob: 0}, {val: 10, prob: 0.02}, {val: 20, prob: 0.1}, 
+        {val: 30, prob: 0.4}, {val: 40, prob: 0.8}, {val: 50, prob: 1.0},
+        {val: 60, prob: 0.8}, {val: 70, prob: 0.4}, {val: 80, prob: 0.1}, 
+        {val: 90, prob: 0.02}, {val: 100, prob: 0}
+    ]}
+/>
+
+### El efecto de los Outliers (Sesgo)
+Ahora imagina que una máquina falló y produjo piezas con tiempos muy altos. La cola se estira a la derecha.
+
+<Callout type="info">
+Nota cómo el **Promedio (Rojo)** se deja arrastrar por los valores altos, mientras que la **Mediana (Verde)** se mantiene firme en el centro de la masa de datos.
+</Callout>
+
+<StatsChart 
+    type="distribution"
+    xKey="val"
+    yKey="prob"
+    color="#EB8A3E"
+    mean={65}
+    median={45}
+    data={[
+        {val: 0, prob: 0}, {val: 20, prob: 0.3}, {val: 30, prob: 0.8}, 
+        {val: 40, prob: 1.0}, {val: 50, prob: 0.7}, {val: 60, prob: 0.4}, 
+        {val: 80, prob: 0.2}, {val: 100, prob: 0.1}, {val: 120, prob: 0.05}, 
+        {val: 140, prob: 0.02}, {val: 160, prob: 0}
+    ]}
+/>
+
+---
+
+# 3. Cálculo con Python
+
+Pandas hace esto trivial. La habilidad no es calcularlo, es saber qué función llamar.
+
+```python
+import pandas as pd
+
+# Datos de tiempos de ciclo (en segundos)
+df = pd.DataFrame({'tiempos': [45, 42, 44, 43, 45, 46, 300]}) # ¡300 es un outlier!
+
+media = df['tiempos'].mean()   # 80.7s (Engañoso, parece lento)
+mediana = df['tiempos'].median() # 45.0s (Realista)
+moda = df['tiempos'].mode()[0]   # 45.0s
+
+print(f"Media: {media:.1f}, Mediana: {mediana:.1f}")
+```
+
+<Callout type="note">
+**Regla de Dedo:** Si |Media - Mediana| es muy grande, investiga outliers. Tu proceso puede estar fuera de control.
+</Callout>

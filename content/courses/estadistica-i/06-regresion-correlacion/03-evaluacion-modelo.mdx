@@ -1,0 +1,191 @@
+---
+title: "Evaluación del Modelo de Regresión"
+description: "R², análisis de residuos y diagnóstico de supuestos."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 45
+order: 3
+---
+
+# Introducción
+
+Ajustar un modelo es fácil. La pregunta importante es: **¿Qué tan bueno es el modelo?**
+
+En esta lección aprenderemos a evaluar si nuestro modelo de regresión es confiable.
+
+## Objetivos de Aprendizaje
+- Interpretar R² y R² ajustado.
+- Realizar análisis de residuos.
+- Verificar supuestos del modelo.
+
+---
+
+# 1. El Coeficiente de Determinación (R²)
+
+$$R^2 = 1 - \frac{SS_{res}}{SS_{tot}} = 1 - \frac{\sum(Y_i - \hat{Y}_i)^2}{\sum(Y_i - \bar{Y})^2}$$
+
+### Interpretación
+- **R² = 0:** El modelo no explica nada (tan malo como usar solo la media)
+- **R² = 1:** El modelo explica toda la variabilidad (ajuste perfecto)
+- **0 < R² < 1:** El modelo explica parte de la variabilidad
+
+<Callout type="warning">
+**Cuidado:** R² alto no garantiza un buen modelo. Puede haber overfitting o violación de supuestos.
+</Callout>
+
+---
+
+# 2. Análisis de Residuos
+
+Los residuos deben cumplir:
+1. **Normalidad:** Distribución aproximadamente normal
+2. **Homocedasticidad:** Varianza constante
+3. **Independencia:** No correlacionados entre sí
+4. **Linealidad:** No hay patrones en el gráfico residuos vs predichos
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+from scipy.stats import shapiro
+
+np.random.seed(42)
+
+# Datos
+X = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+Y = np.array([45, 50, 55, 60, 62, 70, 75, 80, 85, 90])
+
+# Ajustar modelo
+slope, intercept, r_value, p_value, std_err = stats.linregress(X, Y)
+Y_pred = intercept + slope * X
+residuos = Y - Y_pred
+
+# Gráficos de diagnóstico
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+# 1. Residuos vs Predichos (Homocedasticidad)
+axes[0, 0].scatter(Y_pred, residuos, alpha=0.7)
+axes[0, 0].axhline(0, color='red', linestyle='--')
+axes[0, 0].set_xlabel('Valores Predichos')
+axes[0, 0].set_ylabel('Residuos')
+axes[0, 0].set_title('Residuos vs Predichos')
+
+# 2. Histograma de Residuos (Normalidad)
+axes[0, 1].hist(residuos, bins=5, edgecolor='black', alpha=0.7)
+axes[0, 1].set_xlabel('Residuo')
+axes[0, 1].set_ylabel('Frecuencia')
+axes[0, 1].set_title('Histograma de Residuos')
+
+# 3. Q-Q Plot (Normalidad)
+stats.probplot(residuos, dist="norm", plot=axes[1, 0])
+axes[1, 0].set_title('Q-Q Plot (Normalidad)')
+
+# 4. Valores reales vs Predichos
+axes[1, 1].scatter(Y, Y_pred, alpha=0.7)
+min_val = min(Y.min(), Y_pred.min())
+max_val = max(Y.max(), Y_pred.max())
+axes[1, 1].plot([min_val, max_val], [min_val, max_val], 'r--', label='Línea perfecta')
+axes[1, 1].set_xlabel('Valores Reales')
+axes[1, 1].set_ylabel('Valores Predichos')
+axes[1, 1].set_title('Real vs Predicho')
+axes[1, 1].legend()
+
+plt.tight_layout()
+plt.show()
+
+# Test de Shapiro-Wilk para normalidad
+stat, p = shapiro(residuos)
+print(f"Test de Shapiro-Wilk: estadístico={stat:.4f}, p-valor={p:.4f}")
+if p > 0.05:
+    print("Los residuos parecen normales (p > 0.05)")
+else:
+    print("Los residuos NO parecen normales (p < 0.05)")
+```
+
+<ResidualPlot initialN={40} />
+
+<Callout type="note">
+**¡Interactúa!** Activa la heterocedasticidad o el patrón cuadrático para ver cómo se violan los supuestos del modelo.
+</Callout>
+
+---
+
+# 3. Prueba de Significancia del Modelo
+
+### Prueba Global (F-test)
+Prueba si el modelo completo es mejor que solo usar la media.
+
+### Prueba de Coeficientes (t-test)
+Prueba si cada coeficiente es significativamente diferente de cero.
+
+```python
+from scipy import stats
+import numpy as np
+
+# Datos
+X = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+Y = np.array([45, 50, 55, 60, 62, 70, 75, 80, 85, 90])
+
+# Ajuste
+slope, intercept, r_value, p_value, std_err = stats.linregress(X, Y)
+
+print("=== Evaluación del Modelo ===")
+print(f"R²: {r_value**2:.4f}")
+print(f"Correlación (r): {r_value:.4f}")
+print(f"\nPrueba de la Pendiente (β₁):")
+print(f"  Pendiente: {slope:.4f}")
+print(f"  Error Estándar: {std_err:.4f}")
+print(f"  P-valor: {p_value:.6f}")
+
+if p_value < 0.05:
+    print("  → La pendiente ES significativa (la relación existe)")
+else:
+    print("  → La pendiente NO es significativa")
+```
+
+---
+
+# 4. Señales de Alerta
+
+| Problema | Síntoma | Solución |
+|----------|---------|----------|
+| **No linealidad** | Patrón curvo en residuos | Transformar variables o usar regresión no lineal |
+| **Heterocedasticidad** | Residuos en forma de embudo | Transformar Y (log) o usar mínimos cuadrados ponderados |
+| **Outliers** | Puntos muy lejanos | Investigar, posiblemente eliminar |
+| **Multicolinealidad** | VIF alto (regresión múltiple) | Eliminar variables redundantes |
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Evaluación del Modelo"
+  questions={[
+    {
+      id: "em1",
+      text: "Un modelo tiene R² = 0.95 pero los residuos muestran un patrón curvo. ¿Qué concluyes?",
+      options: [
+        { id: "a", text: "El modelo es excelente porque R² es alto", isCorrect: false, explanation: "R² alto con patrones en residuos = modelo inadecuado." },
+        { id: "b", text: "El modelo lineal no es apropiado para estos datos", isCorrect: true, explanation: "¡Correcto! Patrones en residuos indican falta de linealidad." },
+        { id: "c", text: "Necesitamos más datos", isCorrect: false, explanation: "Más datos no arreglarán un modelo mal especificado." }
+      ]
+    },
+    {
+      id: "em2",
+      text: "La homocedasticidad significa que:",
+      options: [
+        { id: "a", text: "Los residuos son normales", isCorrect: false, explanation: "Eso es normalidad, no homocedasticidad." },
+        { id: "b", text: "La varianza de los residuos es constante", isCorrect: true, explanation: "¡Exacto! 'Homo' = igual, 'cedasticidad' = dispersión." },
+        { id: "c", text: "Los residuos son independientes", isCorrect: false, explanation: "Eso es independencia." }
+      ]
+    },
+    {
+      id: "em3",
+      text: "Si el p-valor de la pendiente es 0.002, esto significa:",
+      options: [
+        { id: "a", text: "La pendiente es muy pequeña", isCorrect: false, explanation: "El p-valor no indica el tamaño del efecto." },
+        { id: "b", text: "Hay evidencia muy fuerte de que β₁ ≠ 0", isCorrect: true, explanation: "¡Correcto! p=0.002 << 0.05 es altamente significativo." },
+        { id: "c", text: "El modelo explica el 0.2% de la varianza", isCorrect: false, explanation: "Eso sería R², no el p-valor." }
+      ]
+    }
+  ]}
+/>

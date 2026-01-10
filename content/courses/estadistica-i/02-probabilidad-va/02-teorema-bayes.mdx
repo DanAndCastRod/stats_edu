@@ -1,0 +1,167 @@
+---
+title: "Teorema de Bayes: La Máquina de la Verdad"
+description: "Cómo actualizar tus creencias cuando llega nueva evidencia. Falsos positivos y diagnóstico médico."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 60
+order: 2
+---
+
+# Introducción
+
+> **Dilema:** Te haces una prueba de una enfermedad rara (afecta al 1% de la población). La prueba tiene 99% de precisión. Sale positiva. ¿Estás enfermo?
+
+Tu intuición grita "¡Sí, al 99%!".
+El **Teorema de Bayes** te dice la verdad: Tu probabilidad real es solo **50%**.
+
+¿Por qué? Porque ignoraste la "Probabilidad A Priori" (la enfermedad es muy rara). En esta lección aprenderemos a actualizar nuestras probabilidades basándonos en nueva evidencia.
+
+<Callout type="info">
+**Aplicación Real:** Filtros de Spam, Diagnósticos Médicos, Machine Learning (Clasificadores Naive Bayes).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Entender la Probabilidad Condicional $P(A|B)$.
+- Diferenciar Sensibilidad vs. Especificidad.
+- Calcular la Probabilidad A Posteriori.
+
+<VennInteractions mode="intersection" />
+
+<Callout type="note">
+**Visualizando Conjuntos:** Explora las operaciones básicas de conjuntos. La probabilidad condicional $P(A|B)$ es simplemente restringir nuestro universo al círculo B.
+</Callout>
+
+---
+
+# 1. La Fórmula Maestra
+
+Bayes relaciona dos eventos condicionales opuestos: $P(A|B)$ y $P(B|A)$.
+
+$$P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$$
+
+Donde:
+- **$P(A)$**: Probabilidad A Priori (Creencia inicial).
+- **$P(B|A)$**: Verosimilitud (Probabilidad de ver la evidencia $B$ si $A$ es verdad).
+- **$P(B)$**: Probabilidad Total de la Evidencia (Normalizador).
+- **$P(A|B)$**: Probabilidad A Posteriori (Creencia actualizada).
+
+<BayesTree scenario="medical" />
+
+<Callout type="note">
+**¡Interactúa!** Ajusta la prevalencia, sensibilidad y tasa de falsos positivos para ver cómo cambia P(Enfermedad | Test Positivo).
+</Callout>
+
+<ProbabilityTree mode="bayes" />
+
+<Callout type="note">
+**Árbol de Probabilidad:** Visualiza el flujo completo de probabilidades condicionales y observa cómo se calcula P(Enfermo|+) con Bayes.
+</Callout>
+
+---
+
+# 2. El Ejemplo Médico (Paso a Paso)
+
+Vamos a resolver el dilema inicial.
+- **Enfermedad ($E$):** 1% de la población ($P(E) = 0.01$).
+- **Salud ($S$):** 99% de la población ($P(S) = 0.99$).
+- **Prueba (+):**
+    - Sensibilidad: $P(+|E) = 0.99$ (Detecta el 99% de enfermos).
+    - Falsos Positivos: $P(+|S) = 0.01$ (Se equivoca en 1% de sanos).
+
+Queremos saber: **$P(E|+)$** (Probabilidad de estar enfermo dado que dio positivo).
+
+### Cálculo
+
+1.  **Numerador (Verdaderos Positivos):**
+    $$P(+|E) \cdot P(E) = 0.99 \cdot 0.01 = 0.0099$$
+
+2.  **Denominador (Total de Positivos):**
+    Salen positivos los enfermos reales + los sanos falsamente alarmados.
+    $$P(+) = (0.99 \cdot 0.01) + (0.01 \cdot 0.99) = 0.0099 + 0.0099 = 0.0198$$
+
+3.  **Resultado (Bayes):**
+    $$P(E|+) = \frac{0.0099}{0.0198} = 0.5$$
+
+**Conclusión:** ¡Solo tienes un 50% de probabilidad! Hay tantos "falsos positivos" generados por la gran cantidad de gente sana, que igualan a los verdaderos positivos.
+
+---
+
+# Lab: Calculadora Bayesiana
+
+Usa este script para simular diferentes escenarios. ¿Qué pasa si la enfermedad es más común (10%)? ¿Qué pasa si la prueba es perfecta (100%)?
+
+```python
+def teorema_bayes(p_priori, sensibilidad, especificidad):
+    """
+    Calcula P(Enfermo|Positivo)
+    p_priori: Tasa base de la enfermedad (0-1)
+    sensibilidad: Probabilidad de + dado Enfermo
+    especificidad: Probabilidad de - dado Sano
+    """
+    p_sano = 1 - p_priori
+    p_falso_positivo = 1 - especificidad
+    
+    # Numerador: Verdaderos Positivos
+    verdaderos_positivos = sensibilidad * p_priori
+    
+    # Denominador: Total Positivos (Verdaderos + Falsos)
+    falsos_positivos = p_falso_positivo * p_sano
+    total_positivos = verdaderos_positivos + falsos_positivos
+    
+    if total_positivos == 0: return 0
+    
+    p_posteriori = verdaderos_positivos / total_positivos
+    return p_posteriori
+
+# Escenario 1: Enfermedad Rara
+res1 = teorema_bayes(p_priori=0.01, sensibilidad=0.99, especificidad=0.99)
+print(f"Escenario 1 (Rara): {res1:.2%}")
+
+# Escenario 2: Pandemia (Enfermedad Común = 20%)
+res2 = teorema_bayes(p_priori=0.20, sensibilidad=0.90, especificidad=0.90)
+print(f"Escenario 2 (Pandemia): {res2:.2%}")
+
+# Escenario 3: Prueba Mala (Tirar una moneda)
+res3 = teorema_bayes(p_priori=0.01, sensibilidad=0.50, especificidad=0.50)
+print(f"Escenario 3 (Moneda): {res3:.2%}")
+```
+
+<Callout type="warning">
+**Intuición:** Bayes nos enseña que **afirmaciones extraordinarias requieren evidencia extraordinaria**. Si algo es muy raro a priori (un milagro, una enfermedad exótica), una evidencia "bastante buena" a menudo no es suficiente para confirmar su veracidad.
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Teorema de Bayes"
+  questions={[
+    {
+      id: "tb1",
+      text: "Si una enfermedad afecta al 10% de la población (en lugar del 1%), y la prueba sigue siendo 99% exacta, la probabilidad de estar realmente enfermo dado un positivo:",
+      options: [
+        { id: "a", text: "Disminuye", isCorrect: false, explanation: "¡Al contrario! A mayor prevalencia, más 'verdaderos positivos' hay para competir con los 'falsos'." },
+        { id: "b", text: "Se mantiene igual en 50%", isCorrect: false, explanation: "La probabilidad depende directamente de la tasa base. Cambia si P(E) cambia." },
+        { id: "c", text: "Aumenta significativamente", isCorrect: true, explanation: "¡Correcto! Con 10% de prevalencia, P(E|+) sube a aproximadamente 92%." }
+      ]
+    },
+    {
+      id: "tb2",
+      text: "La 'Sensibilidad' de una prueba médica se refiere a:",
+      options: [
+        { id: "a", text: "La probabilidad de detectar correctamente a los enfermos P(+|E)", isCorrect: true, explanation: "¡Exacto! Sensibilidad = Tasa de Verdaderos Positivos." },
+        { id: "b", text: "La probabilidad de NO dar falsos positivos P(-|S)", isCorrect: false, explanation: "Eso se llama 'Especificidad', no 'Sensibilidad'." },
+        { id: "c", text: "La probabilidad a priori de la enfermedad", isCorrect: false, explanation: "Eso es la Prevalencia, no Sensibilidad." }
+      ]
+    },
+    {
+      id: "tb3",
+      text: "¿Cuál es la probabilidad de que un NEGATIVO esté realmente sano si la enfermedad es rara y la prueba es muy precisa?",
+      options: [
+        { id: "a", text: "Muy baja (la prueba es inútil)", isCorrect: false, explanation: "¡Al contrario! Un negativo en una enfermedad rara es casi seguro." },
+        { id: "b", text: "Muy alta, cercana al 100%", isCorrect: true, explanation: "¡Correcto! Por la rareza de la enfermedad, un negativo es casi certeza de salud." },
+        { id: "c", text: "Exactamente 50%", isCorrect: false, explanation: "Solo el positivo era 50% en el ejemplo. El negativo tiene probabilidades distintas." }
+      ]
+    }
+  ]}
+/>

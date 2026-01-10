@@ -7,6 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums
+enum Role {
+  STUDENT
+  PROFESSOR
+  ADMIN
+}
+
+enum TopicType {
+  THEORY
+  LAB
+  PRESENTATION
+}
+
+// User & Auth Models
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -14,21 +28,17 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(STUDENT)
+  isMock        Boolean   @default(false)
+  
   accounts      Account[]
   sessions      Session[]
   enrollments   Enrollment[]
   quizAttempts  QuizAttempt[]
+  progress      UserProgress[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
 
-enum Role {
-  STUDENT
-  PROFESSOR
-  ADMIN
-}
-
-// NextAuth Models
 model Account {
   id                 String  @id @default(cuid())
   userId             String
@@ -63,6 +73,7 @@ model Course {
   code        String   @unique
   description String?  @db.Text
   slug        String   @unique
+  isMock      Boolean  @default(false)
   modules     Module[]
   enrollments Enrollment[]
   createdAt   DateTime @default(now())
@@ -76,8 +87,8 @@ model Enrollment {
   progress  Float    @default(0) // Percentage 0-100
   createdAt DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
 }
@@ -87,8 +98,11 @@ model Module {
   title    String
   order    Int    @default(0)
   courseId String
-  course   Course @relation(fields: [courseId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   weeks    Week[]
+  slug     String
+
+  @@unique([courseId, slug])
 }
 
 model Week {
@@ -97,25 +111,25 @@ model Week {
   number   Int
   moduleId String
   isVisible Boolean @default(true)
-  module   Module @relation(fields: [moduleId], references: [id])
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   topics   Topic[]
+
+  @@unique([moduleId, number])
 }
 
 model Topic {
   id          String   @id @default(cuid())
   title       String
+  slug        String
   contentMdx  String?  @db.LongText
   type        TopicType @default(THEORY)
   weekId      String
-  week        Week     @relation(fields: [weekId], references: [id])
+  week        Week     @relation(fields: [weekId], references: [id], onDelete: Cascade)
   quizzes     Quiz[]
+  userProgress UserProgress[]
   order       Int      @default(0)
-}
 
-enum TopicType {
-  THEORY
-  LAB
-  PRESENTATION
+  @@unique([weekId, slug])
 }
 
 model Quiz {
@@ -123,7 +137,7 @@ model Quiz {
   title     String
   topicId   String
   timeLimit Int?     // Minutes
-  topic     Topic    @relation(fields: [topicId], references: [id])
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
   questions Question[]
   attempts  QuizAttempt[]
 }
@@ -134,8 +148,9 @@ model Question {
   text    String @db.Text
   options Json   // Array of {id, text, isCorrect}
   points  Int    @default(1)
-  quiz    Quiz   @relation(fields: [quizId], references: [id])
+  quiz    Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
 }
+
 
 model QuizAttempt {
   id          String   @id @default(cuid())
@@ -144,6 +159,21 @@ model QuizAttempt {
   score       Float
   completedAt DateTime @default(now())
   answers     Json     // Store user answers
-  user        User     @relation(fields: [userId], references: [id])
-  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model UserProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  topicId   String
+  completed Boolean  @default(false)
+  score     Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
 }

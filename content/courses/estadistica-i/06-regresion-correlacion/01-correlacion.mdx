@@ -1,0 +1,193 @@
+---
+title: "Correlación: Midiendo la Relación entre Variables"
+description: "Coeficiente de Pearson, interpretación y visualización de relaciones lineales."
+bloomLevel: "UNDERSTAND"
+estimatedMinutes: 45
+order: 1
+---
+
+# Introducción
+
+> **Pregunta:** ¿Las personas más altas pesan más? ¿Estudiar más horas mejora las notas? ¿Hay relación entre publicidad y ventas?
+
+La **correlación** mide la fuerza y dirección de la relación lineal entre dos variables cuantitativas.
+
+<Callout type="warning">
+**Advertencia Crítica:** Correlación NO implica causalidad. Que dos variables estén correlacionadas no significa que una cause la otra.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular e interpretar el coeficiente de Pearson (r).
+- Visualizar relaciones con scatterplots.
+- Distinguir correlación de causalidad.
+
+---
+
+# 1. El Coeficiente de Correlación de Pearson
+
+$$r = \frac{\sum(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum(x_i - \bar{x})^2 \cdot \sum(y_i - \bar{y})^2}}$$
+
+### Interpretación de r
+| Valor de r | Interpretación |
+|------------|----------------|
+| r = 1 | Correlación positiva perfecta |
+| 0.7 ≤ r < 1 | Correlación positiva fuerte |
+| 0.4 ≤ r < 0.7 | Correlación positiva moderada |
+| 0 < r < 0.4 | Correlación positiva débil |
+| r = 0 | Sin correlación lineal |
+| r < 0 | Correlación negativa (inversa) |
+| r = -1 | Correlación negativa perfecta |
+
+---
+
+# 2. Experimenta: Correlación Interactiva
+
+### ¿Qué tan bueno es tu "Ojímetro"?
+Intenta adivinar el coeficiente de correlación $r$ de estos gráficos generados aleatoriamente.
+
+<CorrelationGame />
+
+---
+
+<DraggableScatter initialPoints={15} showRegression={true} />
+
+<Callout type="note">
+**¡Interactúa!** Arrastra los puntos azules para ver cómo cambia el coeficiente r en tiempo real. Intenta crear correlaciones positivas, negativas y nulas.
+</Callout>
+
+<CorrelationMatrix initialN={50} />
+
+<Callout type="note">
+**Matriz de Correlación:** Ajusta las correlaciones entre X y las demás variables. Observa el patrón de colores en la matriz.
+</Callout>
+
+---
+
+# 3. Visualización: El Diagrama de Dispersión
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import pearsonr
+
+np.random.seed(42)
+
+# Generar datos correlacionados
+n = 50
+horas_estudio = np.random.uniform(1, 10, n)
+# Nota = relación lineal + ruido
+nota = 50 + 5 * horas_estudio + np.random.normal(0, 8, n)
+nota = np.clip(nota, 0, 100)  # Limitar entre 0 y 100
+
+# Calcular correlación
+r, p_valor = pearsonr(horas_estudio, nota)
+
+# Visualización
+plt.figure(figsize=(10, 6))
+sns.regplot(x=horas_estudio, y=nota, scatter_kws={'alpha': 0.6}, line_kws={'color': 'red'})
+plt.title(f'Horas de Estudio vs Nota (r = {r:.3f}, p = {p_valor:.4f})')
+plt.xlabel('Horas de Estudio')
+plt.ylabel('Nota (%)')
+plt.show()
+
+print(f"Coeficiente de Correlación: r = {r:.4f}")
+print(f"P-valor de la prueba: {p_valor:.4f}")
+if p_valor < 0.05:
+    print("La correlación ES estadísticamente significativa.")
+```
+
+---
+
+# 3. Ejemplos de Diferentes Correlaciones
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
+
+np.random.seed(42)
+n = 100
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+# 1. Correlación positiva fuerte (r ≈ 0.9)
+x1 = np.random.uniform(0, 10, n)
+y1 = 2 * x1 + np.random.normal(0, 2, n)
+r1, _ = pearsonr(x1, y1)
+axes[0, 0].scatter(x1, y1, alpha=0.6)
+axes[0, 0].set_title(f'Positiva Fuerte (r = {r1:.2f})')
+
+# 2. Correlación débil (r ≈ 0.3)
+x2 = np.random.uniform(0, 10, n)
+y2 = 0.5 * x2 + np.random.normal(0, 5, n)
+r2, _ = pearsonr(x2, y2)
+axes[0, 1].scatter(x2, y2, alpha=0.6, color='orange')
+axes[0, 1].set_title(f'Positiva Débil (r = {r2:.2f})')
+
+# 3. Sin correlación (r ≈ 0)
+x3 = np.random.uniform(0, 10, n)
+y3 = np.random.uniform(0, 10, n)
+r3, _ = pearsonr(x3, y3)
+axes[1, 0].scatter(x3, y3, alpha=0.6, color='green')
+axes[1, 0].set_title(f'Sin Correlación (r = {r3:.2f})')
+
+# 4. Correlación negativa (r ≈ -0.8)
+x4 = np.random.uniform(0, 10, n)
+y4 = 10 - 0.9 * x4 + np.random.normal(0, 1, n)
+r4, _ = pearsonr(x4, y4)
+axes[1, 1].scatter(x4, y4, alpha=0.6, color='red')
+axes[1, 1].set_title(f'Negativa Fuerte (r = {r4:.2f})')
+
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+# 4. Correlación ≠ Causalidad
+
+Ejemplos clásicos de correlaciones espurias:
+- Consumo de helados ↔ Ahogamientos (ambos aumentan en verano)
+- Ventas de paraguas ↔ Accidentes de tráfico (ambos aumentan con lluvia)
+
+<Callout type="info">
+**Regla:** Para establecer causalidad necesitas: experimentos controlados, temporalidad (causa antes que efecto), y mecanismo plausible.
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Correlación"
+  questions={[
+    {
+      id: "co1",
+      text: "Un coeficiente r = -0.85 indica:",
+      options: [
+        { id: "a", text: "Correlación débil negativa", isCorrect: false, explanation: "|-0.85| = 0.85 es fuerte, no débil." },
+        { id: "b", text: "Correlación fuerte negativa (inversa)", isCorrect: true, explanation: "¡Correcto! El signo indica dirección, el valor absoluto la fuerza." },
+        { id: "c", text: "Sin correlación", isCorrect: false, explanation: "r cercano a 0 sería sin correlación." }
+      ]
+    },
+    {
+      id: "co2",
+      text: "Si r = 0, podemos concluir que:",
+      options: [
+        { id: "a", text: "No hay ninguna relación entre las variables", isCorrect: false, explanation: "r mide relación LINEAL. Puede haber relación no lineal." },
+        { id: "b", text: "No hay relación LINEAL entre las variables", isCorrect: true, explanation: "¡Correcto! Podría existir una relación cuadrática u otra." },
+        { id: "c", text: "Los datos son aleatorios", isCorrect: false, explanation: "r=0 no significa que los datos sean aleatorios." }
+      ]
+    },
+    {
+      id: "co3",
+      text: "Dos variables tienen r = 0.95. Podemos afirmar que:",
+      options: [
+        { id: "a", text: "Una variable causa la otra", isCorrect: false, explanation: "¡Nunca! Correlación no implica causalidad." },
+        { id: "b", text: "Hay una relación lineal fuerte, pero no sabemos si hay causalidad", isCorrect: true, explanation: "¡Exacto! Solo sabemos que varían juntas linealmente." },
+        { id: "c", text: "Hay un 95% de probabilidad de causalidad", isCorrect: false, explanation: "r no es probabilidad de causalidad." }
+      ]
+    }
+  ]}
+/>

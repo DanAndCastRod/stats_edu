@@ -1,0 +1,172 @@
+---
+title: "Prueba Z para la Media (σ Conocido)"
+description: "La prueba clásica cuando conocemos la desviación estándar poblacional."
+bloomLevel: "APPLY"
+estimatedMinutes: 45
+order: 2
+---
+
+# Introducción
+
+Cuando **conocemos σ** (raro en la práctica, pero conceptualmente importante), usamos la **distribución Z** para hacer la prueba.
+
+<Callout type="info">
+**Cuándo usar:** Control de calidad con procesos bien caracterizados, o cuando n es muy grande y usamos s como aproximación de σ.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular el estadístico Z para pruebas de media.
+- Determinar el p-valor usando `scipy.stats`.
+- Tomar decisiones basadas en α.
+
+---
+
+# 1. El Estadístico de Prueba
+
+$$Z = \frac{\bar{X} - \mu_0}{\sigma / \sqrt{n}}$$
+
+Donde:
+- $\bar{X}$ = media muestral
+- $\mu_0$ = valor hipotético de la media (de H₀)
+- $\sigma$ = desviación estándar poblacional (conocida)
+- $n$ = tamaño de muestra
+
+<RejectionRegion testType="two-tailed" />
+
+<Callout type="note">
+**¡Interactúa!** Ajusta el nivel de significancia α y el estadístico Z observado para ver cómo cambia la región de rechazo y la decisión.
+</Callout>
+
+<HypothesisWizard topic="mean" />
+
+<Callout type="note">
+**Asistente Paso a Paso:** Sigue los 5 pasos del wizard para completar tu propia prueba de hipótesis con tus datos.
+</Callout>
+
+---
+
+# 2. Ejemplo Completo
+
+**Problema:** Una máquina debe llenar botellas con 500ml. El ingeniero sospecha que la máquina está descalibrada (llenando más o menos). De 36 botellas, la media fue 498ml. Se sabe que σ = 6ml. Usar α = 0.05.
+
+### Paso 1: Hipótesis
+- H₀: μ = 500 (la máquina está bien)
+- H₁: μ ≠ 500 (la máquina está descalibrada) → **Dos colas**
+
+### Paso 2: Cálculo
+
+```python
+from scipy.stats import norm
+import numpy as np
+
+# Datos
+x_bar = 498        # Media muestral
+mu_0 = 500         # Valor hipotético
+sigma = 6          # Desviación poblacional
+n = 36             # Tamaño de muestra
+alpha = 0.05       # Nivel de significancia
+
+# Estadístico Z
+z_calc = (x_bar - mu_0) / (sigma / np.sqrt(n))
+print(f"Estadístico Z: {z_calc:.4f}")
+
+# P-valor (dos colas: multiplicar por 2)
+p_valor = 2 * norm.cdf(z_calc)  # z_calc es negativo, así que usamos cdf directamente
+print(f"P-valor (dos colas): {p_valor:.4f}")
+
+# Decisión
+if p_valor < alpha:
+    print(f"\n✗ RECHAZAR H₀ (p={p_valor:.4f} < α={alpha})")
+    print("Conclusión: Hay evidencia de que la máquina está descalibrada.")
+else:
+    print(f"\n✓ NO RECHAZAR H₀ (p={p_valor:.4f} ≥ α={alpha})")
+    print("Conclusión: No hay evidencia suficiente de descalibración.")
+```
+
+---
+
+# 3. Visualización de la Prueba
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+
+# Valores del ejemplo
+z_calc = -2.0
+alpha = 0.05
+
+# Valores críticos (dos colas)
+z_critico = norm.ppf(1 - alpha/2)
+
+# Gráfica
+x = np.linspace(-4, 4, 200)
+y = norm.pdf(x)
+
+plt.figure(figsize=(10, 6))
+plt.plot(x, y, 'b-', linewidth=2, label='Distribución Z bajo H₀')
+plt.fill_between(x, y, where=(x <= -z_critico), alpha=0.3, color='red', label='Región de rechazo')
+plt.fill_between(x, y, where=(x >= z_critico), alpha=0.3, color='red')
+plt.axvline(z_calc, color='green', linestyle='--', linewidth=2, label=f'Z calculado = {z_calc}')
+plt.axvline(-z_critico, color='red', linestyle=':', label=f'Valores críticos ±{z_critico:.2f}')
+plt.axvline(z_critico, color='red', linestyle=':')
+
+plt.title('Prueba Z de Dos Colas')
+plt.xlabel('Valor Z')
+plt.ylabel('Densidad')
+plt.legend()
+plt.show()
+
+# Conclusión visual
+if abs(z_calc) > z_critico:
+    print("El Z calculado cae en la región de rechazo (área roja)")
+else:
+    print("El Z calculado NO cae en la región de rechazo")
+```
+
+---
+
+# 4. Resumen de Fórmulas de P-valor
+
+| Tipo de Prueba | H₁ | P-valor |
+|----------------|-----|---------|
+| Cola Izquierda | μ < μ₀ | `norm.cdf(z)` |
+| Cola Derecha | μ > μ₀ | `1 - norm.cdf(z)` |
+| Dos Colas | μ ≠ μ₀ | `2 * norm.cdf(-abs(z))` |
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Prueba Z para la Media"
+  questions={[
+    {
+      id: "pz1",
+      text: "Si Z calculado = -3.2 y Z crítico (α=0.05, dos colas) = ±1.96, entonces:",
+      options: [
+        { id: "a", text: "No rechazamos H₀", isCorrect: false, explanation: "|-3.2| = 3.2 > 1.96, está en región de rechazo." },
+        { id: "b", text: "Rechazamos H₀", isCorrect: true, explanation: "¡Correcto! 3.2 > 1.96, cae en zona de rechazo." },
+        { id: "c", text: "Necesitamos calcular el p-valor", isCorrect: false, explanation: "Podemos decidir directamente comparando con el valor crítico." }
+      ]
+    },
+    {
+      id: "pz2",
+      text: "En una prueba de cola izquierda (H₁: μ < μ₀), valores MUY NEGATIVOS de Z:",
+      options: [
+        { id: "a", text: "Apoyan H₀", isCorrect: false, explanation: "¡Al revés! Valores muy bajos apoyan H₁." },
+        { id: "b", text: "Apoyan H₁ (evidencia para rechazar H₀)", isCorrect: true, explanation: "¡Correcto! Z muy negativo = media muestral muy por debajo de μ₀." },
+        { id: "c", text: "No tienen interpretación", isCorrect: false, explanation: "Siempre tienen interpretación en el contexto de la prueba." }
+      ]
+    },
+    {
+      id: "pz3",
+      text: "El p-valor de 0.001 indica:",
+      options: [
+        { id: "a", text: "Hay 0.1% de probabilidad de que H₀ sea verdadera", isCorrect: false, explanation: "Esa NO es la interpretación correcta del p-valor." },
+        { id: "b", text: "Si H₀ es verdadera, solo hay 0.1% de chance de ver un resultado tan extremo", isCorrect: true, explanation: "¡Exacto! Es la definición correcta del p-valor." },
+        { id: "c", text: "El error de medición es 0.1%", isCorrect: false, explanation: "El p-valor no mide error de medición." }
+      ]
+    }
+  ]}
+/>

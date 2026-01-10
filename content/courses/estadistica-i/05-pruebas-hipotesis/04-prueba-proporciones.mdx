@@ -1,0 +1,188 @@
+---
+title: "Prueba de Hipótesis para Proporciones"
+description: "Probando afirmaciones sobre porcentajes poblacionales. Encuestas, tasas de defecto, conversión."
+bloomLevel: "APPLY"
+estimatedMinutes: 45
+order: 4
+---
+
+# Introducción
+
+Muchas preguntas de negocio son sobre **proporciones**:
+- ¿El % de defectos supera el 5%?
+- ¿Más del 50% de clientes prefieren el nuevo diseño?
+- ¿La tasa de conversión mejoró?
+
+<Callout type="info">
+**Aplicación:** Control de calidad, A/B testing, encuestas políticas, estudios médicos (eficacia de tratamientos).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formular hipótesis sobre proporciones.
+- Calcular el estadístico Z para proporciones.
+- Aplicar la prueba usando Python.
+
+---
+
+# 1. El Estadístico de Prueba
+
+$$Z = \frac{\hat{p} - p_0}{\sqrt{\frac{p_0(1-p_0)}{n}}}$$
+
+Donde:
+- $\hat{p} = x/n$ = proporción muestral
+- $p_0$ = proporción hipotética (de H₀)
+- $n$ = tamaño de muestra
+
+<Callout type="warning">
+**Nota:** En el denominador usamos $p_0$ (no $\hat{p}$), porque estamos calculando bajo el supuesto de que H₀ es verdadera.
+</Callout>
+
+---
+
+# 2. Condiciones de Validez
+
+Para que la aproximación Normal funcione:
+- $np_0 \geq 10$
+- $n(1-p_0) \geq 10$
+
+---
+
+# 3. Ejemplo Completo
+
+**Problema:** Una empresa afirma que su proceso tiene menos de 3% de defectos. Un auditor inspecciona 500 piezas y encuentra 20 defectuosas. ¿Hay evidencia de que la tasa real supera el 3%? (α=0.05)
+
+### Paso 1: Hipótesis
+- H₀: p ≤ 0.03 (cumple el estándar)
+- H₁: p > 0.03 (excede el estándar) → **Cola derecha**
+
+### Paso 2: Cálculo
+
+```python
+from scipy.stats import norm
+import numpy as np
+
+# Datos
+x = 20             # Defectuosos
+n = 500            # Total inspeccionado
+p_0 = 0.03         # Proporción hipotética
+alpha = 0.05
+
+# Proporción muestral
+p_hat = x / n
+print(f"Proporción muestral: {p_hat:.4f} = {p_hat*100:.2f}%")
+
+# Verificar condiciones
+print(f"\n--- Verificación ---")
+print(f"n·p₀ = {n * p_0:.1f} (debe ser ≥ 10) ✓")
+print(f"n·(1-p₀) = {n * (1-p_0):.1f} (debe ser ≥ 10) ✓")
+
+# Estadístico Z
+z_calc = (p_hat - p_0) / np.sqrt(p_0 * (1 - p_0) / n)
+print(f"\n--- Cálculo ---")
+print(f"Z calculado: {z_calc:.4f}")
+
+# P-valor (cola derecha)
+p_valor = 1 - norm.cdf(z_calc)
+print(f"P-valor (cola derecha): {p_valor:.4f}")
+
+# Decisión
+print(f"\n--- Decisión (α = {alpha}) ---")
+if p_valor < alpha:
+    print(f"✗ RECHAZAR H₀ (p={p_valor:.4f} < α={alpha})")
+    print("Conclusión: Hay evidencia de que la tasa de defectos supera el 3%.")
+else:
+    print(f"✓ NO RECHAZAR H₀ (p={p_valor:.4f} ≥ α={alpha})")
+    print("Conclusión: No hay evidencia suficiente contra el estándar del 3%.")
+```
+
+---
+
+# 4. Prueba de Proporciones con `statsmodels`
+
+Para análisis más completos, usa `statsmodels`:
+
+```python
+from statsmodels.stats.proportion import proportions_ztest
+
+# Datos
+x = 20       # Éxitos (defectos)
+n = 500      # Total
+p_0 = 0.03   # Proporción hipotética
+
+# Prueba de una cola (alternativa: 'larger' = p > p_0)
+z_stat, p_valor = proportions_ztest(count=x, nobs=n, value=p_0, alternative='larger')
+
+print(f"Z-statistic: {z_stat:.4f}")
+print(f"P-valor: {p_valor:.4f}")
+```
+
+---
+
+# 5. Comparación de Dos Proporciones
+
+A veces queremos comparar dos grupos (A/B testing):
+
+```python
+from statsmodels.stats.proportion import proportions_ztest
+
+# Grupo A: 45 conversiones de 500 visitas
+# Grupo B: 60 conversiones de 500 visitas
+conversiones = [45, 60]
+visitas = [500, 500]
+
+# H₀: p_A = p_B  vs  H₁: p_A ≠ p_B
+z_stat, p_valor = proportions_ztest(conversiones, visitas)
+
+print(f"Tasa A: {45/500:.2%}")
+print(f"Tasa B: {60/500:.2%}")
+print(f"Z-statistic: {z_stat:.4f}")
+print(f"P-valor (dos colas): {p_valor:.4f}")
+
+if p_valor < 0.05:
+    print("\n✗ Las tasas son significativamente diferentes.")
+else:
+    print("\n✓ No hay diferencia estadísticamente significativa.")
+```
+
+<ChiSquareTest />
+
+<Callout type="note">
+**¡Interactúa!** Modifica las celdas de la tabla de contingencia 2×2 para ver cómo cambian el estadístico χ² y el p-valor. ¿Puedes crear una tabla donde las variables estén claramente asociadas?
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Prueba de Proporciones"
+  questions={[
+    {
+      id: "pp1",
+      text: "En la fórmula del estadístico Z para proporciones, usamos p₀ en el denominador porque:",
+      options: [
+        { id: "a", text: "Es más fácil de calcular", isCorrect: false, explanation: "No es por facilidad, es por teoría." },
+        { id: "b", text: "Calculamos el error estándar asumiendo que H₀ es verdadera", isCorrect: true, explanation: "¡Correcto! Toda prueba se hace bajo el supuesto de H₀." },
+        { id: "c", text: "p̂ no está disponible", isCorrect: false, explanation: "p̂ sí está disponible, pero usamos p₀ por la lógica de la prueba." }
+      ]
+    },
+    {
+      id: "pp2",
+      text: "Para una prueba de proporción con n=100 y p₀=0.05, las condiciones np₀≥10 se cumple:",
+      options: [
+        { id: "a", text: "Sí, 100×0.05=5 ≥ 10", isCorrect: false, explanation: "5 < 10, NO se cumple." },
+        { id: "b", text: "No, np₀=5 < 10", isCorrect: true, explanation: "¡Correcto! Necesitaríamos más muestra." },
+        { id: "c", text: "Solo importa n(1-p₀)", isCorrect: false, explanation: "Ambas condiciones deben cumplirse." }
+      ]
+    },
+    {
+      id: "pp3",
+      text: "En un A/B test, si el p-valor es 0.03, podemos concluir:",
+      options: [
+        { id: "a", text: "La versión B es 3% mejor", isCorrect: false, explanation: "El p-valor no mide el tamaño del efecto." },
+        { id: "b", text: "Hay diferencia estadísticamente significativa (α=0.05)", isCorrect: true, explanation: "¡Correcto! 0.03 < 0.05." },
+        { id: "c", text: "Debemos repetir el experimento", isCorrect: false, explanation: "Con p < α, ya tenemos evidencia." }
+      ]
+    }
+  ]}
+/>

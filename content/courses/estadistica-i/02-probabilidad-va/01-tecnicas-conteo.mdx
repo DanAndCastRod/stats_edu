@@ -1,0 +1,190 @@
+---
+title: "Técnicas de Conteo: El Arte de Enumerar"
+description: "Aprende a contar posibilidades sin tener que enumerarlas una por una. Permutaciones y Combinaciones."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+order: 1
+---
+
+# Introducción
+
+> **Pregunta:** Si tienes una maleta con un candado de 4 dígitos (0-9), ¿cuántos intentos necesitas para asegurarte de abrirla?
+
+La respuesta ingenua es "muchos". La estadística nos da la respuesta exacta: $10^4 = 10,000$ intentos.
+Las **Técnicas de Conteo** son fundamentales para calcular probabilidades. Si no sabemos contar el "Total de Casos Posibles", no podemos calcular ninguna probabilidad.
+
+<Callout type="info">
+**Aplicación Real:** Criptografía, Logística (Rutas de reparto), Asignación de horarios y Loterías.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Distinguir cuándo **importa el orden** (Permutación) y cuándo **no importa** (Combinación).
+- Aplicar el Principio Multiplicativo.
+- Resolver problemas complejos descomponiéndolos en eventos simples.
+
+---
+
+# 1. El Principio Multiplicativo
+
+Es la regla de oro: Si tienes $n$ formas de hacer una cosa y $m$ formas de hacer otra, tienes $n \times m$ formas de hacer ambas.
+
+### Ejemplo: El Menú de la Cafetería
+- **Plato Fuerte:** Hamburguesa, Perro, Pizza (3 opciones)
+- **Bebida:** Gaseosa, Jugo (2 opciones)
+- **Postre:** Helado, Galleta (2 opciones)
+
+Total de combos = $3 \times 2 \times 2 = 12$ combinaciones diferentes.
+
+```python
+# Verificación en Python
+platos = ['Hamburguesa', 'Perro', 'Pizza']
+bebidas = ['Gaseosa', 'Jugo']
+postres = ['Helado', 'Galleta']
+
+count = 0
+for p in platos:
+    for b in bebidas:
+        for d in postres:
+            count += 1
+            print(f"{count}: {p} + {b} + {d}")
+            
+print(f"Total calculado: {count}")
+```
+
+```
+
+<CountingPrinciples />
+
+<Callout type="note">
+**¿Importa el orden?** Usa el simulador para ver visualmente la diferencia entre Permutaciones (A-B ≠ B-A) y Combinaciones (A-B = B-A). Nota que las combinaciones siempre son menos (o iguales).
+</Callout>
+
+---
+
+# 2. Factorial ($n!$)
+
+El factorial de un número es la multiplicación de todos los enteros decrecientes hasta 1. Representa la cantidad de formas de **ordenar** $n$ objetos distintos.
+
+$$n! = n \times (n-1) \times (n-2) \times ... \times 1$$
+
+- $3! = 3 \times 2 \times 1 = 6$
+- $5! = 120$
+- **Ojo:** $0! = 1$ (Por definición matemática).
+
+```python
+import math
+
+n = 5
+print(f"Factorial de {n} es: {math.factorial(n)}")
+```
+
+---
+
+# 3. Permutaciones (¡El Orden Importa!)
+
+Usamos permutaciones cuando el orden de los elementos altera el resultado.
+*Ejemplo: Una carrera de F1. No es lo mismo llegar de 1ro que de 2do.*
+
+**Fórmula:** Si queremos ordenar $r$ objetos de un grupo de $n$:
+
+$$P(n, r) = \frac{n!}{(n-r)!}$$
+
+### Ejemplo: El Podium
+Tenemos 10 corredores. ¿De cuántas formas podemos llenar el podio (Oro, Plata, Bronce)?
+$n=10$, $r=3$
+
+$$P(10, 3) = \frac{10!}{7!} = 10 \times 9 \times 8 = 720 \text{ formas}$$
+
+---
+
+# 4. Combinaciones (¡El Orden NO Importa!)
+
+Usamos combinaciones cuando el orden es irrelevante. Solo importa "quiénes están".
+*Ejemplo: Un comité de estudiantes. Elegir a Ana y Juan es lo mismo que elegir a Juan y Ana.*
+
+**Fórmula:** Dividimos las permutaciones por $r!$ para eliminar los duplicados por orden.
+
+$$C(n, r) = \binom{n}{r} = \frac{n!}{r!(n-r)!}$$
+
+### Ejemplo: La Lotería (Baloto)
+Debes elegir 5 números de 45 opciones. No importa en qué orden salgan las balotas.
+
+$$C(45, 5) = \frac{45!}{5! \times 40!} = \text{Un número muy grande}$$
+
+```python
+import math
+
+# Función personalizada para combinaciones
+def combinatoria(n, r):
+    return math.factorial(n) // (math.factorial(r) * math.factorial(n - r))
+
+posibilidades = combinatoria(45, 5)
+print(f"Posibilidades de ganar el Baloto (solo 5 números): {posibilidades:,}")
+print(f"Probabilidad de ganar: 1 en {posibilidades:,}")
+```
+
+---
+
+# Lab: Itertools en Acción
+
+Python tiene una librería estándar llamada `itertools` que hace todo el trabajo sucio por nosotros.
+
+```python
+import itertools
+
+letras = ['A', 'B', 'C', 'D']
+
+# 1. Permutaciones de 2 letras (Importa orden: AB != BA)
+print("--- Permutaciones (2) ---")
+perms = list(itertools.permutations(letras, 2))
+print(f"Cantidad: {len(perms)}")
+print(perms)
+
+# 2. Combinaciones de 2 letras (No importa orden: AB == BA, solo sale AB)
+print("\n--- Combinaciones (2) ---")
+combs = list(itertools.combinations(letras, 2))
+print(f"Cantidad: {len(combs)}")
+print(combs)
+```
+
+<Callout type="warning">
+**Cuidado Computacional:** No intentes calcular `permutations` de listas grandes (e.g., 20 elementos). El crecimiento factorial desbordará la memoria de tu navegador rápidamente.
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Técnicas de Conteo"
+  questions={[
+    {
+      id: "tc1",
+      text: "¿Cuál es el resultado de 5! (5 factorial)?",
+      options: [
+        { id: "a", text: "25", isCorrect: false, explanation: "Eso sería 5². Factorial es multiplicar todos los números desde el 5 hasta el 1." },
+        { id: "b", text: "120", isCorrect: true, explanation: "¡Correcto! 5! = 5×4×3×2×1 = 120." },
+        { id: "c", text: "15", isCorrect: false, explanation: "Eso sería 5+4+3+2+1 (suma). Factorial multiplica." },
+        { id: "d", text: "60", isCorrect: false, explanation: "Revisa el cálculo: 5×4×3×2×1." }
+      ]
+    },
+    {
+      id: "tc2",
+      text: "Si tienes 8 corredores y quieres saber cuántos podios distintos (Oro, Plata, Bronce) puedes formar, usarías:",
+      options: [
+        { id: "a", text: "Combinación C(8,3)", isCorrect: false, explanation: "Combinaciones ignoran el orden. Pero aquí el Oro, Plata y Bronce se distinguen." },
+        { id: "b", text: "Factorial 8!", isCorrect: false, explanation: "8! ordenarías a TODOS los 8 corredores, no solo los 3 del podio." },
+        { id: "c", text: "Permutación P(8,3)", isCorrect: true, explanation: "¡Correcto! El orden importa (1ro ≠ 2do ≠ 3ro), así que es P(8,3) = 8×7×6 = 336." }
+      ]
+    },
+    {
+      id: "tc3",
+      text: "En una lotería donde eliges 6 bolas de 49 sin importar el orden, ¿qué fórmula usarías?",
+      options: [
+        { id: "a", text: "C(49, 6)", isCorrect: true, explanation: "¡Exacto! El orden no importa, así que es una Combinación." },
+        { id: "b", text: "P(49, 6)", isCorrect: false, explanation: "¡Cuidado! Permutación considera orden. En lotería no importa si la 7 salió primero o última." },
+        { id: "c", text: "49⁶", isCorrect: false, explanation: "Eso sería si pudieras repetir la misma bola 6 veces, lo cual no es el caso." }
+      ]
+    }
+  ]}
+/>

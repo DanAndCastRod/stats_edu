@@ -1,0 +1,88 @@
+---
+title: Conceptos Básicos
+description: Introducción a la estadística descriptiva.
+bloomLevel: "REMEMBER"
+estimatedMinutes: 30
+order: 0
+---
+
+# Conceptos Básicos de Estadística
+
+La **estadística** es la ciencia que se encarga de recolectar, organizar, resumir y analizar datos.
+
+## Tipos de Variables
+
+Existen dos tipos principales de variables:
+
+1.  **Cualitativas**: Describen cualidades (ej. Color de ojos).
+2.  **Cuantitativas**: Describen cantidades (ej. Edad).
+
+## Fórmulas Importantes (LaTeX)
+
+La media aritmética se calcula como:
+
+$$
+\bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
+$$
+
+Donde $n$ es el número total de observaciones.
+
+## Flujo de Análisis (Mermaid)
+
+<Mermaid chart={`
+graph TD
+    A[Recolección] --> B[Organización]
+    B --> C[Análisis]
+    C --> D[Interpretación]
+`} />
+
+## Código Python (Ejecutable)
+
+A continuación puedes ejecutar código Python real en tu navegador. Intenta calcular la media de otros números:
+
+<PythonEditor initialCode={`import numpy as np
+
+data = [10, 20, 30, 40, 50]
+mean = np.mean(data)
+std = np.std(data)
+
+print(f"Datos: {data}")
+print(f"Media: {mean}")
+print(f"Desviación Estándar: {std:.2f}")`} />
+
+<Callout type="success">
+    **¡Bienvenido de nuevo!** Has desbloqueado el editor interactivo de Python.
+</Callout>
+
+## Autoevaluación
+
+Verifiquemos lo aprendido hasta ahora con este pequeño quiz:
+
+<Quiz 
+  title="Conceptos de Estadística Descriptiva"
+  questions={[
+    {
+      id: "q1",
+      text: "¿Cuál es la medida de tendencia central que representa el valor más frecuente en un conjunto de datos?",
+      options: [
+        { id: "a", text: "Media", isCorrect: false, explanation: "La media es el promedio aritmético." },
+        { id: "b", text: "Mediana", isCorrect: false, explanation: "La mediana es el valor central al ordenar los datos." },
+        { id: "c", text: "Moda", isCorrect: true, explanation: "¡Correcto! La moda es el valor que más se repite." },
+        { id: "d", text: "Rango", isCorrect: false, explanation: "El rango es la diferencia entre el valor máximo y el mínimo." }
+      ]
+    },
+    {
+      id: "q2",
+      text: "Si los datos están muy dispersos respecto a la media, decimos que tienen una:",
+      options: [
+        { id: "a", text: "Baja desviación estándar", isCorrect: false },
+        { id: "b", text: "Alta desviación estándar", isCorrect: true, explanation: "Exacto. A mayor dispersión, mayor es la desviación estándar." },
+        { id: "c", text: "Media nula", isCorrect: false }
+      ]
+    }
+  ]}
+/>
+
+<Callout type="note">
+    **Nota:** En la próxima lección profundizaremos en la probabilidad.
+</Callout>

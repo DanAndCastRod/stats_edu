@@ -1,0 +1,149 @@
+---
+title: "Estimación Puntual: Del Muestreo a la Inferencia"
+description: "Cómo usar una muestra para estimar parámetros poblacionales. Sesgo, eficiencia y estimadores insesgados."
+bloomLevel: "UNDERSTAND"
+estimatedMinutes: 45
+order: 1
+---
+
+# Introducción
+
+> **El Problema Fundamental:** Queremos conocer la media μ de toda una población, pero solo tenemos acceso a una pequeña muestra.
+
+La **inferencia estadística** es el arte de hacer conclusiones sobre **poblaciones** basándose en **muestras**. El primer paso es la **estimación puntual**: usar un solo número para "adivinar" el parámetro.
+
+<Callout type="info">
+**Ejemplo Real:** Una encuestadora quiere saber el % de apoyo a un candidato en todo el país. Encuesta a 1,000 personas y reporta "45% de apoyo". Ese 45% es una **estimación puntual** del parámetro real.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Diferenciar parámetro (población) vs estimador (muestra).
+- Evaluar estimadores por sesgo y varianza.
+- Calcular estimadores puntuales comunes.
+
+---
+
+# 1. Parámetros vs Estadísticos
+
+| Concepto | Símbolo | Descripción |
+|----------|---------|-------------|
+| **Parámetro** | μ, σ, p | Valor FIJO pero desconocido de la población |
+| **Estadístico** | $\bar{X}$, s, $\hat{p}$ | Valor calculado de la muestra (varía) |
+| **Estimador** | $\hat{\theta}$ | Fórmula usada para estimar un parámetro |
+
+### Notación Común
+- $\mu$ → Media poblacional (desconocida)
+- $\bar{X}$ → Media muestral (conocida, **estimador** de μ)
+- $\sigma$ → Desviación poblacional
+- $s$ → Desviación muestral
+
+---
+
+# 2. Propiedades de un Buen Estimador
+
+### Sesgo (Bias)
+$$\text{Sesgo}(\hat{\theta}) = E[\hat{\theta}] - \theta$$
+
+Un estimador es **insesgado** si en promedio da el valor correcto (sesgo = 0).
+
+### Eficiencia
+Entre estimadores insesgados, preferimos el de **menor varianza**.
+
+### Consistencia
+Con más datos (n → ∞), el estimador converge al parámetro real.
+
+<SamplingDistribution populationMean={100} populationStd={15} />
+
+<Callout type="note">
+**¡Interactúa!** Aumenta el tamaño de muestra n y observa cómo la distribución muestral se hace más concentrada (σ/√n se reduce).
+</Callout>
+
+---
+
+# 3. Estimadores Puntuales Comunes
+
+| Parámetro | Estimador | Fórmula |
+|-----------|-----------|---------|
+| μ (media) | $\bar{X}$ | $\frac{1}{n}\sum X_i$ |
+| σ² (varianza) | $s^2$ | $\frac{1}{n-1}\sum (X_i - \bar{X})^2$ |
+| p (proporción) | $\hat{p}$ | $\frac{\text{éxitos}}{n}$ |
+
+<Callout type="warning">
+**¿Por qué n-1?** La varianza muestral usa $n-1$ (no $n$) para corregir el sesgo. Esto se llama **corrección de Bessel**.
+</Callout>
+
+---
+
+# Lab: Simulando el Sesgo
+
+Veamos cómo la varianza con $n$ vs $n-1$ afecta el sesgo.
+
+```python
+import numpy as np
+
+np.random.seed(42)
+
+# Población: Normal con σ² = 25
+sigma_real = 5
+varianza_real = sigma_real**2
+
+n_simulaciones = 10000
+n_muestra = 10
+
+varianzas_n = []      # Divisor n (sesgado)
+varianzas_n1 = []     # Divisor n-1 (insesgado)
+
+for _ in range(n_simulaciones):
+    muestra = np.random.normal(100, sigma_real, n_muestra)
+    
+    # Varianza con n (np.var default)
+    var_n = np.var(muestra, ddof=0)
+    varianzas_n.append(var_n)
+    
+    # Varianza con n-1 (ddof=1)
+    var_n1 = np.var(muestra, ddof=1)
+    varianzas_n1.append(var_n1)
+
+print(f"Varianza REAL: {varianza_real}")
+print(f"Media de estimador con n:   {np.mean(varianzas_n):.2f} (sesgado)")
+print(f"Media de estimador con n-1: {np.mean(varianzas_n1):.2f} (insesgado)")
+print(f"Sesgo con n: {np.mean(varianzas_n) - varianza_real:.2f}")
+print(f"Sesgo con n-1: {np.mean(varianzas_n1) - varianza_real:.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Estimación Puntual"
+  questions={[
+    {
+      id: "ep1",
+      text: "Un estimador es 'insesgado' si:",
+      options: [
+        { id: "a", text: "Siempre da el valor exacto del parámetro", isCorrect: false, explanation: "Imposible. Hay variabilidad muestral." },
+        { id: "b", text: "En promedio (sobre muchas muestras) da el valor correcto", isCorrect: true, explanation: "¡Exacto! E[estimador] = parámetro." },
+        { id: "c", text: "Tiene varianza cero", isCorrect: false, explanation: "Eso es diferente. Sesgo ≠ varianza." }
+      ]
+    },
+    {
+      id: "ep2",
+      text: "La varianza muestral usa divisor n-1 en lugar de n para:",
+      options: [
+        { id: "a", text: "Hacer el cálculo más fácil", isCorrect: false, explanation: "n-1 es más complicado, no más fácil." },
+        { id: "b", text: "Corregir el sesgo del estimador", isCorrect: true, explanation: "¡Correcto! Es la corrección de Bessel." },
+        { id: "c", text: "Aumentar la varianza artificialmente", isCorrect: false, explanation: "No es artificial, es corrección matemática." }
+      ]
+    },
+    {
+      id: "ep3",
+      text: "¿Cuál es el estimador puntual de la proporción poblacional p?",
+      options: [
+        { id: "a", text: "La media muestral", isCorrect: false, explanation: "Eso estima μ, no p." },
+        { id: "b", text: "éxitos / n", isCorrect: true, explanation: "¡Correcto! p̂ = x/n." },
+        { id: "c", text: "La mediana muestral", isCorrect: false, explanation: "Mediana no estima proporciones." }
+      ]
+    }
+  ]}
+/>

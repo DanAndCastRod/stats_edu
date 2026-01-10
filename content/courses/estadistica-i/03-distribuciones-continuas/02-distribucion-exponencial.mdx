@@ -1,0 +1,136 @@
+---
+title: "Distribución Exponencial: Modelando el Tiempo"
+description: "La distribución del tiempo entre eventos. Tasas de fallo, tiempos de espera y la propiedad sin memoria."
+bloomLevel: "APPLY"
+estimatedMinutes: 45
+order: 2
+---
+
+# Introducción
+
+> **Pregunta:** Si los clientes llegan a tu banco en promedio cada 5 minutos, ¿cuál es la probabilidad de que el próximo cliente llegue en menos de 3 minutos?
+
+La **Distribución Exponencial** modela el **tiempo entre eventos** en un proceso de Poisson. Es fundamental en:
+- Análisis de fiabilidad (tiempo hasta la falla)
+- Teoría de colas (tiempo de espera)
+- Telecomunicaciones (tiempo entre llamadas)
+
+<Callout type="info">
+**Conexión Poisson-Exponencial:** Si el número de eventos sigue Poisson(λ), entonces el tiempo entre eventos sigue Exponencial(λ).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Entender la relación Poisson-Exponencial.
+- Calcular probabilidades con la CDF exponencial.
+- Aplicar la "propiedad sin memoria".
+
+---
+
+# 1. Parámetros y Fórmula
+
+### Función de Densidad
+$$f(x) = \lambda e^{-\lambda x}, \quad x \geq 0$$
+
+### Función de Distribución Acumulada (CDF)
+$$P(X \leq x) = 1 - e^{-\lambda x}$$
+
+### Estadísticos
+- **Media:** $E[X] = \frac{1}{\lambda}$
+- **Varianza:** $Var(X) = \frac{1}{\lambda^2}$
+
+### Ejemplo
+Si los clientes llegan cada 5 minutos en promedio:
+- $E[X] = 5$ minutos
+- $\lambda = \frac{1}{5} = 0.2$ clientes/minuto
+
+---
+
+# 2. La Propiedad Sin Memoria
+
+La exponencial es la **única distribución continua sin memoria**:
+
+$$P(X > s + t | X > s) = P(X > t)$$
+
+**Interpretación:** Si ya esperaste 10 minutos sin que llegue un cliente, la probabilidad de esperar 5 minutos más es la MISMA que si acabaras de empezar a esperar.
+
+<Callout type="warning">
+**Realidad vs Modelo:** En la vida real, los sistemas envejecen (mayor probabilidad de falla con el tiempo). La exponencial NO modela esto. Para sistemas que envejecen, usa la distribución Weibull.
+</Callout>
+
+---
+
+# Lab: Análisis de Fiabilidad
+
+Modelemos el tiempo hasta la falla de una máquina.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import expon
+
+# Parámetro: media de 1000 horas hasta la falla
+media = 1000  # horas
+lambda_param = 1 / media  # λ = 0.001
+
+# SciPy usa 'scale' = 1/λ = media
+scale = media
+
+# Pregunta 1: P(falla antes de 500 horas)
+prob_antes_500 = expon.cdf(500, scale=scale)
+print(f"P(X < 500 horas) = {prob_antes_500:.4f} = {prob_antes_500*100:.2f}%")
+
+# Pregunta 2: P(sobrevive más de 1500 horas)
+prob_mas_1500 = 1 - expon.cdf(1500, scale=scale)
+print(f"P(X > 1500 horas) = {prob_mas_1500:.4f} = {prob_mas_1500*100:.2f}%")
+
+# Visualización
+x = np.linspace(0, 4000, 300)
+y = expon.pdf(x, scale=scale)
+
+plt.figure(figsize=(10, 6))
+plt.plot(x, y, 'b-', linewidth=2)
+plt.fill_between(x, y, where=(x <= 500), alpha=0.3, color='red', label=f'P(X<500) = {prob_antes_500:.2%}')
+plt.axvline(media, color='green', linestyle='--', label=f'Media = {media}h')
+plt.title(f'Distribución Exponencial (μ={media}h)')
+plt.xlabel('Tiempo hasta falla (horas)')
+plt.ylabel('Densidad')
+plt.legend()
+plt.show()
+```
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Distribución Exponencial"
+  questions={[
+    {
+      id: "de1",
+      text: "Si λ = 2 eventos/hora, ¿cuál es el tiempo promedio entre eventos?",
+      options: [
+        { id: "a", text: "2 horas", isCorrect: false, explanation: "¡Al revés! E[X] = 1/λ, no λ." },
+        { id: "b", text: "0.5 horas (30 minutos)", isCorrect: true, explanation: "¡Correcto! E[X] = 1/2 = 0.5 horas." },
+        { id: "c", text: "4 horas", isCorrect: false, explanation: "Recuerda: E[X] = 1/λ." }
+      ]
+    },
+    {
+      id: "de2",
+      text: "La 'propiedad sin memoria' significa que:",
+      options: [
+        { id: "a", text: "El sistema se reinicia después de cada falla", isCorrect: false, explanation: "No es sobre reinicios, es sobre probabilidades condicionales." },
+        { id: "b", text: "El tiempo que ya esperaste no afecta la probabilidad futura", isCorrect: true, explanation: "¡Exacto! P(X>s+t|X>s) = P(X>t)." },
+        { id: "c", text: "La distribución no tiene varianza", isCorrect: false, explanation: "Claro que tiene varianza: Var(X) = 1/λ²." }
+      ]
+    },
+    {
+      id: "de3",
+      text: "Si el número de llamadas por hora sigue Poisson(λ=5), el tiempo entre llamadas sigue:",
+      options: [
+        { id: "a", text: "Normal(5, 1)", isCorrect: false, explanation: "No hay relación Poisson-Normal directa." },
+        { id: "b", text: "Exponencial(λ=5) con media 1/5 hora", isCorrect: true, explanation: "¡Correcto! Poisson y Exponencial son 'duales'." },
+        { id: "c", text: "Binomial(n=5, p=0.5)", isCorrect: false, explanation: "Binomial es discreta, no modela tiempos." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,170 @@
+---
+title: "Prueba t para la Media (σ Desconocido)"
+description: "La prueba más usada en la práctica. Cuando estimamos σ con los datos muestrales."
+bloomLevel: "APPLY"
+estimatedMinutes: 45
+order: 3
+---
+
+# Introducción
+
+En la vida real, **casi nunca conocemos σ**. Usamos la desviación muestral $s$ y la **distribución t de Student**.
+
+<Callout type="info">
+**Dato Histórico:** William Gosset publicó la distribución t bajo el seudónimo "Student" porque trabajaba para la cervecería Guinness y no le permitían publicar con su nombre real.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Aplicar la prueba t para una muestra.
+- Usar `scipy.stats.ttest_1samp()`.
+- Interpretar los resultados en contexto.
+
+---
+
+# 1. El Estadístico de Prueba
+
+$$t = \frac{\bar{X} - \mu_0}{s / \sqrt{n}}$$
+
+Sigue una distribución t con **n-1 grados de libertad**.
+
+### Diferencia con Z
+- Usamos $s$ en lugar de $σ$
+- La distribución t tiene "colas más pesadas" (más conservadora)
+- Con n grande, t ≈ Z
+
+<TDistribution initialDF={10} />
+
+<Callout type="note">
+**¡Interactúa!** Aumenta los grados de libertad para ver cómo la distribución t converge hacia la normal estándar.
+</Callout>
+
+---
+
+# 2. Ejemplo Completo
+
+**Problema:** Un nutricionista afirma que su dieta reduce el peso en promedio 5kg por mes. De 20 pacientes, la pérdida promedio fue 4.2kg con s=1.8kg. ¿La dieta cumple lo prometido? (α=0.05)
+
+### Paso 1: Hipótesis
+- H₀: μ = 5 (la dieta cumple)
+- H₁: μ < 5 (la dieta no cumple lo prometido) → **Cola izquierda**
+
+### Paso 2: Cálculo con SciPy
+
+```python
+from scipy.stats import t, ttest_1samp
+import numpy as np
+
+# Datos
+x_bar = 4.2        # Media muestral
+mu_0 = 5.0         # Valor hipotético
+s = 1.8            # Desviación muestral
+n = 20             # Tamaño de muestra
+alpha = 0.05
+
+# Método 1: Cálculo manual
+t_calc = (x_bar - mu_0) / (s / np.sqrt(n))
+df = n - 1
+p_valor_manual = t.cdf(t_calc, df)  # Cola izquierda
+
+print("=== Método Manual ===")
+print(f"t calculado: {t_calc:.4f}")
+print(f"Grados de libertad: {df}")
+print(f"P-valor (cola izquierda): {p_valor_manual:.4f}")
+
+# Método 2: Usando ttest_1samp (más práctico)
+# Nota: ttest_1samp devuelve p-valor de dos colas, dividimos por 2 para una cola
+datos_simulados = np.random.normal(x_bar, s, n)  # Simular datos con esa media y std
+t_stat, p_dos_colas = ttest_1samp(datos_simulados, mu_0)
+
+print("\n=== Método SciPy (con datos simulados) ===")
+print(f"t-statistic: {t_stat:.4f}")
+print(f"P-valor (dos colas): {p_dos_colas:.4f}")
+
+# Decisión
+print("\n=== Decisión ===")
+if p_valor_manual < alpha:
+    print(f"✗ RECHAZAR H₀ (p={p_valor_manual:.4f} < α={alpha})")
+    print("Conclusión: La dieta NO cumple lo prometido.")
+else:
+    print(f"✓ NO RECHAZAR H₀ (p={p_valor_manual:.4f} ≥ α={alpha})")
+    print("Conclusión: No hay evidencia suficiente contra la dieta.")
+```
+
+---
+
+# 3. La Función `ttest_1samp` en Detalle
+
+```python
+from scipy.stats import ttest_1samp
+import numpy as np
+
+# Datos reales (no solo estadísticos)
+datos = [4.5, 3.8, 5.2, 4.1, 3.9, 4.8, 4.3, 3.7, 4.6, 5.0,
+         4.2, 3.5, 4.7, 4.0, 3.8, 4.4, 4.1, 3.9, 4.5, 4.3]
+
+mu_hipotetico = 5.0
+
+# La función hace todo el trabajo
+t_stat, p_valor = ttest_1samp(datos, mu_hipotetico)
+
+print(f"Media muestral: {np.mean(datos):.2f}")
+print(f"Desv. estándar muestral: {np.std(datos, ddof=1):.2f}")
+print(f"t-statistic: {t_stat:.4f}")
+print(f"P-valor (dos colas): {p_valor:.4f}")
+
+# Para prueba de una cola (μ < μ₀), el p-valor es:
+p_una_cola = p_valor / 2 if t_stat < 0 else 1 - p_valor / 2
+print(f"P-valor (cola izquierda): {p_una_cola:.4f}")
+```
+
+---
+
+# 4. Cuándo Usar t vs Z
+
+| Situación | Usar |
+|-----------|------|
+| σ conocido (raro) | Z |
+| σ desconocido, n < 30 | t |
+| σ desconocido, n ≥ 30 | t (aunque Z daría similar) |
+| Datos normales o n grande (TLC) | t (siempre seguro) |
+
+<Callout type="warning">
+**Regla Práctica:** En la duda, usa t. Nunca estarás mal.
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Prueba t para la Media"
+  questions={[
+    {
+      id: "pt1",
+      text: "La principal diferencia entre la prueba t y la prueba Z es:",
+      options: [
+        { id: "a", text: "t usa σ conocido, Z usa s estimado", isCorrect: false, explanation: "¡Al revés! t usa s, Z usa σ." },
+        { id: "b", text: "t usa s estimado y tiene colas más pesadas", isCorrect: true, explanation: "¡Correcto! La t compensa la incertidumbre extra." },
+        { id: "c", text: "Z es para muestras pequeñas", isCorrect: false, explanation: "Z es para σ conocido, independiente de n." }
+      ]
+    },
+    {
+      id: "pt2",
+      text: "Los grados de libertad para una prueba t de una muestra son:",
+      options: [
+        { id: "a", text: "n", isCorrect: false, explanation: "Se pierde 1 g.l. al estimar la media." },
+        { id: "b", text: "n - 1", isCorrect: true, explanation: "¡Correcto! df = n - 1." },
+        { id: "c", text: "n + 1", isCorrect: false, explanation: "Los g.l. nunca aumentan al estimar." }
+      ]
+    },
+    {
+      id: "pt3",
+      text: "Si `ttest_1samp` devuelve p-valor de 0.08 (dos colas) y queremos probar H₁: μ > μ₀:",
+      options: [
+        { id: "a", text: "El p-valor de una cola es 0.04", isCorrect: true, explanation: "¡Correcto! Para una cola, dividimos por 2 (si t > 0)." },
+        { id: "b", text: "El p-valor sigue siendo 0.08", isCorrect: false, explanation: "Hay que ajustar para una cola." },
+        { id: "c", text: "No se puede calcular", isCorrect: false, explanation: "Sí se puede: p_una_cola = p_dos_colas / 2." }
+      ]
+    }
+  ]}
+/>

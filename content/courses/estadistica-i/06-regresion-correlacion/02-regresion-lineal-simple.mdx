@@ -1,0 +1,180 @@
+---
+title: "Regresión Lineal Simple: Prediciendo el Futuro"
+description: "Encontrando la mejor recta para modelar la relación entre dos variables."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+order: 2
+---
+
+# Introducción
+
+> **El Objetivo:** No solo queremos saber SI hay relación (correlación), sino CUÁL es esa relación. Queremos una **ecuación** que prediga Y dado X.
+
+La **Regresión Lineal Simple** encuentra la recta que mejor ajusta los datos:
+
+$$\hat{Y} = \beta_0 + \beta_1 X$$
+
+<Callout type="info">
+**Aplicaciones:** Predicción de ventas, estimación de costos, pronóstico de demanda, valoración de activos.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Entender el método de mínimos cuadrados.
+- Interpretar los coeficientes β₀ (intercepto) y β₁ (pendiente).
+- Ajustar modelos usando Python.
+
+---
+
+# 1. El Método de Mínimos Cuadrados
+
+Buscamos la recta que **minimiza la suma de errores al cuadrado**:
+
+$$\min \sum_{i=1}^{n} (Y_i - \hat{Y}_i)^2 = \min \sum (Y_i - \beta_0 - \beta_1 X_i)^2$$
+
+### Fórmulas de los Coeficientes
+
+$$\beta_1 = \frac{\sum(X_i - \bar{X})(Y_i - \bar{Y})}{\sum(X_i - \bar{X})^2} = r \cdot \frac{s_Y}{s_X}$$
+
+$$\beta_0 = \bar{Y} - \beta_1 \bar{X}$$
+
+<RegressionLine initialPoints={20} />
+
+<Callout type="note">
+**¡Interactúa!** Ajusta la pendiente real, intercepto, ruido y tamaño de muestra para ver cómo afectan la estimación del modelo.
+</Callout>
+
+---
+
+# 2. Interpretación de los Coeficientes
+
+| Coeficiente | Significado |
+|-------------|-------------|
+| **β₀ (Intercepto)** | Valor predicho de Y cuando X = 0 |
+| **β₁ (Pendiente)** | Cambio en Y por cada unidad de cambio en X |
+
+### Ejemplo
+Si la ecuación es: Salario = 20,000 + 500 × Experiencia
+
+- **β₀ = 20,000:** Salario base sin experiencia
+- **β₁ = 500:** Por cada año adicional de experiencia, el salario aumenta $500
+
+---
+
+# 3. Regresión con Python
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+import seaborn as sns
+
+np.random.seed(42)
+
+# Datos de ejemplo: Horas de estudio vs Nota
+horas = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+notas = np.array([45, 50, 55, 60, 62, 70, 75, 80, 85, 90])
+
+# Ajustar regresión lineal
+slope, intercept, r_value, p_value, std_err = stats.linregress(horas, notas)
+
+print("=== Modelo de Regresión ===")
+print(f"Ecuación: Nota = {intercept:.2f} + {slope:.2f} × Horas")
+print(f"Pendiente (β₁): {slope:.4f}")
+print(f"Intercepto (β₀): {intercept:.4f}")
+print(f"R²: {r_value**2:.4f}")
+print(f"P-valor: {p_value:.4f}")
+
+# Predicción
+horas_nuevas = 6.5
+nota_predicha = intercept + slope * horas_nuevas
+print(f"\nPredicción: Con {horas_nuevas}h de estudio → Nota = {nota_predicha:.1f}")
+
+# Visualización
+plt.figure(figsize=(10, 6))
+plt.scatter(horas, notas, s=100, alpha=0.7, label='Datos observados')
+plt.plot(horas, intercept + slope * horas, 'r-', linewidth=2, label=f'Recta: {intercept:.1f} + {slope:.1f}x')
+plt.scatter([horas_nuevas], [nota_predicha], s=150, color='green', marker='*', label=f'Predicción ({horas_nuevas}h)')
+plt.xlabel('Horas de Estudio')
+plt.ylabel('Nota')
+plt.title('Regresión Lineal Simple')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+---
+
+# 4. Usando `sklearn` para Regresión
+
+```python
+from sklearn.linear_model import LinearRegression
+import numpy as np
+
+# Datos (X debe ser 2D para sklearn)
+X = np.array([[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]])
+y = np.array([45, 50, 55, 60, 62, 70, 75, 80, 85, 90])
+
+# Crear y ajustar el modelo
+modelo = LinearRegression()
+modelo.fit(X, y)
+
+# Coeficientes
+print(f"Intercepto (β₀): {modelo.intercept_:.4f}")
+print(f"Pendiente (β₁): {modelo.coef_[0]:.4f}")
+
+# Predicciones
+X_nuevos = np.array([[6.5], [11], [15]])
+predicciones = modelo.predict(X_nuevos)
+for hrs, pred in zip(X_nuevos.flatten(), predicciones):
+    print(f"Horas: {hrs} → Nota predicha: {pred:.2f}")
+```
+
+---
+
+# 5. Los Residuos
+
+El **residuo** es la diferencia entre el valor real y el predicho:
+
+$$e_i = Y_i - \hat{Y}_i$$
+
+Los residuos deben:
+- Tener media cero
+- Ser aproximadamente normales
+- No mostrar patrones (homocedasticidad)
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Regresión Lineal Simple"
+  questions={[
+    {
+      id: "rls1",
+      text: "Si la ecuación es: Ventas = 100 + 25×Publicidad, ¿qué significa el 25?",
+      options: [
+        { id: "a", text: "Las ventas base sin publicidad", isCorrect: false, explanation: "Eso es el intercepto (100)." },
+        { id: "b", text: "Por cada unidad de publicidad, las ventas aumentan en 25", isCorrect: true, explanation: "¡Correcto! Es la pendiente, el efecto marginal." },
+        { id: "c", text: "El 25% de las ventas vienen de publicidad", isCorrect: false, explanation: "La pendiente no es un porcentaje." }
+      ]
+    },
+    {
+      id: "rls2",
+      text: "El método de mínimos cuadrados busca minimizar:",
+      options: [
+        { id: "a", text: "La suma de residuos", isCorrect: false, explanation: "La suma de residuos siempre es 0 (se cancelan positivos y negativos)." },
+        { id: "b", text: "La suma de residuos al CUADRADO", isCorrect: true, explanation: "¡Exacto! Por eso se llama 'mínimos cuadrados'." },
+        { id: "c", text: "El valor absoluto de los residuos", isCorrect: false, explanation: "Eso sería otro método (MAE), no mínimos cuadrados." }
+      ]
+    },
+    {
+      id: "rls3",
+      text: "Si R² = 0.81, esto significa que:",
+      options: [
+        { id: "a", text: "El 81% de la variabilidad de Y es explicada por X", isCorrect: true, explanation: "¡Correcto! R² es el coeficiente de determinación." },
+        { id: "b", text: "La correlación es 0.81", isCorrect: false, explanation: "La correlación sería √0.81 = 0.9." },
+        { id: "c", text: "El modelo tiene 81% de precisión", isCorrect: false, explanation: "R² no se interpreta como precisión en ese sentido." }
+      ]
+    }
+  ]}
+/>

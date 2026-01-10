@@ -1,0 +1,156 @@
+---
+title: "Intervalos de Confianza para Proporciones"
+description: "Estimando porcentajes poblacionales. Encuestas, tasas de defecto y preferencias."
+bloomLevel: "APPLY"
+estimatedMinutes: 45
+order: 3
+---
+
+# Introducción
+
+> **Escenario:** Una encuesta a 400 personas muestra que 180 prefieren el producto A. ¿Cuál es el verdadero % de preferencia en toda la población?
+
+Cuando el parámetro de interés es una **proporción** (p), usamos un IC diferente.
+
+<Callout type="info">
+**Aplicaciones:** Tasas de defecto en manufactura, porcentaje de votos, tasa de conversión en marketing, prevalencia de enfermedades.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular ICs para proporciones usando la aproximación Normal.
+- Verificar las condiciones de validez (np ≥ 10, n(1-p) ≥ 10).
+- Interpretar resultados en contexto.
+
+---
+
+# 1. Fórmula del IC para Proporciones
+
+$$\hat{p} \pm Z_{\alpha/2} \cdot \sqrt{\frac{\hat{p}(1-\hat{p})}{n}}$$
+
+Donde:
+- $\hat{p} = \frac{x}{n}$ = proporción muestral
+- $x$ = número de "éxitos"
+- $n$ = tamaño de muestra
+
+### Condiciones de Validez
+Para que la aproximación Normal funcione:
+- $n\hat{p} \geq 10$
+- $n(1-\hat{p}) \geq 10$
+
+<ProportionCI initialP={0.6} initialN={100} />
+
+<Callout type="note">
+**¡Interactúa!** Ajusta p̂, n y el nivel de confianza para ver cómo cambia el intervalo y verificar las condiciones de validez.
+</Callout>
+
+---
+
+# 2. Ejemplo Paso a Paso
+
+**Problema:** De 500 piezas inspeccionadas, 35 tienen defectos. Construir IC 95% para la tasa de defectos.
+
+```python
+from scipy.stats import norm
+import numpy as np
+
+# Datos
+x = 35              # Defectuosas
+n = 500             # Total inspeccionadas
+confianza = 0.95
+
+# Cálculos
+p_hat = x / n
+alpha = 1 - confianza
+z_critico = norm.ppf(1 - alpha/2)
+
+# Error estándar de la proporción
+ee = np.sqrt(p_hat * (1 - p_hat) / n)
+margen_error = z_critico * ee
+
+ic_inferior = p_hat - margen_error
+ic_superior = p_hat + margen_error
+
+# Verificar condiciones
+print("--- Verificación ---")
+print(f"n·p̂ = {n * p_hat:.1f} (debe ser ≥ 10) ✓")
+print(f"n·(1-p̂) = {n * (1-p_hat):.1f} (debe ser ≥ 10) ✓")
+
+print("\n--- Resultados ---")
+print(f"Proporción muestral: {p_hat:.4f} = {p_hat*100:.2f}%")
+print(f"IC {confianza*100:.0f}%: ({ic_inferior:.4f}, {ic_superior:.4f})")
+print(f"En porcentaje: ({ic_inferior*100:.2f}%, {ic_superior*100:.2f}%)")
+```
+
+---
+
+# 3. Interpretación en Contexto
+
+Del ejemplo anterior:
+- Tasa de defectos estimada: **7%**
+- IC 95%: **(4.8%, 9.2%)**
+
+**Interpretación:** Con 95% de confianza, la verdadera tasa de defectos de la línea de producción está entre 4.8% y 9.2%.
+
+<Callout type="warning">
+**Decisión Gerencial:** Si el estándar de calidad exige menos de 5% de defectos, este IC sugiere que probablemente NO se cumple (el límite inferior es 4.8%, muy cerca).
+</Callout>
+
+---
+
+# 4. IC de Agresti-Coull (Ajustado)
+
+Para muestras pequeñas o proporciones extremas, el método clásico puede fallar. El método Agresti-Coull agrega 2 "éxitos" y 2 "fracasos" ficticios.
+
+$$\tilde{p} = \frac{x + 2}{n + 4}$$
+
+```python
+# Método Agresti-Coull
+x_adj = x + 2
+n_adj = n + 4
+p_tilde = x_adj / n_adj
+
+ee_adj = np.sqrt(p_tilde * (1 - p_tilde) / n_adj)
+margen_adj = z_critico * ee_adj
+
+ic_inf_adj = p_tilde - margen_adj
+ic_sup_adj = p_tilde + margen_adj
+
+print(f"IC Agresti-Coull: ({ic_inf_adj*100:.2f}%, {ic_sup_adj*100:.2f}%)")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: IC para Proporciones"
+  questions={[
+    {
+      id: "icp1",
+      text: "En una encuesta, 120 de 400 personas dijeron 'Sí'. ¿Cuál es p̂?",
+      options: [
+        { id: "a", text: "0.30 (30%)", isCorrect: true, explanation: "¡Correcto! p̂ = 120/400 = 0.30." },
+        { id: "b", text: "0.40 (40%)", isCorrect: false, explanation: "Divide éxitos entre total: 120/400." },
+        { id: "c", text: "120", isCorrect: false, explanation: "Eso es x, no p̂. p̂ = x/n." }
+      ]
+    },
+    {
+      id: "icp2",
+      text: "Las condiciones np≥10 y n(1-p)≥10 aseguran que:",
+      options: [
+        { id: "a", text: "La muestra es representativa", isCorrect: false, explanation: "Eso depende del muestreo, no de estas condiciones." },
+        { id: "b", text: "La aproximación Normal es válida", isCorrect: true, explanation: "¡Exacto! Necesitamos suficientes éxitos Y fracasos." },
+        { id: "c", text: "El sesgo es cero", isCorrect: false, explanation: "Esto es sobre la distribución muestral, no el sesgo." }
+      ]
+    },
+    {
+      id: "icp3",
+      text: "Si el IC 95% para una tasa de defectos es (2%, 6%), podemos concluir:",
+      options: [
+        { id: "a", text: "La tasa real es exactamente 4%", isCorrect: false, explanation: "4% es el centro del IC, pero no sabemos el valor exacto." },
+        { id: "b", text: "Estamos 95% seguros de que p está entre 2% y 6%", isCorrect: true, explanation: "¡Correcto! Esa es la interpretación del IC." },
+        { id: "c", text: "El 95% de las piezas están defectuosas", isCorrect: false, explanation: "¡No! 95% es el nivel de confianza, no la tasa de defectos." }
+      ]
+    }
+  ]}
+/>

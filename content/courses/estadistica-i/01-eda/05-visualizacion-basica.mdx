@@ -1,0 +1,92 @@
+---
+title: "Lab: Histogramas y Boxplots"
+description: "Técnicas fundamentales para visualizar distribuciones en Python."
+bloomLevel: "CREATE"
+estimatedMinutes: 60
+order: 5
+---
+
+# Introducción
+> "Un gráfico vale más que mil tablas ANOVA".
+
+El análisis numérico (media, desviación) es ciego. El análisis gráfico te abre los ojos. En este laboratorio, aprenderemos a crear las dos herramientas más potentes del EDA (Exploratory Data Analysis): el Histograma (forma) y el Boxplot (outliers).
+
+## Objetivos de Aprendizaje
+- Generar Histogramas para entender la frecuencia de datos.
+- Generar Boxplots para detectar outliers y comparar grupos.
+- Personalizar gráficos con `matplotlib` y `seaborn`.
+
+---
+
+# 1. El Histograma
+Es la foto de la distribución. Divide los datos en cajones (bins) y cuenta cuántos caen en cada uno.
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Configuración estética
+sns.set_theme(style="whitegrid")
+
+# Crear datos simulados (e.g., tiempos de falla)
+data = [12, 15, 13, 12, 18, 20, 22, 12, 13, 15, 16, 25, 28, 12]
+df = pd.DataFrame(data, columns=['val'])
+
+# Generar Histograma
+plt.figure(figsize=(10, 6))
+sns.histplot(data=df, x='val', bins=5, color='skyblue', kde=True)
+plt.title('Distribución de Tiempos de Falla')
+plt.xlabel('Tiempo (horas)')
+plt.ylabel('Frecuencia')
+plt.show() # En Stats.edu, esto generará la imagen automáticamente
+```
+
+<Callout type="info">
+**Tip Pro:** La línea suave que ves encima se llama **KDE (Kernel Density Estimate)**. Es una versión suavizada del histograma que ayuda a ver la "forma" teórica.
+</Callout>
+
+---
+
+# 2. El Boxplot (Diagrama de Caja y Bigotes)
+Es el mejor amigo del ingeniero para comparar categorías. Resume 5 números: Mínimo, Q1 (25%), Mediana (Q2), Q3 (75%), Máximo y Outliers.
+
+### Estructura del Boxplot
+- **La Caja:** Contiene el 50% central de los datos (Rango Intercuartil).
+- **La Raya Central:** Es la Mediana (no el promedio).
+- **Los Puntos:** Son Outliers (datos anómalos).
+
+```python
+# Comparando dos máquinas
+datos_m1 = [10, 12, 11, 13, 10, 11, 12, 40] # 40 es un outlier
+datos_m2 = [20, 21, 19, 20, 22, 21, 20]     # Máquina consistente
+
+df_comparativo = pd.DataFrame({
+    'Valor': datos_m1 + datos_m2,
+    'Maquina': ['M1']*8 + ['M2']*7
+})
+
+plt.figure(figsize=(10, 6))
+sns.boxplot(data=df_comparativo, x='Maquina', y='Valor', palette="Set2")
+plt.title('Comparación de Rendimiento: M1 vs M2')
+plt.show()
+```
+
+### ¿Qué buscar?
+1.  **¿Están las cajas al mismo nivel?** -> Diferencia de Centralidad.
+2.  **¿Es una caja más alta que la otra?** -> Diferencia de Dispersión (Varianza).
+3.  **¿Hay puntos volando solos?** -> Outliers a investigar.
+
+<OutlierDetector initialN={40} />
+
+<Callout type="note">
+**¡Interactúa!** Compara los métodos IQR y Z-score para detectar outliers. ¿Cuál encuentra más outliers reales?
+</Callout>
+
+---
+
+# Misión Final (Reto)
+Usa el editor de Python a la derecha.
+1.  Crea un DataFrame con 50 números aleatorios (`numpy.random.normal(50, 5, 50)`).
+2.  Grafica su histograma.
+3.  ¿Se parece a una campana perfecta? (Pista: Con pocos datos, a menudo se ve "feo". Es la Ley de los Grandes Números operando en tu contra).

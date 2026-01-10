@@ -1,0 +1,134 @@
+---
+title: "Distribuciones Clásicas: Binomial y Poisson"
+description: "Modelando el éxito y el fracaso, y los eventos raros en el tiempo."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+order: 4
+---
+
+# Introducción
+
+No necesitamos reinventar la rueda. Muchos fenómenos naturales siguen patrones predecibles.
+Las **Distribuciones de Probabilidad** son modelos matemáticos que "ajustan" a estos fenómenos.
+
+- ¿Lanzar una moneda 10 veces? -> **Binomial**.
+- ¿Número de clientes llegando al banco por hora? -> **Poisson**.
+
+---
+
+# 1. Distribución Binomial ($n, p$)
+
+Modela el número de "éxitos" en $n$ intentos independientes, cada uno con probabilidad $p$ de éxito.
+
+$$P(X=k) = \binom{n}{k} p^k (1-p)^{n-k}$$
+
+### Parámetros
+- $n$: Número de ensayos (e.g., 100 piezas inspeccionadas).
+- $p$: Probabilidad de defecto (e.g., 0.05).
+
+<DiscreteDistributions initialType="binomial" />
+
+<Callout type="note">
+**¡Interactúa!** Cambia entre **Binomial** y **Poisson**. Observa cómo la Binomial se parece a una Normal cuando n es grande y p es 0.5 (teorema de De Moivre-Laplace).
+</Callout>
+
+---
+
+# 2. Distribución Poisson ($\lambda$)
+
+Modela el número de eventos que ocurren en un intervalo de tiempo o espacio fijo.
+
+$$P(X=k) = \frac{e^{-\lambda} \lambda^k}{k!}$$
+
+### Parámetro
+- $\lambda$ (Lambda): Tasa promedio de ocurrencia (e.g., 5 llamadas/minuto).
+
+---
+
+# Lab: Visualizando las Distribuciones
+
+Usemos `scipy.stats` para calcular probabilidades exactas y visualizar las distribuciones.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import binom, poisson
+
+# Configuración
+sns.set_theme(style="whitegrid")
+plt.figure(figsize=(12, 5))
+
+# --- BINOMIAL ---
+# Ejemplo: 20 lanzamientos de moneda (p=0.5)
+n, p = 20, 0.5
+x_binom = np.arange(0, n+1)
+pmf_binom = binom.pmf(x_binom, n, p)
+
+plt.subplot(1, 2, 1)
+plt.bar(x_binom, pmf_binom, color='skyblue', label=f'Binomial(n={n}, p={p})')
+plt.title(f'Distribución Binomial (n={n}, p={p})')
+plt.xlabel('Número de Éxitos')
+plt.ylabel('Probabilidad')
+plt.legend()
+
+# --- POISSON ---
+# Ejemplo: Promedio de 5 llamadas por minuto
+mu = 5
+x_poisson = np.arange(0, 15)
+pmf_poisson = poisson.pmf(x_poisson, mu)
+
+plt.subplot(1, 2, 2)
+plt.bar(x_poisson, pmf_poisson, color='salmon', label=f'Poisson(λ={mu})')
+plt.title(f'Distribución Poisson (λ={mu})')
+plt.xlabel('Número de Eventos')
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+# Cálculos Exactos
+print(f"Probabilidad de obtener exactamente 10 caras (Binomial): {binom.pmf(10, n, p):.4f}")
+print(f"Probabilidad de recibir exactamente 5 llamadas (Poisson): {poisson.pmf(5, mu):.4f}")
+```
+
+<Callout type="info">
+**Tip de Ingeniería:** Cuando $n$ es muy grande y $p$ es muy pequeño (eventos raros), la Binomial se parece mucho a la Poisson.
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Distribuciones Binomial y Poisson"
+  questions={[
+    {
+      id: "bp1",
+      text: "Tienes una máquina que produce tornillos con un 2% de defectos. Seleccionas 50 tornillos al azar. ¿Qué distribución modela el número de tornillos defectuosos?",
+      options: [
+        { id: "a", text: "Binomial(n=50, p=0.02)", isCorrect: true, explanation: "¡Correcto! Son n intentos independientes con probabilidad p constante." },
+        { id: "b", text: "Poisson(λ=1)", isCorrect: false, explanation: "Poisson modela eventos en tiempo/espacio. Aquí tenemos un número fijo de ensayos." },
+        { id: "c", text: "Normal(μ=1, σ=1)", isCorrect: false, explanation: "La Normal es para variables continuas. Aquí contamos defectos (discreto)." }
+      ]
+    },
+    {
+      id: "bp2",
+      text: "Si un call center recibe en promedio 8 llamadas por minuto, ¿qué distribución modela el número de llamadas en el próximo minuto?",
+      options: [
+        { id: "a", text: "Binomial", isCorrect: false, explanation: "Binomial requiere un número fijo 'n' de ensayos. Aquí las llamadas no tienen ese límite." },
+        { id: "b", text: "Poisson(λ=8)", isCorrect: true, explanation: "¡Exacto! Poisson es para tasa de eventos en un intervalo de tiempo/espacio." },
+        { id: "c", text: "Exponencial", isCorrect: false, explanation: "Exponencial modela el TIEMPO entre eventos, no la cantidad de eventos." }
+      ]
+    },
+    {
+      id: "bp3",
+      text: "Si n es muy grande (e.g., 10000) y p es muy pequeño (e.g., 0.0001), la Binomial se aproxima a:",
+      options: [
+        { id: "a", text: "Poisson(λ = n × p)", isCorrect: true, explanation: "¡Correcto! Esta es la famosa 'Aproximación de Poisson' para eventos raros." },
+        { id: "b", text: "Normal(μ = np)", isCorrect: false, explanation: "La aproximación Normal requiere que np y n(1-p) sean grandes (>10)." },
+        { id: "c", text: "Uniforme", isCorrect: false, explanation: "La Uniforme no tiene ninguna relación con Binomial/Poisson." }
+      ]
+    }
+  ]}
+/>

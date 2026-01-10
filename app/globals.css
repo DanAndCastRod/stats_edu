@@ -1,26 +1,38 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+@import 'katex/dist/katex.min.css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+
+/* @vscode-ignore-next-line */
+@theme {
+  --color-primary-teal: #008B8B;
+  --color-accent-orange: #EB8A3E;
+  --color-secondary-slate: #365660;
+  --color-text-main: #333333;
+
+  /* New Identity: Stats.edu Blue */
+  --color-brand-blue: #2563EB;
+  --color-brand-teal: #2563EB; /* Mapping legacy teal to new blue for easy migration */
+  
+  --color-brand-violet: #7C3AED;
+  --color-brand-orange: #EB8A3E; /* Adding brand-orange alias for Quiz button */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Presentation Mode Overrides */
+body.presentation-mode aside {
+  display: none !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body.presentation-mode nav { /* Assuming Navbars are in <nav> or handle hiding manually */
+  display: none !important;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+body.presentation-mode .prose {
+  font-size: 1.25em !important;
+  max-width: 85vw !important;
+}
+
+body.presentation-mode main {
+    padding-left: 0 !important; /* Reset sidebar padding */
+    margin: 0 auto !important;
 }

@@ -1,0 +1,154 @@
+---
+title: "La Distribución Normal: La Reina de las Estadísticas"
+description: "La campana de Gauss, estandarización y uso de tablas Z. La distribución más importante en estadística."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+order: 1
+---
+
+# Introducción
+
+> **Hecho:** Tu estatura, tu CI, los errores de manufactura, el rendimiento en un examen... casi todo en la naturaleza sigue una **Distribución Normal**.
+
+La Distribución Normal (o Gaussiana) es tan omnipresente que se le llama "la ley de los errores". Fue descubierta por Carl Friedrich Gauss mientras estudiaba errores en mediciones astronómicas.
+
+<Callout type="info">
+**¿Por qué importa?** Casi todas las técnicas de inferencia estadística (intervalos de confianza, pruebas de hipótesis) asumen que los datos son normales o se aproximan a la normal.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Identificar las características de la curva normal.
+- Estandarizar valores usando la fórmula Z.
+- Calcular probabilidades usando `scipy.stats.norm`.
+
+<NormalQQ initialN={50} />
+
+<Callout type="note">
+**¡Interactúa!** Selecciona diferentes distribuciones y observa cómo se ve el histograma. ¿Cuáles pasan el test de normalidad (W cercano a 1)?
+</Callout>
+
+---
+
+# 1. Anatomía de la Curva Normal
+
+La distribución normal es **simétrica** y tiene forma de **campana**.
+
+### Parámetros
+- **$\mu$ (mu):** La media. Define dónde está el centro.
+- **$\sigma$ (sigma):** La desviación estándar. Define qué tan "ancha" es la campana.
+
+### La Regla Empírica (68-95-99.7)
+- **68%** de los datos están entre $\mu \pm 1\sigma$
+- **95%** de los datos están entre $\mu \pm 2\sigma$
+- **99.7%** de los datos están entre $\mu \pm 3\sigma$
+
+<EmpiricalRule initialMean={100} initialStd={15} />
+
+<Callout type="note">
+**¡Interactúa!** Ajusta la media y la desviación estándar, luego haz clic en ±1σ, ±2σ o ±3σ para ver qué porcentaje de datos cubre cada intervalo.
+</Callout>
+
+---
+
+# 2. Estandarización: El Puntaje Z
+
+Para comparar datos de diferentes escalas, los convertimos a una **Normal Estándar** ($\mu=0$, $\sigma=1$).
+
+$$Z = \frac{X - \mu}{\sigma}$$
+
+### Ejemplo
+Un estudiante saca 85 en un examen donde la media es 70 y la desviación 10.
+$$Z = \frac{85 - 70}{10} = 1.5$$
+
+Esto significa que el estudiante está **1.5 desviaciones estándar por encima de la media**. ¡Excelente!
+
+---
+
+# 3. Calculando Probabilidades
+
+En lugar de usar tablas Z (método anticuado), usaremos Python.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+
+# Parámetros de nuestra distribución
+mu = 70      # Media del examen
+sigma = 10   # Desviación estándar
+
+# Pregunta: ¿Qué probabilidad hay de sacar más de 85?
+prob_mayor_85 = 1 - norm.cdf(85, mu, sigma)
+print(f"P(X > 85) = {prob_mayor_85:.4f} = {prob_mayor_85*100:.2f}%")
+
+# Pregunta: ¿Entre qué valores está el 95% central?
+limite_inferior = norm.ppf(0.025, mu, sigma)
+limite_superior = norm.ppf(0.975, mu, sigma)
+print(f"El 95% de los estudiantes sacan entre {limite_inferior:.1f} y {limite_superior:.1f}")
+
+# Visualización
+x = np.linspace(mu - 4*sigma, mu + 4*sigma, 200)
+y = norm.pdf(x, mu, sigma)
+
+plt.figure(figsize=(10, 6))
+plt.plot(x, y, 'b-', linewidth=2, label='Distribución Normal')
+plt.fill_between(x, y, where=(x >= 85), alpha=0.3, color='red', label=f'P(X>85) = {prob_mayor_85:.2%}')
+plt.axvline(mu, color='green', linestyle='--', label=f'μ = {mu}')
+plt.title(f'Distribución Normal (μ={mu}, σ={sigma})')
+plt.xlabel('Calificación')
+plt.ylabel('Densidad de Probabilidad')
+plt.legend()
+plt.show()
+```
+
+---
+
+# 4. Funciones Clave de `scipy.stats.norm`
+
+| Función | Descripción | Uso |
+|---------|-------------|-----|
+| `norm.pdf(x, μ, σ)` | Densidad en x | Altura de la curva |
+| `norm.cdf(x, μ, σ)` | P(X ≤ x) | Área a la izquierda |
+| `norm.ppf(q, μ, σ)` | Cuantil q | Valor de X dado un % |
+| `norm.rvs(μ, σ, size)` | Generar datos | Simulación |
+
+<Callout type="warning">
+**Cuidado:** `norm.ppf(0.95)` te da el valor donde el 95% está **a la izquierda**. Si necesitas el 95% central, usa `norm.ppf(0.025)` y `norm.ppf(0.975)`.
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Distribución Normal"
+  questions={[
+    {
+      id: "dn1",
+      text: "Si un estudiante tiene Z = -2, significa que:",
+      options: [
+        { id: "a", text: "Está 2 desviaciones por encima de la media", isCorrect: false, explanation: "Z negativo significa por DEBAJO de la media." },
+        { id: "b", text: "Está 2 desviaciones por debajo de la media", isCorrect: true, explanation: "¡Correcto! Z negativo indica valores menores que μ." },
+        { id: "c", text: "Sacó una nota de 2", isCorrect: false, explanation: "Z no es la nota, es la distancia estandarizada." }
+      ]
+    },
+    {
+      id: "dn2",
+      text: "Según la regla empírica, ¿qué porcentaje de los datos está entre μ ± 2σ?",
+      options: [
+        { id: "a", text: "68%", isCorrect: false, explanation: "68% es para ±1σ." },
+        { id: "b", text: "95%", isCorrect: true, explanation: "¡Exacto! El 95% está entre μ-2σ y μ+2σ." },
+        { id: "c", text: "99.7%", isCorrect: false, explanation: "99.7% es para ±3σ." }
+      ]
+    },
+    {
+      id: "dn3",
+      text: "La función `norm.cdf(x)` calcula:",
+      options: [
+        { id: "a", text: "La altura de la curva en x", isCorrect: false, explanation: "Eso es `norm.pdf(x)`." },
+        { id: "b", text: "P(X ≤ x), el área a la izquierda", isCorrect: true, explanation: "¡Correcto! CDF = Cumulative Distribution Function." },
+        { id: "c", text: "El valor de x dado un porcentaje", isCorrect: false, explanation: "Eso es `norm.ppf(q)`, la función inversa." }
+      ]
+    }
+  ]}
+/>

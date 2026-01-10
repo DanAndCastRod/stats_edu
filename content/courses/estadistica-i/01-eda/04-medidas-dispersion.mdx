@@ -1,0 +1,85 @@
+---
+title: "Dispersión: La medida del Riesgo"
+description: "Entendiendo la variabilidad y el riesgo en procesos."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 55
+order: 4
+---
+
+# Introducción
+> "Dos procesos pueden tener el mismo promedio, pero uno puede ser una mina de oro y el otro una quiebra."
+
+Si tú vendes ejes de 10mm, y un lote tiene promedio 10mm pero varían entre 5mm y 15mm, **nadie te comprará**. La calidad no es solo dar en el blanco (centralidad), es agrupar los disparos (dispersión). En finanzas, dispersión significa **Riesgo** (Volatilidad). En manufactura, significa **Defectos**.
+
+## Objetivos de Aprendizaje
+- Comprender la diferencia entre Rango, Varianza y Desviación Estándar.
+- Interpretar la Desviación Estándar ($\sigma$) en las unidades originales.
+- Relacionar la dispersión con la previsibilidad del proceso.
+
+---
+
+# 1. El Rango (Range)
+Es la distancia entre el máximo y el mínimo.
+$$ R = Max - Min $$
+*   **Problema:** Solo ignora todo lo que pasa en el medio. Un solo dato erróneo dispara el rango.
+
+# 2. Varianza ($S^2$ o $\sigma^2$)
+Es el promedio de los cuadrados de las distancias al centro. 
+$$ S^2 = \frac{\sum (x_i - \bar{x})^2}{n-1} $$
+*   **Problema:** ¡Las unidades están al cuadrado! (e.g., "metros cuadrados", "segundos cuadrados"). Es difícil de interpretar intuitivamente.
+
+# 3. Desviación Estándar ($S$ o $\sigma$)
+Es la raíz cuadrada de la varianza. Regresa a las unidades originales.
+$$ S = \sqrt{S^2} $$
+Es la reina de las medidas de dispersión. Nos dice, en promedio, qué tan lejos está un dato cualquiera de la media.
+
+<BoxPlotExplorer />
+
+<Callout type="note">
+**¡Interactúa!** Ajusta el tamaño de muestra, sesgo y outliers para ver cómo afectan el diagrama de caja y las medidas de posición.
+</Callout>
+
+---
+
+# 4. Visualización Dinámica: Consistencia vs. Caos
+
+Usa este simulador para ver cómo la desviación estándar altera la "forma" de tu proceso sin cambiar el promedio.
+
+### Misión:
+1. Dale click a **"Animar Dispersión"** para ver el efecto de "respiración".
+2. Nota cómo cuando la curva es **alta y flaca** (baja varianza), es fácil predecir el resultado.
+3. Cuando la curva es **baja y gorda** (alta varianza), el riesgo aumenta.
+
+<VarianceExplainer />
+
+<Callout type="warning">
+En ingeniería, **reducir la dispersión (hacer la curva más angosta)** es usualmente más difícil y valioso que simplemente ajustar el promedio.
+</Callout>
+
+<ANOVAVisualizer initialGroups={3} />
+
+<Callout type="note">
+**¡Avanzado!** El ANOVA descompone la varianza total en varianza **entre grupos** y **dentro de grupos**. Experimenta separando las medias y ajustando la varianza interna para entender la prueba F.
+</Callout>
+
+---
+
+# 5. Coeficiente de Variación (CV)
+¿Qué varía más: el peso de un elefante ($\pm 50kg$) o el peso de un ratón ($\pm 50g$)?
+El CV normaliza la dispersión respecto al tamaño.
+$$ CV = \frac{S}{\bar{x}} \times 100\% $$
+
+```python
+import pandas as pd
+import numpy as np
+
+datos = [10, 12, 23, 23, 16, 23, 21, 16]
+df = pd.Series(datos)
+
+varianza = df.var()
+desviacion = df.std()
+cv = (desviacion / df.mean()) * 100
+
+print(f"Desviación: {desviacion:.2f}")
+print(f"CV: {cv:.2f}%")
+```

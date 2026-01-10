@@ -1,0 +1,77 @@
+---
+title: "Tipos de Variables y Escalas de Medición"
+description: "Fundamentos de la estadística y clasificación de datos industriales."
+bloomLevel: "UNDERSTAND"
+estimatedMinutes: 50
+order: 1
+---
+
+# Introducción
+> ¿Por qué no puedes sacar el promedio de los códigos postales?
+
+Aunque los códigos postales son números (e.g., 660003), no tienen sentido matemático. No puedes decir que el código postal A es "el doble" del B. Entender la naturaleza de los datos es el **paso cero** de cualquier análisis. Si te equivocas aquí, elegirás el gráfico incorrecto y tu modelo predictivo fallará.
+
+<Callout type="info">
+**Por qué importa esto:** En la industria, confundir una variable **Ordinal** (e.g., Calidad: Baja, Media, Alta) con una **Nominal** (e.g., Color: Rojo, Azul) puede llevar a decisiones catastróficas en el Control de Calidad.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Distinguir entre variables cualitativas (nominales/ordinales) y cuantitativas (discretas/continuas).
+- Identificar la escala de medición para elegir el método estadístico correcto.
+
+---
+
+# Desarrollo del Tema
+
+## 1. Clasificación General
+
+Las variables se dividen en dos grandes "reinos":
+
+### 1.1 Variables Cualitativas (Categóricas)
+Expresan una cualidad, característica o atributo. No se pueden medir numéricamente en el sentido estricto.
+
+*   **Nominales:** Son etiquetas puras sin orden inherente.
+    *   *Ejemplos:* Estado civil (Soltero, Casado), Color de producto (Rojo, Azul), Defecto (Roto, Rayado).
+    *   *Operaciones:* Conteo (Frecuencia), Moda.
+*   **Ordinales:** Tienen un orden lógico, pero la distancia entre categorías no es constante.
+    *   *Ejemplos:* Nivel de satisfacción (Bajo, Medio, Alto), Estrellas de un hotel (1 a 5).
+    *   *Operaciones:* Mediana, Percentiles.
+
+### 1.2 Variables Cuantitativas (Numéricas)
+Expresan una cantidad. Se pueden realizar operaciones aritméticas.
+
+*   **Discretas:** Resultan de un proceso de **conteo**. Tienen "huecos" entre valores (no puedes tener 3.5 hijos).
+    *   *Ejemplos:* Número de defectos por lote, Cantidad de clientes en cola.
+*   **Continuas:** Resultan de un proceso de **medición**. Pueden tomar cualquier valor dentro de un intervalo (dependiendo de la precisión del instrumento).
+    *   *Ejemplos:* Tiempo de ciclo (30.5s), Presión (120.4 psi), Temperatura.
+
+## 2. Escalas de Medición (Stevens)
+
+Para refinar el análisis, usamos las 4 escalas de Stevens. La regla de oro es: **"No bajes de nivel si no es necesario"**.
+
+| Escala | Características | Ejemplo Industrial | Operaciones Permitidas |
+| :--- | :--- | :--- | :--- |
+| **Nominal** | Clasificación pura. | Tipo de Máquina (Torno A, Torno B) | =, ≠ |
+| **Ordinal** | Orden (Jerarquía). | Calidad del Lote (Aceptable, Rework, Scrap) | &lt;, &gt; |
+| **Intervalo** | El cero es arbitrario (no indica ausencia). | Temperatura (°C, °F) - 0°C no es "sin temperatura" | +, - |
+| **Razón** | El cero es absoluto (ausencia total). | Peso (kg), Longitud (m), Tiempo (s) | *, / |
+
+<Callout type="warning">
+**Trampa Común:** El tiempo calendario (e.g., año 2024) es escala de **Intervalo** (no existe el año 0 absoluto). Pero el tiempo de duración (e.g., 50 minutos) es escala de **Razón**.
+</Callout>
+
+## 3. Ejemplo Práctico: Base de Datos de Producción
+
+Imagina que descargas un CSV de la planta con las siguientes columnas. Clasifiquémoslas rigurosamente:
+
+1.  **ID_Lote** (e.g., "L-1004"): **Cualitativa Nominal**. (Es solo una etiqueta).
+2.  **Temperatura_Horno** (e.g., 180.5 °C): **Cuantitativa Continua** (Escala Intervalo).
+3.  **Piezas_Defectuosas** (e.g., 5 piezas): **Cuantitativa Discreta** (Escala Razón).
+4.  **Nivel_Alerta** (e.g., 1, 2, 3): **Cualitativa Ordinal**. (Aunque sean números, representan jerarquía).
+
+---
+
+# Verificación de Conceptos
+
+SI tuvieras que calcular el promedio de la columna **Nivel_Alerta** (1, 2, 3), ¿sería válido?
+*   **Respuesta:** Matemáticamente sí (te da 2), pero estadísticamente es riesgoso. Un promedio de 2.5 en alerta no significa "Alerta y media". Es mejor usar la **Mediana** o la **Moda** para variables ordinales.

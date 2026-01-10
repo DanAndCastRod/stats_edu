@@ -1,0 +1,205 @@
+---
+title: "Intervalos de Confianza para la Media"
+description: "Cuantificando la incertidumbre de nuestras estimaciones. El intervalo que 'atrapa' el parámetro con cierta confianza."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+order: 2
+---
+
+# Introducción
+
+> **El Problema:** Decir "la media es 50" no transmite incertidumbre. ¿Qué tan seguro estás?
+
+Un **Intervalo de Confianza (IC)** es un rango de valores que probablemente contiene el parámetro real. Por ejemplo: "La media está entre 48 y 52 con 95% de confianza".
+
+<Callout type="info">
+**Interpretación CORRECTA:** Si repitiéramos el muestreo muchas veces, el 95% de los intervalos calculados contendrían μ.
+**Interpretación INCORRECTA:** "Hay 95% de probabilidad de que μ esté en este intervalo" (μ es fijo, no aleatorio).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Construir ICs para μ con σ conocido (Z).
+- Construir ICs para μ con σ desconocido (t).
+- Interpretar correctamente el nivel de confianza.
+
+---
+
+# 1. Fórmula General
+
+$$\text{IC} = \text{Estimador} \pm \text{Margen de Error}$$
+
+$$\bar{X} \pm Z_{\alpha/2} \cdot \frac{\sigma}{\sqrt{n}}$$
+
+### Componentes
+- $\bar{X}$: Media muestral (centro del intervalo)
+- $Z_{\alpha/2}$: Valor crítico (1.96 para 95%)
+- $\frac{\sigma}{\sqrt{n}}$: Error estándar
+- Margen de Error = $Z_{\alpha/2} \cdot \frac{\sigma}{\sqrt{n}}$
+
+<ConfidenceInterval initialMean={75} initialStd={10} initialN={36} />
+
+<Callout type="note">
+**¡Interactúa!** Ajusta la media muestral, σ, n y el nivel de confianza para ver cómo afectan el ancho del intervalo.
+</Callout>
+
+---
+
+# 2. IC con σ Conocido (Distribución Z)
+
+Raro en la práctica, pero conceptualmente importante.
+
+### Valores Críticos Comunes
+| Confianza | α | α/2 | $Z_{\alpha/2}$ |
+|-----------|---|-----|---------------|
+| 90% | 0.10 | 0.05 | 1.645 |
+| 95% | 0.05 | 0.025 | 1.96 |
+| 99% | 0.01 | 0.005 | 2.576 |
+
+```python
+from scipy.stats import norm
+import numpy as np
+
+# Datos del problema
+x_bar = 75          # Media muestral
+sigma = 10          # Desviación poblacional (conocida)
+n = 36              # Tamaño de muestra
+confianza = 0.95
+
+# Cálculo
+alpha = 1 - confianza
+z_critico = norm.ppf(1 - alpha/2)
+error_estandar = sigma / np.sqrt(n)
+margen_error = z_critico * error_estandar
+
+ic_inferior = x_bar - margen_error
+ic_superior = x_bar + margen_error
+
+print(f"IC {confianza*100:.0f}%: ({ic_inferior:.2f}, {ic_superior:.2f})")
+print(f"Margen de Error: ±{margen_error:.2f}")
+```
+
+---
+
+# 3. IC con σ Desconocido (Distribución t)
+
+En la vida real, casi nunca conocemos σ. Usamos $s$ (desviación muestral) y la **distribución t de Student**.
+
+$$\bar{X} \pm t_{\alpha/2, n-1} \cdot \frac{s}{\sqrt{n}}$$
+
+### Grados de Libertad
+$df = n - 1$
+
+La t es más "ancha" que la Z (más conservadora). Con n grande, t ≈ Z.
+
+```python
+from scipy.stats import t
+import numpy as np
+
+# Datos del problema
+x_bar = 75          # Media muestral
+s = 12              # Desviación MUESTRAL
+n = 25              # Tamaño de muestra
+confianza = 0.95
+
+# Cálculo
+alpha = 1 - confianza
+df = n - 1
+t_critico = t.ppf(1 - alpha/2, df)
+error_estandar = s / np.sqrt(n)
+margen_error = t_critico * error_estandar
+
+ic_inferior = x_bar - margen_error
+ic_superior = x_bar + margen_error
+
+print(f"IC {confianza*100:.0f}% (t con {df} gl): ({ic_inferior:.2f}, {ic_superior:.2f})")
+print(f"Valor crítico t: {t_critico:.3f}")
+print(f"Comparación: Z sería {norm.ppf(1 - alpha/2):.3f}")
+```
+
+---
+
+# 4. Visualización: Cobertura del IC
+
+Simulemos 100 muestras y veamos cuántos ICs "atrapan" el μ real.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import t
+
+np.random.seed(42)
+
+mu_real = 100       # Parámetro poblacional (desconocido en la práctica)
+sigma_real = 15
+n = 30
+confianza = 0.95
+n_simulaciones = 100
+
+fig, ax = plt.subplots(figsize=(12, 8))
+aciertos = 0
+
+for i in range(n_simulaciones):
+    muestra = np.random.normal(mu_real, sigma_real, n)
+    x_bar = np.mean(muestra)
+    s = np.std(muestra, ddof=1)
+    
+    t_critico = t.ppf(1 - (1-confianza)/2, n-1)
+    margen = t_critico * s / np.sqrt(n)
+    
+    ic_inf = x_bar - margen
+    ic_sup = x_bar + margen
+    
+    contiene_mu = ic_inf <= mu_real <= ic_sup
+    if contiene_mu:
+        aciertos += 1
+        color = 'green'
+    else:
+        color = 'red'
+    
+    ax.plot([ic_inf, ic_sup], [i, i], color=color, linewidth=1)
+    ax.plot(x_bar, i, 'o', color=color, markersize=3)
+
+ax.axvline(mu_real, color='blue', linestyle='--', label=f'μ real = {mu_real}')
+ax.set_xlabel('Valor')
+ax.set_ylabel('Simulación')
+ax.set_title(f'Cobertura del IC {confianza*100:.0f}%: {aciertos}/{n_simulaciones} = {aciertos}%')
+ax.legend()
+plt.show()
+```
+
+---
+
+# Autoevaluación
+
+<Quiz 
+  title="Quiz: Intervalos de Confianza para la Media"
+  questions={[
+    {
+      id: "icm1",
+      text: "Si aumentamos el nivel de confianza de 95% a 99%, el intervalo:",
+      options: [
+        { id: "a", text: "Se hace más angosto", isCorrect: false, explanation: "¡Al revés! Más confianza = intervalo más ancho." },
+        { id: "b", text: "Se hace más ancho", isCorrect: true, explanation: "¡Correcto! Mayor confianza requiere más margen." },
+        { id: "c", text: "No cambia", isCorrect: false, explanation: "El nivel de confianza afecta el valor crítico Z o t." }
+      ]
+    },
+    {
+      id: "icm2",
+      text: "Usamos la distribución t en lugar de Z cuando:",
+      options: [
+        { id: "a", text: "σ poblacional es desconocido", isCorrect: true, explanation: "¡Exacto! t compensa la incertidumbre adicional de estimar σ." },
+        { id: "b", text: "La muestra es muy grande", isCorrect: false, explanation: "Con n grande, t ≈ Z. Usamos t por no conocer σ." },
+        { id: "c", text: "Los datos no son normales", isCorrect: false, explanation: "La t también asume normalidad (o n grande para TLC)." }
+      ]
+    },
+    {
+      id: "icm3",
+      text: "Si duplicamos el tamaño de muestra n, el margen de error:",
+      options: [
+        { id: "a", text: "Se reduce a la mitad", isCorrect: false, explanation: "Se reduce por √2, no por 2." },
+        { id: "b", text: "Se reduce por factor √2 ≈ 0.71", isCorrect: true, explanation: "¡Correcto! ME ∝ 1/√n, así que 1/√2n = 1/(√2·√n)." },
+        { id: "c", text: "No cambia significativamente", isCorrect: false, explanation: "n afecta directamente el error estándar." }
+      ]
+    }
+  ]}
+/>
