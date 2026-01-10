@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  serverExternalPackages: ["@prisma/client"],
+  transpilePackages: ["next-mdx-remote"],
 };
 
 // export default withSerwist(nextConfig);
