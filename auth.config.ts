@@ -5,9 +5,10 @@ export const authConfig = {
     callbacks: {
         async signIn({ user, account, profile }) {
             if (account?.provider === "google") {
+                const allowedEmails = ["dancastarod@gmail.com", "admin_email@example.com"];
                 return (
                     profile?.email?.endsWith("@utp.edu.co") ||
-                    profile?.email === "admin_email@example.com"
+                    allowedEmails.includes(profile?.email || "")
                 )
             }
             return true // Allow Credentials login
