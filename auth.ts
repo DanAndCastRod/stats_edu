@@ -47,4 +47,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
     ],
     // Callbacks are inherited from authConfig
+    trustHost: true,
 })

@@ -30,9 +30,9 @@ export const authConfig = {
             return true;
         },
     },
-    pages: {
-        signIn: '/api/auth/signin', // Default signin page
-    },
+    // pages: {
+    //     signIn: '/api/auth/signin', // Default signin page
+    // },
     session: {
         strategy: "jwt"
     }

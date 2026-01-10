@@ -4,7 +4,7 @@ import { FeaturesSection } from "@/components/landing/FeaturesSection"
 import { CoursePreviewSection } from "@/components/landing/CoursePreviewSection"
 import Link from "next/link"
 
-export const dynamic = 'force-dynamic';
+
 
 
 export default function Home() {
