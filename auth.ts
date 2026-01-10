@@ -1,15 +1,16 @@
-
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { db } from "@/lib/db"
+import { authConfig } from "@/auth.config"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+    ...authConfig,
     adapter: PrismaAdapter(db),
     providers: [
         Google({
-            clientId: process.env.GOOGLE_CLIENT_ID || "placeholder", // Avoid crash if missing
+            clientId: process.env.GOOGLE_CLIENT_ID || "placeholder",
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || "placeholder",
             authorization: {
                 params: {
@@ -19,7 +20,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 },
             },
         }),
-        // 🔹 DEV LOGIN (Bypass for development)
         Credentials({
             name: "Modo Desarrollo",
             credentials: {
@@ -27,9 +27,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: "Contraseña", type: "password", placeholder: "Cualquiera" }
             },
             async authorize(credentials) {
-                // Only allow specific dev email to prevent abuse in prod
                 if (process.env.NODE_ENV === "development" && credentials?.email === "dev@utp.edu.co") {
-                    // Check if dev user exists, if not create it ensures Dashboard works
                     let user = await db.user.findUnique({ where: { email: "dev@utp.edu.co" } })
 
                     if (!user) {
@@ -48,27 +46,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
         })
     ],
-    callbacks: {
-        async signIn({ user, account, profile }) {
-            if (account?.provider === "google") {
-                return (
-                    profile?.email?.endsWith("@utp.edu.co") ||
-                    profile?.email === "admin_email@example.com"
-                )
-            }
-            return true // Allow Credentials login
-        },
-        async session({ session, token }) {
-            if (session.user && token.sub) {
-                session.user.id = token.sub
-            }
-            return session
-        }
-    },
-    // pages: {
-    //     signIn: '/login', // Custom login page
-    // },
-    session: {
-        strategy: "jwt"
-    }
+    // Callbacks are inherited from authConfig
 })
