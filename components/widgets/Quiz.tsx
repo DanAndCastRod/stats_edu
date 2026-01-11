@@ -3,7 +3,9 @@
 import React, { useState } from "react"
 import { useQuizStore } from "@/lib/store/useQuizStore"
 import { cn } from "@/lib/utils"
-import { CheckCircle2, XCircle, ChevronRight, ChevronLeft, RefreshCcw, HelpCircle, Trophy } from "lucide-react"
+import { CheckCircle2, XCircle, ChevronRight, ChevronLeft, RefreshCcw, HelpCircle, Trophy, Loader2 } from "lucide-react"
+import { useTopicContext } from "@/components/providers/TopicProvider"
+import { submitQuizResult } from "@/app/actions/progress"
 
 interface Option {
     id: string
@@ -24,6 +26,8 @@ interface QuizProps {
 }
 
 export function Quiz({ title, questions }: QuizProps) {
+    const { topicId } = useTopicContext()
+    const [isSaving, setIsSaving] = useState(false)
     const {
         currentStep,
         answers,
@@ -34,7 +38,6 @@ export function Quiz({ title, questions }: QuizProps) {
         backStep,
         submitQuiz,
         reset,
-        startQuiz
     } = useQuizStore()
 
     const currentQuestion = questions[currentStep]
@@ -54,13 +57,34 @@ export function Quiz({ title, questions }: QuizProps) {
         setAnswer(currentQuestion.id, optionId)
     }
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         const correctAnswers: Record<string, string> = {}
         questions.forEach(q => {
             const correctOpt = q.options.find(o => o.isCorrect)
             if (correctOpt) correctAnswers[q.id] = correctOpt.id
         })
+
+        // Calculate score locally first (to update UI immediately or get the value)
+        let correctCount = 0
+        Object.entries(correctAnswers).forEach(([qId, correctOptId]) => {
+            if (answers[qId] === correctOptId) {
+                correctCount++
+            }
+        })
+        const finalScore = (correctCount / questions.length) * 100
+
+        // Update local store
         submitQuiz(correctAnswers)
+
+        // Persist to server
+        setIsSaving(true)
+        try {
+            await submitQuizResult(topicId, finalScore)
+        } catch (error) {
+            console.error("Failed to save quiz result", error)
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     if (isSubmitted) {
@@ -99,6 +123,11 @@ export function Quiz({ title, questions }: QuizProps) {
                     >
                         <RefreshCcw className="h-4 w-4" /> Reintentar Quiz
                     </button>
+                    {isSaving && (
+                         <div className="mt-4 flex items-center gap-2 text-slate-500">
+                             <Loader2 className="h-4 w-4 animate-spin" /> Guardando progreso...
+                         </div>
+                    )}
                 </div>
 
                 <div className="mt-12 space-y-6 pt-12 border-t border-slate-100 dark:border-slate-800">
@@ -240,9 +269,10 @@ export function Quiz({ title, questions }: QuizProps) {
                     ) : (
                         <button
                             onClick={handleSubmit}
-                            disabled={!answers[currentQuestion.id]}
-                            className="bg-brand-orange hover:bg-brand-orange/90 text-white px-10 py-3 rounded-xl font-black shadow-lg shadow-brand-orange/20 transition-all active:scale-95 disabled:opacity-50 tracking-wide uppercase text-sm"
+                            disabled={!answers[currentQuestion.id] || isSaving}
+                            className="bg-brand-orange hover:bg-brand-orange/90 text-white px-10 py-3 rounded-xl font-black shadow-lg shadow-brand-orange/20 transition-all active:scale-95 disabled:opacity-50 tracking-wide uppercase text-sm flex items-center gap-2"
                         >
+                            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                             Finalizar y Calificar
                         </button>
                     )}

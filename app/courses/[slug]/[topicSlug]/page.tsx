@@ -6,6 +6,7 @@ import { components } from "@/components/mdx/MDXComponents"
 import { TopicNavigator } from "../components/TopicNavigator"
 // Provider for shared Python execution context across the lesson
 import { PyodideProvider } from "@/components/providers/PyodideProvider"
+import { TopicProvider } from "@/components/providers/TopicProvider"
 
 export default async function LessonPage({
     params
@@ -52,8 +53,9 @@ export default async function LessonPage({
 
     return (
         <PyodideProvider>
-            <article className="pb-20">
-                {/* Header section with breadcrumbs-like info */}
+            <TopicProvider topicId={currentTopic.id}>
+                <article className="pb-20">
+                    {/* Header section with breadcrumbs-like info */}
                 <div className="mb-12 border-b border-slate-200 dark:border-slate-800 pb-8 animate-in fade-in slide-in-from-top-4 duration-1000">
                     <div className="flex items-center gap-2 mb-4">
                         <span className="bg-brand-blue/10 text-brand-blue text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
@@ -93,14 +95,15 @@ export default async function LessonPage({
                     )}
                 </div>
 
-                {/* Navigation Buttons */}
-                <TopicNavigator
-                    courseSlug={slug}
-                    currentTopicId={currentTopic.id}
-                    prevTopic={prevTopic ? { title: prevTopic.title, slug: prevTopic.slug } : undefined}
-                    nextTopic={nextTopic ? { title: nextTopic.title, slug: nextTopic.slug } : undefined}
-                />
-            </article>
+                    {/* Navigation Buttons */}
+                    <TopicNavigator
+                        courseSlug={slug}
+                        currentTopicId={currentTopic.id}
+                        prevTopic={prevTopic ? { title: prevTopic.title, slug: prevTopic.slug } : undefined}
+                        nextTopic={nextTopic ? { title: nextTopic.title, slug: nextTopic.slug } : undefined}
+                    />
+                </article>
+            </TopicProvider>
         </PyodideProvider>
     )
 }
