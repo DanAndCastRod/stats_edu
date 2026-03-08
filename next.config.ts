@@ -8,9 +8,6 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   /* config options here */
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   serverExternalPackages: ["@prisma/client"],
   transpilePackages: ["next-mdx-remote"],
 };
