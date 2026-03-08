@@ -124,7 +124,7 @@ export function FDistribution() {
                             <YAxis stroke="#94a3b8" />
                             <Tooltip
                                 formatter={(val: any) => Number(val).toFixed(4)}
-                                labelFormatter={(val: number) => `F = ${val.toFixed(2)}`}
+                                labelFormatter={(val) => `F = ${Number(val).toFixed(2)}`}
                             />
                             <ReferenceLine x={criticalValue} stroke="#ef4444" strokeDasharray="3 3" label={{ value: `F crit = ${criticalValue.toFixed(2)}`, fill: "#ef4444", position: "top" }} />
                             <Area
