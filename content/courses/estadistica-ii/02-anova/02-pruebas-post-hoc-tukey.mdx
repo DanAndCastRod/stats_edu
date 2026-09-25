@@ -1,0 +1,104 @@
+---
+title: "Comparaciones Múltiples: Pruebas Post-Hoc de Tukey, Bonferroni y Dunnett"
+description: "Identificación de qué pares de medias difieren significativamente tras el rechazo de la hipótesis nula en ANOVA."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+order: 2
+---
+
+# Introducción
+
+> El ANOVA nos dice *si* existe al menos una diferencia entre los tratamientos, pero es una prueba "ómnibus": ¡no nos dice *cuáles* tratamientos específicos difieren entre sí!
+
+Para responder a la pregunta "¿cuál es el mejor tratamiento?", se aplican pruebas de **comparaciones múltiples post-hoc**.
+
+<Callout type="info">
+**Control de la Tasa de Error Familiar (FWER):** Las pruebas post-hoc controlan que la probabilidad de cometer al menos un error Tipo I en *todas* las comparaciones simultáneas no supere $\alpha = 0.05$.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Aplicar la prueba de Diferencia Honestamente Significativa (HSD) de Tukey.
+- Emplear la corrección conservadora de Bonferroni.
+- Utilizar la prueba de Dunnett cuando se compara contra un grupo de control estándar.
+
+---
+
+# 1. Prueba Tukey HSD (Honestly Significant Difference)
+
+La prueba de Tukey se fundamenta en la distribución del **Rango Estudiantizado** ($q$):
+
+Dos medias $\bar{Y}_i$ y $\bar{Y}_j$ se consideran significativamente distintas si:
+
+$$|\bar{Y}_i - \bar{Y}_j| \ge HSD = q_{\alpha}(k, f) \cdot \sqrt{\frac{CME}{n}}$$
+
+Donde:
+- $k$: número de grupos.
+- $f = N - k$: grados de libertad del error del ANOVA.
+- $CME$: Cuadrado Medio del Error obtenido en el ANOVA.
+- $q_{\alpha}(k, f)$: valor crítico de la tabla de rango estudiantizado.
+
+---
+
+# 2. Corrección de Bonferroni y Prueba de Dunnett
+
+### Corrección de Bonferroni
+Si se realizan $m = \frac{k(k-1)}{2}$ contrastes por pares, cada prueba individual se evalúa a un nivel de significancia ajustado:
+$$\alpha^* = \frac{\alpha}{m}$$
+
+### Prueba de Dunnett
+Diseñada específicamente para cuando no nos interesan todas las comparaciones por pares, sino únicamente comparar $k-1$ nuevos tratamientos contra un **grupo control**:
+$$H_0: \mu_i = \mu_{control} \quad \text{vs} \quad H_1: \mu_i \ne \mu_{control}$$
+
+---
+
+# 3. Código en Python con `statsmodels`
+
+```python
+import pandas as pd
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+
+# Datos de resistencia de empaques según 4 proveedores
+datos = pd.DataFrame({
+    'Resistencia': [
+        23.1, 24.0, 22.8, 23.5, 24.2,  # Proveedor 1
+        28.4, 29.1, 27.8, 28.9, 29.5,  # Proveedor 2
+        22.9, 23.2, 23.8, 22.5, 23.1,  # Proveedor 3
+        31.0, 32.2, 30.8, 31.5, 32.0   # Proveedor 4
+    ],
+    'Proveedor': (
+        ['Prov_1'] * 5 + ['Prov_2'] * 5 + ['Prov_3'] * 5 + ['Prov_4'] * 5
+    )
+})
+
+# Ejecución de Tukey HSD
+tukey = pairwise_tukeyhsd(endog=datos['Resistencia'], groups=datos['Proveedor'], alpha=0.05)
+print(tukey)
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Comparaciones Múltiples Post-Hoc"
+  questions={[
+    {
+      id: "q_posthoc_1",
+      text: "¿Cuándo es apropiado aplicar la prueba HSD de Tukey?",
+      options: [
+        { id: "a", text: "Únicamente después de haber rechazado la hipótesis nula en el ANOVA global", isCorrect: true, explanation: "Correcto: si el ANOVA no detecta diferencias globales, no se deben realizar contrastes post-hoc no planificados." },
+        { id: "b", text: "Antes de correr el ANOVA para saber qué grupos incluir", isCorrect: false, explanation: "Las pruebas post-hoc se aplican con posterioridad al resultado del ANOVA." },
+        { id: "c", text: "Solo cuando los tamaños de muestra son menores a 3", isCorrect: false, explanation: "Tukey funciona de manera óptima con muestras equilibradas de cualquier tamaño razonable." }
+      ]
+    },
+    {
+      id: "q_posthoc_2",
+      text: "Si comparamos 4 tratamientos experimentales contra un único grupo testigo (control), la prueba más potente es:",
+      options: [
+        { id: "a", text: "La prueba de Dunnett", isCorrect: true, explanation: "Dunnett es más potente que Tukey porque solo realiza k-1 comparaciones contra el control en lugar de k(k-1)/2 pares." },
+        { id: "b", text: "Tukey HSD", isCorrect: false, explanation: "Tukey es para todas las comparaciones por pares, siendo innecesariamente conservadora en este caso." },
+        { id: "c", text: "La corrección de Bonferroni simple", isCorrect: false, explanation: "Bonferroni es conservadora y pierde potencia estadística." }
+      ]
+    }
+  ]}
+/>

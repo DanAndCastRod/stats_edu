@@ -36,7 +36,9 @@ import {
     MontyHallSim,
     VennInteractions,
     CountingPrinciples,
-    CorrelationGame
+    CorrelationGame,
+    ZScoreCalculator,
+    ExponentialVisualizer
 } from "@/components/charts"
 import { Info, AlertTriangle, CheckCircle, Lightbulb, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -178,6 +180,8 @@ export const components = {
     VennInteractions,
     CountingPrinciples,
     CorrelationGame,
+    ZScoreCalculator,
+    ExponentialVisualizer,
     Callout: ({ children, type = "info" }: { children: React.ReactNode, type?: "info" | "warning" | "success" | "note" }) => {
         const icons = {
             info: Info,

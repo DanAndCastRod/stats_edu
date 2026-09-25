@@ -1,0 +1,100 @@
+---
+title: "Pruebas No Paramétricas: Mann-Whitney y Kruskal-Wallis"
+description: "Inferencia basada en rangos cuando se violan los supuestos de normalidad u homocedasticidad. Alternativas a la prueba t y al ANOVA."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+order: 2
+---
+
+# Introducción
+
+> ¿Qué ocurre cuando tus datos provienen de una escala Likert ordinal (1 a 5), tienen valores atípicos severos o la distribución es fuertemente asimétrica y el tamaño de muestra es pequeño? Las pruebas t y ANOVA pierden validez, y entran en juego las **pruebas no paramétricas basadas en rangos**.
+
+Las pruebas libres de distribución no asumen que los datos provengan de una familia paramétrica específica (como la Gaussiana). En su lugar, ordenan las observaciones de menor a mayor y trabajan con sus **rangos** ($1, 2, \dots, N$).
+
+<Callout type="info">
+**Equivalencias Clásicas:**
+- **Prueba t de 2 muestras independientes** $\to$ **Prueba U de Mann-Whitney** (o Wilcoxon Rank-Sum).
+- **Prueba t de muestras pareadas** $\to$ **Prueba de Rangos con Signo de Wilcoxon**.
+- **ANOVA de 1 factor** $\to$ **Prueba de Kruskal-Wallis**.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comparar las pruebas paramétricas con sus contrapartes basadas en rangos.
+- Calcular el estadístico $U$ de Mann-Whitney y el estadístico $H$ de Kruskal-Wallis.
+- Ejecutar contrastes no paramétricos e interpretar p-valores en Python.
+
+---
+
+# 1. Prueba U de Mann-Whitney
+
+Dadas dos muestras de tamaños $n_1$ y $n_2$. Se combinan todas las observaciones, se asignan rangos del 1 al $n_1 + n_2$, y se calculan las sumas de rangos $R_1$ y $R_2$:
+
+$$U_1 = n_1 n_2 + \frac{n_1(n_1 + 1)}{2} - R_1$$
+
+$$U_2 = n_1 n_2 + \frac{n_2(n_2 + 1)}{2} - R_2$$
+
+El estadístico de prueba es $U = \min(U_1, U_2)$.
+
+---
+
+# 2. Prueba de Kruskal-Wallis ($H$)
+
+Para comparar $k$ grupos independientes sin asumir normalidad:
+
+$$H = \frac{12}{N(N + 1)} \sum_{i=1}^k \frac{R_i^2}{n_i} - 3(N + 1)$$
+
+Donde:
+- $N = \sum n_i$ es el tamaño total de la muestra combinada.
+- $R_i$ es la suma de rangos del grupo $i$.
+- Bajo $H_0$ de medianas idénticas, $H \approx \chi^2(k - 1)$.
+
+---
+
+# 3. Código en Python
+
+```python
+import numpy as np
+from scipy import stats
+
+# Tiempos de resolución (minutos) de 3 grupos de soporte técnico con outliers
+soporte_A = [15, 18, 14, 16, 120]  # Outlier severo
+soporte_B = [25, 28, 22, 29, 26]
+soporte_C = [38, 42, 35, 40, 39]
+
+# 1. Comparación de 2 grupos con Mann-Whitney
+u_stat, p_mw = stats.mannwhitneyu(soporte_A, soporte_B, alternative='two-sided')
+print(f"Mann-Whitney (A vs B): U = {u_stat}, p-valor = {p_mw:.4f}")
+
+# 2. Comparación de 3 grupos con Kruskal-Wallis
+h_stat, p_kw = stats.kruskal(soporte_A, soporte_B, soporte_C)
+print(f"Kruskal-Wallis (A vs B vs C): H = {h_stat:.4f}, p-valor = {p_kw:.4e}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Pruebas No Paramétricas"
+  questions={[
+    {
+      id: "q_nonparam_1",
+      text: "¿Cuál es la principal ventaja de las pruebas no paramétricas frente a las paramétricas?",
+      options: [
+        { id: "a", text: "No requieren el supuesto de distribución normal y son robustas ante valores atípicos", isCorrect: true, explanation: "Correcto: al transformar datos a rangos ordinales, los outliers extremos no distorsionan la prueba." },
+        { id: "b", text: "Siempre tienen mayor potencia estadística que la prueba t aunque los datos sean normales", isCorrect: false, explanation: "Si los supuestos de normalidad se cumplen, las pruebas paramétricas son más potentes (tienen una eficiencia asintótica de aprox 95.5%)." },
+        { id: "c", text: "Solo se pueden usar con variables booleanas", isCorrect: false, explanation: "Se usan con datos continuos u ordinales." }
+      ]
+    },
+    {
+      id: "q_nonparam_2",
+      text: "La prueba de Kruskal-Wallis es la alternativa no paramétrica directa a:",
+      options: [
+        { id: "a", text: "ANOVA de un factor", isCorrect: true, explanation: "Correcto: Kruskal-Wallis evalúa si k poblaciones independientes tienen medianas equivalentes." },
+        { id: "b", text: "Regresión Lineal Simple", isCorrect: false, explanation: "Para regresión no paramétrica se utiliza correlación de Spearman o Theil-Sen." },
+        { id: "c", text: "Prueba Z de una muestra", isCorrect: false, explanation: "Para una muestra se usa la prueba de signos o Wilcoxon de una muestra." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,116 @@
+---
+title: "Control Estadístico de Procesos (SPC) y Cartas X-Barra y R"
+description: "Detección de causas asignables vs causas comunes. Construcción de gráficos de control X-barra y R con límites 3-sigma y reglas de Western Electric."
+bloomLevel: "APPLY"
+estimatedMinutes: 55
+order: 1
+---
+
+# Introducción
+
+> "En Dios confiamos; todos los demás deben aportar datos." — W. Edwards Deming. Todo proceso industrial contiene variación inherente (causas comunes). La misión del Control Estadístico de Procesos (SPC) es detectar a tiempo la aparición de **causas especiales o asignables** para intervenir antes de que se fabriquen piezas no conformes.
+
+Diseñados por Walter Shewhart en los Laboratorios Bell, los **gráficos de control** monitorean en el tiempo si un proceso opera en estado de control estadístico (estable y predecible).
+
+<Callout type="info">
+**Límites de Control vs Límites de Especificación:**
+- **Límites de Control ($LCI, LCS$):** Calculados a partir de los datos del proceso ($\pm 3\sigma$). Reflejan lo que el proceso *hace*.
+- **Límites de Especificación ($LIE, LSE$):** Fijados por el cliente o diseño de ingeniería. Reflejan lo que el proceso *debe hacer*.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Distinguir entre variación por causas comunes y causas asignables.
+- Calcular los límites de control de Shewhart para cartas $\bar{X}$ y $R$ con constantes tabuladas ($A_2, D_3, D_4$).
+- Aplicar las reglas de decisión de Western Electric para identificar patrones fuera de control.
+
+---
+
+# 1. Cartas de Control $\bar{X}$ - $R$
+
+Se toman $m$ subgrupos racionales de tamaño $n$ (típicamente $n=4$ o $n=5$):
+
+### Carta de Rangos ($R$) - Monitorea la Dispersión
+$$LCS_R = D_4 \bar{R}$$
+$$LC_R = \bar{R}$$
+$$LCI_R = D_3 \bar{R}$$
+
+### Carta de Medias ($\bar{X}$) - Monitorea el Centrado
+$$LCS_{\bar{X}} = \bar{\bar{X}} + A_2 \bar{R}$$
+$$LC_{\bar{X}} = \bar{\bar{X}}$$
+$$LCI_{\bar{X}} = \bar{\bar{X}} - A_2 \bar{R}$$
+
+<Callout type="warning">
+**Regla de Oro:** Siempre debe analizarse y estabilizarse primero la **carta $R$**. Si la dispersión está fuera de control, los límites de la carta $\bar{X}$ carecen de significado.
+</Callout>
+
+---
+
+# 2. Reglas de Western Electric para Fueras de Control
+
+1. **Punto fuera de límites:** 1 punto más allá de $3\sigma$ ($LCS$ o $LCI$).
+2. **Zona A:** 2 de 3 puntos consecutivos en la Zona A (más allá de $2\sigma$) del mismo lado de la línea central.
+3. **Zona B:** 4 de 5 puntos consecutivos en la Zona B o más allá ($1\sigma$) del mismo lado.
+4. **Racha central:** 8 puntos consecutivos a un mismo lado de la línea central.
+
+---
+
+# 3. Código en Python
+
+```python
+import numpy as np
+import pandas as pd
+
+# Muestreo de 10 subgrupos de tamaño n=5 de diámetros de ejes (mm)
+np.random.seed(42)
+datos = np.random.normal(loc=25.00, scale=0.04, size=(10, 5))
+
+medias = datos.mean(axis=1)
+rangos = datos.ptp(axis=1)  # ptp = max - min
+
+X_doble_barra = medias.mean()
+R_barra = rangos.mean()
+
+# Constantes para n = 5
+A2 = 0.577
+D3 = 0.000
+D4 = 2.114
+
+# Límites de R
+LCS_R = D4 * R_barra
+LCI_R = D3 * R_barra
+
+# Límites de X_barra
+LCS_X = X_doble_barra + A2 * R_barra
+LCI_X = X_doble_barra - A2 * R_barra
+
+print(f"Carta R: LCI={LCI_R:.4f}, Centro={R_barra:.4f}, LCS={LCS_R:.4f}")
+print(f"Carta X-barra: LCI={LCI_X:.4f}, Centro={X_doble_barra:.4f}, LCS={LCS_X:.4f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Control Estadístico de Procesos (SPC)"
+  questions={[
+    {
+      id: "q_spc_1",
+      text: "¿Cuál es la diferencia fundamental entre los límites de control (LCS/LCI) y los de especificación (LSE/LIE)?",
+      options: [
+        { id: "a", text: "Los límites de control describen la variabilidad natural del proceso (3-sigma); los de especificación son fijados por el cliente/diseño", isCorrect: true, explanation: "Correcto: la voz del proceso (límites de control) frente a la voz del cliente (especificaciones)." },
+        { id: "b", text: "Son exactamente lo mismo con nombres intercambiables", isCorrect: false, explanation: "Confundir límites de control con especificaciones es uno de los errores más graves en calidad." },
+        { id: "c", text: "Los límites de control siempre deben estar por fuera de las especificaciones", isCorrect: false, explanation: "Al contrario, deseamos que el proceso tenga límites de control bien contenidos dentro de las tolerancias." }
+      ]
+    },
+    {
+      id: "q_spc_2",
+      text: "Al construir un gráfico conjunto X-barra y R, ¿cuál debe interpretarse y asegurarse primero?",
+      options: [
+        { id: "a", text: "El gráfico de rangos (R), porque evalúa la estabilidad de la varianza", isCorrect: true, explanation: "Correcto: si la variabilidad del proceso no está bajo control, los límites de la carta de medias no son válidos." },
+        { id: "b", text: "El gráfico de medias (X-barra), ignorando el rango", isCorrect: false, explanation: "No se puede evaluar el centrado sin verificar la constancia de la dispersión." },
+        { id: "c", text: "Cualquiera de forma indistinta", isCorrect: false, explanation: "El orden analítico es rigurosamente primero dispersión, luego centrado." }
+      ]
+    }
+  ]}
+/>

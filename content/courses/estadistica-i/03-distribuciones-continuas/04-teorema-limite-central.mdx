@@ -44,14 +44,18 @@ $$Z = \frac{\bar{X} - \mu}{\sigma / \sqrt{n}} \sim N(0, 1)$$
 
 ---
 
-# 2. Visualización: La Magia en Acción
+# 2. Visualización: La Magia en Acción (Multidistribución)
 
-Veamos cómo el promedio de datos uniformes (¡claramente NO normales!) converge a una Normal.
+El Teorema del Límite Central no solo funciona con distribuciones continuas y simétricas: funciona con distribuciones fuertemente asimétricas (como la Exponencial), multimodales (Bimodal) e incluso binarias y discretas (Bernoulli).
 
-<CLTSimulation initialN={1} maxN={50} numSamples={1000} />
+<CLTSimulation initialN={1} maxN={60} numSamples={1200} />
 
 <Callout type="note">
-**¡Interactúa!** Mueve el slider o haz clic en "Animar Convergencia" para ver cómo la distribución de promedios se convierte en una campana perfecta.
+**¡Experimenta con cada población!**
+1. **Uniforme:** Observa cómo con solo $n=5$ ya adquiere forma de campana.
+2. **Exponencial (Sesgada):** Al inicio ($n=1$) está fuertemente sesgada a la derecha. Para $n \ge 30$, la asimetría prácticamente desaparece.
+3. **Bimodal (Dos Picos):** Aunque la población tenga un valle en el centro, el promedio de varias muestras borra la bimodalidad y centra la masa en $\mu=0.5$.
+4. **Bernoulli (0/1):** Al promediar ceros y unos, surge de inmediato la distribución de proporciones muestrales, convergiendo a la campana Gaussiana.
 </Callout>
 
 ### Simulación con Python

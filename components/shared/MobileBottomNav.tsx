@@ -25,7 +25,7 @@ export function MobileBottomNav() {
             label: "Contenido",
             icon: BookOpen,
             onClick: isCoursePage ? toggleMobileSidebar : undefined,
-            href: !isCoursePage ? "/dashboard#courses" : undefined,
+            href: !isCoursePage ? "/courses" : undefined,
             active: isCoursePage
         },
         {

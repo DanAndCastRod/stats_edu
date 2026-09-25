@@ -1,0 +1,116 @@
+---
+title: "Forma Estándar y Soluciones Básicas Factibles (SBF)"
+description: "Conversión de desigualdades a igualdades: variables de holgura, exceso y artificiales. Definición algebraica de base y variables básicas."
+bloomLevel: "UNDERSTAND"
+estimatedMinutes: 50
+order: 1
+---
+
+# Introducción
+
+> El método gráfico es intuitivo, pero ¿cómo resolvemos problemas con 50 productos y 200 restricciones de fábrica? George Dantzig resolvió este dilema en 1947 con el **Algoritmo Simplex**, uno de los 10 algoritmos más influyentes del siglo XX.
+
+Para que el álgebra matricial opere sobre un sistema de desigualdades, debemos convertirlo primero a su **Forma Estándar**, donde todas las restricciones son igualdades estrictas y el lado derecho es no negativo ($b_i \ge 0$).
+
+<Callout type="info">
+**Transformaciones a la Forma Estándar:**
+1. **Restricción $\le$:** Se suma una **variable de holgura** $s_i \ge 0$ (recurso no utilizado).
+2. **Restricción $\ge$:** Se resta una **variable de exceso** $e_i \ge 0$ (excedente sobre la meta).
+3. **Restricción $=$ o $\ge$:** Se añade una **variable artificial** $R_i \ge 0$ para proveer una base canónica inicial de identidad.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Escribir cualquier problema de PL en forma estándar matricial $\mathbf{A}\mathbf{x} = \mathbf{b}, \mathbf{x} \ge 0$.
+- Calcular el número total de soluciones básicas posibles: $\binom{n}{m}$.
+- Identificar variables básicas (VB) y variables no básicas (VNB).
+
+---
+
+# 1. Definición Algebraica de Solución Básica Factible (SBF)
+
+Dado un sistema de $m$ ecuaciones linealmente independientes con $n$ variables ($n > m$):
+
+1. Se eligen $n - m$ variables y se igualan a cero. Estas son las **Variables No Básicas (VNB)**.
+2. Se resuelve el sistema restante de $m \times m$ para las $m$ variables restantes, llamadas **Variables Básicas (VB)**.
+3. Si todas las variables básicas cumplen $x_{B_i} \ge 0$, la solución es una **Solución Básica Factible (SBF)**, lo cual corresponde exactamente a un **vértice** geométrico del polítopo.
+
+---
+
+# 2. Ejemplo de Conversión
+
+Modelo Original:
+$$\text{Max } Z = 3x_1 + 5x_2$$
+Sujeto a:
+$$x_1 \le 4$$
+$$2x_2 \le 12$$
+$$3x_1 + 2x_2 \le 18$$
+$$x_1, x_2 \ge 0$$
+
+Forma Estándar con Holguras ($s_1, s_2, s_3 \ge 0$):
+$$\text{Max } Z - 3x_1 - 5x_2 = 0$$
+$$x_1 + s_1 = 4$$
+$$2x_2 + s_2 = 12$$
+$$3x_1 + 2x_2 + s_3 = 18$$
+
+Base Inicial: $VB = \{s_1, s_2, s_3\}$, $VNB = \{x_1, x_2\}$ (en el origen $x_1=0, x_2=0$, $Z=0$).
+
+---
+
+# 3. Código en Python
+
+```python
+import numpy as np
+from itertools import combinations
+
+# Matriz A [m x n] y vector b [m]
+A = np.array([
+    [1, 0, 1, 0, 0],
+    [0, 2, 0, 1, 0],
+    [3, 2, 0, 0, 1]
+])
+b = np.array([4, 12, 18])
+c = np.array([3, 5, 0, 0, 0])
+
+m, n = A.shape
+print(f"Ecuaciones m={m}, Variables n={n}. Combinaciones posibles: {len(list(combinations(range(n), m)))}")
+
+# Búsqueda exhaustiva de Soluciones Básicas
+for indices_base in combinations(range(n), m):
+    B = A[:, indices_base]
+    if np.linalg.matrix_rank(B) == m:
+        x_B = np.linalg.solve(B, b)
+        es_factible = np.all(x_B >= 0)
+        sol = np.zeros(n)
+        sol[list(indices_base)] = x_B
+        z = np.dot(c, sol)
+        if es_factible:
+            print(f"SBF (Vértice): Base={indices_base} -> x={sol}, Z={z}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Forma Estándar y SBF"
+  questions={[
+    {
+      id: "q_std_1",
+      text: "Una variable de holgura (slack) representa físicamente:",
+      options: [
+        { id: "a", text: "La cantidad de recurso no utilizada o capacidad ociosa en una restricción de menor o igual", isCorrect: true, explanation: "Correcto: holgura = capacidad disponible - recurso consumido." },
+        { id: "b", text: "El costo unitario de penalización por exceder la meta", isCorrect: false, explanation: "Esa es la función de las penalizaciones en el método de la Gran M." },
+        { id: "c", text: "La utilidad marginal del producto", isCorrect: false, explanation: "La utilidad marginal es el precio sombra o coeficiente de costo." }
+      ]
+    },
+    {
+      id: "q_std_2",
+      text: "En un sistema con m=3 restricciones y n=6 variables en forma estándar, ¿cuántas variables no básicas se fijan en cero en cada iteración básica?",
+      options: [
+        { id: "a", text: "n - m = 6 - 3 = 3 variables", isCorrect: true, explanation: "Correcto: el número de grados de libertad o variables no básicas es siempre n - m." },
+        { id: "b", text: "m = 3 variables", isCorrect: false, explanation: "Aunque coincide numéricamente, la regla es n - m." },
+        { id: "c", text: "6 * 3 = 18 variables", isCorrect: false, explanation: "No se multiplican las dimensiones." }
+      ]
+    }
+  ]}
+/>

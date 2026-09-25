@@ -1,0 +1,96 @@
+---
+title: "Análisis de Sensibilidad y Precios Sombra"
+description: "Evaluación de cambios en los parámetros del modelo sin resolver desde cero: rangos de optimalidad de c_j, rangos de factibilidad de b_i y regla del 100%."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 55
+order: 2
+---
+
+# Introducción
+
+> En el entorno empresarial, los costos de materias primas cambian a diario y las disponibilidades de mano de obra fluctúan. Un modelo estático queda obsoleto rápidamente. El **Análisis de Sensibilidad** (o análisis post-óptimo) responde a preguntas gerenciales como: "¿Hasta qué precio podemos pagar por una hora extra de producción sin perder rentabilidad?".
+
+El análisis de sensibilidad determina los intervalos en los cuales los parámetros ($c_j$ y $b_i$) pueden variar **sin que cambie la base óptima actual**.
+
+<Callout type="info">
+**Precio Sombra (Dual Value):** Es la tasa marginal de incremento en el valor óptimo de la función objetivo ($Z^*$) por cada unidad adicional en la disponibilidad del recurso $b_i$, siempre que el cambio se mantenga dentro del intervalo de factibilidad.
+$$\Delta Z^* = y_i^* \cdot \Delta b_i$$
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular los rangos de variación admisible para los coeficientes de la función objetivo ($c_j$).
+- Calcular los rangos de factibilidad para los recursos del lado derecho ($b_i$).
+- Aplicar la Regla del 100% para cambios simultáneos en múltiples parámetros.
+
+---
+
+# 1. Rangos de Variación y Regla del 100%
+
+### Variación en Coeficientes de Costo ($c_j$)
+Afecta la pendiente de la función objetivo en el método gráfico.
+- Si $x_j$ es **no básica**: Puede reducirse indefinidamente; para entrar a la base debe aumentar al menos en su costo reducido.
+- Si $x_j$ es **básica**: Posee un intervalo $[c_j^{min}, c_j^{max}]$ dentro del cual el vértice actual sigue siendo el óptimo.
+
+### Regla del 100% para Cambios Simultáneos
+Para cambios simultáneos $\Delta b_i$:
+$$r_i = \begin{cases}
+\frac{\Delta b_i}{\text{Aumento Máximo Permisible}} & \text{si } \Delta b_i > 0 \\
+\frac{-\Delta b_i}{\text{Disminución Máxima Permisible}} & \text{si } \Delta b_i < 0
+\end{cases}$$
+
+Si $\sum_{i=1}^m r_i \le 1.0$ (100%), la base óptima **permanece inalterada** y los precios sombra originales siguen siendo exactamente válidos.
+
+---
+
+# 2. Código en Python con `scipy.optimize`
+
+```python
+from scipy.optimize import linprog
+
+# Max Z = 50*x1 + 30*x2
+c = [-50, -30]
+A = [
+    [2, 1],   # Recurso 1: 80 hrs
+    [4, 1]    # Recurso 2: 120 hrs
+]
+b = [80, 120]
+
+res = linprog(c, A_ub=A, b_ub=b, method='highs')
+
+print(f"Solución Base: x1 = {res.x[0]}, x2 = {res.x[1]}, Z = {-res.fun}")
+print(f"Precios Sombra: {res.ineqlin.marginals}")
+
+# Si compramos 10 horas adicionales del recurso 1 (b1 pasa de 80 a 90):
+b_nuevo = [90, 120]
+res_nuevo = linprog(c, A_ub=A, b_ub=b_nuevo, method='highs')
+print(f"Nuevo Z con b1=90: {-res_nuevo.fun:.2f}")
+print(f"Incremento real en Z: {-res_nuevo.fun - (-res.fun):.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Análisis de Sensibilidad y Precios Sombra"
+  questions={[
+    {
+      id: "q_sens_1",
+      text: "Si el precio sombra de una máquina de empaque es $25/hora y su rango de factibilidad va de 80 a 140 horas (actualmente en 100 horas), ¿cuánto aumentará la ganancia si conseguimos 15 horas adicionales?",
+      options: [
+        { id: "a", text: "15 horas * $25 = $375", isCorrect: true, explanation: "Como 100 + 15 = 115 horas está dentro del rango admisible (80 a 140), el precio sombra aplica linealmente: 15 * 25 = $375." },
+        { id: "b", text: "$25 en total", isCorrect: false, explanation: "El precio sombra es unitario (por cada hora adicional)." },
+        { id: "c", text: "No se puede calcular sin volver a resolver todo el problema", isCorrect: false, explanation: "El análisis de sensibilidad permite calcularlo de inmediato gracias al precio sombra." }
+      ]
+    },
+    {
+      id: "q_sens_2",
+      text: "¿Qué ocurre con los precios sombra si el cambio en la disponibilidad de un recurso supera el límite superior de su intervalo de factibilidad?",
+      options: [
+        { id: "a", text: "La base óptima actual cambia y los precios sombra calculados dejan de ser válidos", isCorrect: true, explanation: "Al salirse del intervalo, el vértice óptimo cambia y se requiere un nuevo análisis." },
+        { id: "b", text: "El precio sombra se vuelve negativo automáticamente", isCorrect: false, explanation: "No necesariamente se vuelve negativo, pero su valor ya no es constante." },
+        { id: "c", text: "El problema se vuelve infactible de inmediato", isCorrect: false, explanation: "Agregar más recurso a una restricción de menor o igual nunca genera infactibilidad." }
+      ]
+    }
+  ]}
+/>

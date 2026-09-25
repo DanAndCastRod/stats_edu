@@ -1,0 +1,99 @@
+---
+title: "Introducción a la Programación Lineal y Formulación de Modelos"
+description: "Los tres componentes esenciales de todo modelo de optimización: variables de decisión, función objetivo y restricciones tecnológicas."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+order: 1
+---
+
+# Introducción
+
+> En toda organización productiva los recursos son escasos: horas máquina limitadas, presupuestos acotados, materias primas restringidas. La **Investigación de Operaciones** es la ciencia matemática de tomar la mejor decisión posible sujeta a restricciones reales.
+
+La **Programación Lineal (PL)** aborda problemas donde tanto la meta (maximizar ganancias o minimizar costos) como los límites operativos se expresan como combinaciones lineales.
+
+<Callout type="info">
+**Estructura Canónica de un Modelo de PL:**
+1. **Variables de Decisión:** $x_1, x_2, \dots, x_n \ge 0$ (¿cuánto producir, enviar o asignar?).
+2. **Función Objetivo:** Maximizar o Minimizar $Z = \sum_{j=1}^n c_j x_j$.
+3. **Restricciones Tecnológicas:** $\sum_{j=1}^n a_{ij} x_j \le b_i$ para $i=1, \dots, m$.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Identificar y definir con precisión las variables de decisión y sus unidades físicas.
+- Formular la función objetivo económica de ingresos o costos.
+- Traducir restricciones verbales de capacidad, demanda y calidad a desigualdades matemáticas.
+
+---
+
+# 1. Ejemplo Clásico: La Fábrica de Muebles
+
+Una carpintería fabrica dos productos: Mesas ($x_1$) y Sillas ($x_2$).
+- Cada mesa genera una utilidad de \$50 y requiere 2 horas de corte y 4 horas de ensamble.
+- Cada silla genera una utilidad de \$30 y requiere 1 hora de corte y 1 hora de ensamble.
+- Disponibilidad semanal: 80 horas de corte y 120 horas de ensamble.
+
+### Formulación Matemática:
+$$\text{Max } Z = 50x_1 + 30x_2 \quad (\text{Utilidad Total en \$})$$
+
+Sujeto a:
+$$2x_1 + 1x_2 \le 80 \quad (\text{Horas de corte})$$
+$$4x_1 + 1x_2 \le 120 \quad (\text{Horas de ensamble})$$
+$$x_1, x_2 \ge 0 \quad (\text{No negatividad})$$
+
+---
+
+# 2. Resolución con Python (`scipy.optimize.linprog`)
+
+```python
+import numpy as np
+from scipy.optimize import linprog
+
+# scipy.optimize minimiza por defecto, por lo que invertimos signos para maximizar
+c = [-50, -30]
+
+# Matriz de restricciones A_ub * x <= b_ub
+A_ub = [
+    [2, 1],  # Corte
+    [4, 1]   # Ensamble
+]
+b_ub = [80, 120]
+
+# Límites de no negatividad x >= 0
+x_bounds = (0, None)
+
+res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=[x_bounds, x_bounds], method='highs')
+
+print("Estado:", res.message)
+print(f"Mesas a producir (x1): {res.x[0]:.2f}")
+print(f"Sillas a producir (x2): {res.x[1]:.2f}")
+print(f"Utilidad Óptima Máxima Z: ${-res.fun:.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Formulación de Modelos de PL"
+  questions={[
+    {
+      id: "q_lp_1",
+      text: "¿Por qué es obligatoria la condición de no negatividad (x_j >= 0) en la gran mayoría de modelos industriales?",
+      options: [
+        { id: "a", text: "Porque cantidades físicas reales como unidades producidas o kilogramos transportados no pueden ser negativas", isCorrect: true, explanation: "Correcto: físicamente no tiene sentido fabricar -5 mesas." },
+        { id: "b", text: "Porque el álgebra lineal no permite multiplicar por números negativos", isCorrect: false, explanation: "El álgebra lineal sí admite números negativos, pero la realidad física del proceso los restringe." },
+        { id: "c", text: "Porque garantiza que el costo total sea siempre cero", isCorrect: false, explanation: "El costo depende de los coeficientes de la función objetivo." }
+      ]
+    },
+    {
+      id: "q_lp_2",
+      text: "Si una empresa debe satisfacer una demanda mínima de 200 toneladas de producto, la restricción se modela como:",
+      options: [
+        { id: "a", text: "x >= 200", isCorrect: true, explanation: "Al ser demanda mínima, la producción x debe ser igual o superior a 200." },
+        { id: "b", text: "x <= 200", isCorrect: false, explanation: "Eso representaría un límite superior o capacidad máxima." },
+        { id: "c", text: "x = 0", isCorrect: false, explanation: "Eso impediría satisfacer cualquier demanda." }
+      ]
+    }
+  ]}
+/>

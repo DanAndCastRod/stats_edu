@@ -1,0 +1,105 @@
+---
+title: "Análisis de Varianza (ANOVA) de un Factor"
+description: "Partición de la varianza total, suma de cuadrados entre y dentro de tratamientos, y contraste de hipótesis global con el estadístico F."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+order: 1
+---
+
+# Introducción
+
+> Si queremos comparar 5 proveedores de materia prima para saber si ofrecen la misma resistencia promedio, ¿podemos hacer 10 pruebas t individuales? La respuesta es un rotundo NO: la probabilidad de cometer al menos un falso positivo (error Tipo I global) se dispararía al $1 - (1-0.05)^{10} \approx 40.1\%$.
+
+Para comparar simultáneamente tres o más medias poblacionales sin inflar el error de tipo I, Ronald Fisher concibió el **Análisis de Varianza (ANOVA)**.
+
+<Callout type="info">
+**La Paradoja de ANOVA:** Aunque el objetivo es comparar **medias**, la técnica lo logra comparando dos estimaciones independientes de la **varianza**: la variabilidad entre tratamientos vs la variabilidad residual o del error.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formular el modelo de efectos fijos para un factor: $Y_{ij} = \mu + \tau_i + \epsilon_{ij}$.
+- Descomponer la Suma de Cuadrados Total: $SCT = SC_{Trat} + SC_{Error}$.
+- Interpretar la tabla ANOVA clásica y tomar decisiones respecto al p-valor.
+
+---
+
+# 1. Descomposición de la Variabilidad
+
+Sea $k$ el número de tratamientos y $n_i$ el número de observaciones en cada grupo:
+
+$$SCT = SC_{Trat} + SCE$$
+
+$$\sum_{i=1}^k \sum_{j=1}^{n_i} (Y_{ij} - \bar{Y}_{\cdot\cdot})^2 = \sum_{i=1}^k n_i (\bar{Y}_{i\cdot} - \bar{Y}_{\cdot\cdot})^2 + \sum_{i=1}^k \sum_{j=1}^{n_i} (Y_{ij} - \bar{Y}_{i\cdot})^2$$
+
+### Estadístico F de Fisher
+El estadístico de prueba es el cociente entre los Cuadrados Medios:
+$$F = \frac{CM_{Trat}}{CME} = \frac{SC_{Trat} / (k - 1)}{SCE / (N - k)}$$
+
+Si $H_0: \mu_1 = \mu_2 = \dots = \mu_k$ es verdadera, $F \sim F(k-1, N-k)$.
+
+---
+
+# 2. Simulador Interactivo de ANOVA
+
+Experimenta variando la separación entre grupos y la dispersión interna para observar cómo cambia la tabla ANOVA y el estadístico F en vivo.
+
+<ANOVAVisualizer />
+
+<Callout type="note">
+**Interpretación:** Si la distancia entre las medias de los grupos supera holgadamente el ruido interno de cada muestra, el estadístico F se desplaza hacia la derecha y el p-valor cae por debajo de 0.05, rechazando $H_0$.
+</Callout>
+
+---
+
+# 3. Implementación en Python con Scipy y Statsmodels
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# Rendimiento de 4 catalizadores en un reactor químico
+catalizador_A = [74.2, 75.1, 73.8, 74.9, 76.0]
+catalizador_B = [78.5, 77.9, 79.1, 78.0, 78.4]
+catalizador_C = [71.0, 72.3, 70.8, 71.9, 72.5]
+catalizador_D = [75.4, 76.2, 75.0, 74.8, 75.5]
+
+# ANOVA de un factor
+f_val, p_val = stats.f_oneway(catalizador_A, catalizador_B, catalizador_C, catalizador_D)
+
+print(f"Estadístico F: {f_val:.4f}")
+print(f"p-valor: {p_val:.4e}")
+
+if p_val < 0.05:
+    print("Conclusión: Al menos un catalizador produce un rendimiento significativamente distinto.")
+else:
+    print("Conclusión: No hay evidencia suficiente de diferencias entre catalizadores.")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: ANOVA de un Factor"
+  questions={[
+    {
+      id: "q_anova_1",
+      text: "¿Por qué no se recomienda realizar múltiples pruebas t de Student independientes en lugar de un ANOVA?",
+      options: [
+        { id: "a", text: "Porque se infla la tasa de error Tipo I global (probabilidad de falso positivo)", isCorrect: true, explanation: "Correcto: con alfa=0.05 y m pruebas, el error acumulado es 1 - (1-alfa)^m." },
+        { id: "b", text: "Porque la prueba t solo funciona con muestras de tamaño menor a 5", isCorrect: false, explanation: "La prueba t funciona con cualquier tamaño muestral n." },
+        { id: "c", text: "Porque las pruebas t requieren conocer la varianza poblacional exacta", isCorrect: false, explanation: "La prueba t precisamente usa la varianza muestral S^2." }
+      ]
+    },
+    {
+      id: "q_anova_2",
+      text: "Si el valor de F calculado en ANOVA es cercano a 1.0, esto sugiere que:",
+      options: [
+        { id: "a", text: "La variabilidad entre tratamientos es del mismo orden que el error aleatorio (No se rechaza H0)", isCorrect: true, explanation: "Cuando no hay efecto del tratamiento, CMTrat y CME estiman ambos a sigma^2, por lo que F aprox 1." },
+        { id: "b", text: "Todos los grupos tienen medias infinitamente distintas", isCorrect: false, explanation: "Diferencias grandes producen valores de F muy superiores a 1." },
+        { id: "c", text: "El experimento fue diseñado incorrectamente", isCorrect: false, explanation: "F aprox 1 es el resultado esperado bajo la hipótesis nula." }
+      ]
+    }
+  ]}
+/>

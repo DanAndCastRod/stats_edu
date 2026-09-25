@@ -1,0 +1,93 @@
+---
+title: "Fundamentos de DOE y Bloqueo al Azar (RCBD)"
+description: "Los tres pilares del diseño experimental de Fisher: aleatorización, replicación y bloqueo local. Diseño en Bloques Completos al Azar."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+order: 1
+---
+
+# Introducción
+
+> "Hacer experimentos cambiando un factor a la vez (OFAT) no solo es ineficiente, sino peligroso: es ciego a las interacciones y gasta el triple de recursos." — Sir Ronald Fisher.
+
+El **Diseño de Experimentos (DOE)** es la metodología activa para planificar pruebas de tal forma que los datos obtenidos se analicen con rigor estadístico, maximizando la información y minimizando la variabilidad no controlada.
+
+<Callout type="info">
+**Los Tres Principios Fundamentales:**
+1. **Aleatorización:** Protege contra variables de confusión no controladas.
+2. **Replicación:** Permite estimar el error experimental y mejora la precisión.
+3. **Bloqueo Local:** Aísla la variabilidad conocida pero no deseada (operadores, días, lotes).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Distinguir entre factores de interés y factores de bloqueo.
+- Formular el modelo de Bloques Completos al Azar: $Y_{ij} = \mu + \tau_i + \beta_j + \epsilon_{ij}$.
+- Eliminar la variabilidad debida al bloque para aumentar la potencia de la prueba de tratamientos.
+
+---
+
+# 1. El Diseño en Bloques Completos al Azar (RCBD)
+
+Cuando las unidades experimentales no son homogéneas, se agrupan en **bloques** internamente homogéneos. Cada tratamiento se aplica exactamente una vez dentro de cada bloque.
+
+### Descomposición de la Suma de Cuadrados:
+$$SCT = SC_{Trat} + SC_{Bloques} + SCE$$
+
+Al extraer $SC_{Bloques}$ del error residual, el $SCE$ disminuye drásticamente, lo cual aumenta el valor de $F = CM_{Trat} / CME$.
+
+---
+
+# 2. Análisis en Python
+
+```python
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+
+# Comparación de 4 formulaciones de concreto en 3 lotes de agregado (bloques)
+datos = pd.DataFrame({
+    'Resistencia': [
+        32.1, 33.4, 31.8,  # Formulación A (Lote 1, 2, 3)
+        36.5, 37.8, 35.9,  # Formulación B
+        30.2, 31.5, 29.8,  # Formulación C
+        38.0, 39.2, 37.4   # Formulación D
+    ],
+    'Formulacion': ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'D', 'D', 'D'],
+    'Bloque_Lote': ['L1', 'L2', 'L3'] * 4
+})
+
+# Modelo aditivo de RCBD (sin interacción tratamiento x bloque)
+modelo = ols('Resistencia ~ C(Formulacion) + C(Bloque_Lote)', data=datos).fit()
+tabla_rcbd = sm.stats.anova_lm(modelo, typ=2)
+
+print("Tabla ANOVA para Diseño en Bloques al Azar:")
+print(tabla_rcbd)
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Principios de DOE y Bloqueo"
+  questions={[
+    {
+      id: "q_doe_1",
+      text: "¿Cuál es el propósito principal del bloqueo en un diseño experimental?",
+      options: [
+        { id: "a", text: "Reducir el error experimental aislando una fuente conocida de variabilidad", isCorrect: true, explanation: "Correcto: al remover la varianza de los bloques del error residual, la prueba de tratamientos es más potente." },
+        { id: "b", text: "Evitar tener que calcular la media de los datos", isCorrect: false, explanation: "El bloqueo no elimina los cálculos habituales de medias y varianzas." },
+        { id: "c", text: "Garantizar que todos los tratamientos den exactamente el mismo resultado", isCorrect: false, explanation: "El objetivo es evaluar si los tratamientos difieren, no forzar que sean iguales." }
+      ]
+    },
+    {
+      id: "q_doe_2",
+      text: "La aleatorización en la asignación de tratamientos sirve fundamentalmente para:",
+      options: [
+        { id: "a", text: "Evitar sesgos sistemáticos debidos a variables no controladas", isCorrect: true, explanation: "La aleatorización valida el supuesto de errores independientes e idénticamente distribuidos." },
+        { id: "b", text: "Aumentar artificialmente el tamaño de muestra sin hacer pruebas", isCorrect: false, explanation: "No modifica el tamaño de la muestra." },
+        { id: "c", text: "Asegurar que los datos sigan una distribución uniforme", isCorrect: false, explanation: "La aleatorización no cambia la distribución teórica de las variables respuesta." }
+      ]
+    }
+  ]}
+/>

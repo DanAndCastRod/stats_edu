@@ -35,3 +35,38 @@ export async function markTopicAsCompleted(topicId: string, courseSlug: string) 
         return { error: "Failed to update progress" }
     }
 }
+
+export async function submitQuizResult(topicId: string, score: number) {
+    const session = await auth()
+
+    if (!session?.user?.id) return { error: "Unauthorized" }
+
+    try {
+        const roundedScore = Math.round(score)
+        await db.userProgress.upsert({
+            where: {
+                userId_topicId: {
+                    userId: session.user.id,
+                    topicId: topicId
+                }
+            },
+            update: {
+                score: roundedScore,
+                completed: roundedScore >= 60,
+                updatedAt: new Date()
+            },
+            create: {
+                userId: session.user.id,
+                topicId: topicId,
+                score: roundedScore,
+                completed: roundedScore >= 60
+            }
+        })
+
+        return { success: true }
+    } catch (error) {
+        console.error("Error submitting quiz result:", error)
+        return { error: "Failed to submit quiz result" }
+    }
+}
+

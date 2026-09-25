@@ -43,6 +43,15 @@ Si los clientes llegan cada 5 minutos en promedio:
 - $E[X] = 5$ minutos
 - $\lambda = \frac{1}{5} = 0.2$ clientes/minuto
 
+<ExponentialVisualizer initialLambda={0.2} initialX={3} />
+
+<Callout type="note">
+**¡Interactúa con el gráfico!**
+- Modifica la tasa $\lambda$ para ver cómo tasas altas concentran la probabilidad en tiempos muy cortos (arribos o fallos rápidos).
+- Alterna entre $P(X \le x)$ (fallo antes de $x$) y $P(X > x)$ (fiabilidad o supervivencia más allá de $x$).
+- Nota que la **mediana** ($t_{0.5} \approx 0.693 / \lambda$) siempre es menor que la media ($1/\lambda$) debido al sesgo positivo de la cola derecha.
+</Callout>
+
 ---
 
 # 2. La Propiedad Sin Memoria

@@ -1,0 +1,6 @@
+{
+  "title": "Investigación de Operaciones I",
+  "description": "Optimización determinística y toma de decisiones: modelación matemática, programación lineal, método simplex, teoría de la dualidad, análisis de sensibilidad, transporte y redes (PERT/CPM).",
+  "code": "511-31",
+  "isMock": false
+}

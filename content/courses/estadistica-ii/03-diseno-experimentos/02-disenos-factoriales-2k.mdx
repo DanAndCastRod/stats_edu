@@ -1,0 +1,100 @@
+---
+title: "Diseños Factoriales 2^k y Análisis de Efectos"
+description: "Estructura de experimentos con k factores a dos niveles (-1, +1). Cálculo de contrastes, efectos principales e interacciones mediante el algoritmo de Yates."
+bloomLevel: "CREATE"
+estimatedMinutes: 60
+order: 2
+---
+
+# Introducción
+
+> En ingeniería de procesos, cuando debemos tamizar 3, 4 o 5 factores potencialmente influyentes (temperatura, presión, tiempo, concentración), los **diseños $2^k$** son la herramienta reina de cribado inicial (screening).
+
+Un diseño $2^k$ evalúa $k$ factores a solo 2 niveles cada uno: nivel bajo ($-1$) y nivel alto ($+1$), requiriendo únicamente $2^k$ corridas experimentales por réplica.
+
+<Callout type="info">
+**El Principio de Parsimonia (Esparcidad de Efectos):** En la mayoría de los sistemas industriales, el 80% de la variabilidad observada se debe a unos pocos efectos principales e interacciones de dos factores; las interacciones de tres o más factores casi siempre son despreciables.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Construir la matriz de diseño en notación geométrica y codificada ($\pm 1$).
+- Calcular los contrastes y efectos principales de cada factor.
+- Representar los efectos en un diagrama de Pareto estandarizado.
+
+---
+
+# 1. Matriz de Diseño para un Experimento $2^2$
+
+Consideremos 2 factores: $A$ (Temperatura) y $B$ (Presión):
+
+| Tratamiento | A | B | Notación Estándar |
+| :--- | :---: | :---: | :---: |
+| 1 | $-$ | $-$ | $(1)$ |
+| 2 | $+$ | $-$ | $a$ |
+| 3 | $-$ | $+$ | $b$ |
+| 4 | $+$ | $+$ | $ab$ |
+
+### Cálculo del Efecto Principal de A:
+$$Efecto(A) = \frac{1}{2n} [ab + a - b - (1)]$$
+
+### Cálculo del Efecto de Interacción AB:
+$$Efecto(AB) = \frac{1}{2n} [ab + (1) - a - b]$$
+
+---
+
+# 2. Laboratorio en Python: Ajuste de un Diseño $2^3$
+
+```python
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+
+# Diseño 2^3 con réplicas (Factores: A=Temp, B=Presión, C=Tiempo)
+df = pd.DataFrame({
+    'A': [-1,  1, -1,  1, -1,  1, -1,  1] * 2,
+    'B': [-1, -1,  1,  1, -1, -1,  1,  1] * 2,
+    'C': [-1, -1, -1, -1,  1,  1,  1,  1] * 2,
+    'Rendimiento': [
+        55, 72, 60, 85, 59, 77, 66, 93,
+        53, 70, 62, 83, 61, 79, 64, 91
+    ]
+})
+
+# Ajuste con todas las interacciones
+modelo = ols('Rendimiento ~ A * B * C', data=df).fit()
+print(modelo.summary())
+
+# Los coeficientes de la regresión equivalen a la mitad del efecto del factor
+efectos = modelo.params.drop('Intercept') * 2
+print("\nEfectos de los Factores (2 * Coef):")
+print(efectos.sort_values(key=abs, ascending=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Diseños Factoriales 2^k"
+  questions={[
+    {
+      id: "q_2k_1",
+      text: "¿Cuántas corridas experimentales sin réplica requiere un diseño factorial completo de 4 factores a dos niveles (2^4)?",
+      options: [
+        { id: "a", text: "16 corridas", isCorrect: true, explanation: "Correcto: 2^4 = 16 combinaciones posibles de niveles." },
+        { id: "b", text: "8 corridas", isCorrect: false, explanation: "8 corridas correspondería a un diseño 2^3 o a una fracción 2^(4-1)." },
+        { id: "c", text: "4 corridas", isCorrect: false, explanation: "4 es simplemente el número de factores." }
+      ]
+    },
+    {
+      id: "q_2k_2",
+      text: "En un diseño codificado (-1, +1), el coeficiente beta de la regresión lineal para un factor se relaciona con el efecto del factor como:",
+      options: [
+        { id: "a", text: "Efecto = 2 * beta", isCorrect: true, explanation: "Al pasar de -1 a +1 el cambio en la variable codificada es de 2 unidades, por lo que Efecto = 2 * beta." },
+        { id: "b", text: "Efecto = beta / 2", isCorrect: false, explanation: "Es al revés: beta es la pendiente por unidad de x codificado." },
+        { id: "c", text: "Efecto = beta^2", isCorrect: false, explanation: "La relación es estrictamente lineal." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,107 @@
+---
+title: "Teoría de la Dualidad y Relaciones Primal-Dual"
+description: "Construcción formal del problema dual, teoremas de dualidad débil y fuerte, y teorema de holguras complementarias."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 55
+order: 1
+---
+
+# Introducción
+
+> Asociado a todo problema de Programación Lineal (denominado **Primal**), existe intrínsecamente otro problema lineal simétrico conocido como **Dual**. La dualidad no es solo una curiosidad algebraica: proporciona la fundamentación económica de los precios sombra y la valoración de recursos escasos.
+
+Si el Primal maximiza la utilidad de una empresa asignando recursos a productos, el Dual minimiza el valor económico imputado a esos mismos recursos.
+
+<Callout type="info">
+**Teorema Fuerte de la Dualidad:** Si el problema Primal tiene una solución óptima finita $\mathbf{x}^*$, entonces el problema Dual también tiene una solución óptima finita $\mathbf{y}^*$, y los valores óptimos de sus funciones objetivo son **exactamente iguales**:
+$$Z_{Max}^* = W_{Min}^*$$
+</Callout>
+
+## Objetivos de Aprendizaje
+- Mapear sistemáticamente los parámetros de un problema Primal a su contraparte Dual.
+- Aplicar el Teorema de Holguras Complementarias para verificar soluciones óptimas.
+- Interpretar económicamente las variables duales como precios sombra unitarios.
+
+---
+
+# 1. Tabla de Correspondencia Primal-Dual
+
+| Problema Primal (Maximizar) | Problema Dual (Minimizar) |
+| :--- | :--- |
+| Matriz tecnológica $\mathbf{A}$ ($m \times n$) | Matriz traspuesta $\mathbf{A}^T$ ($n \times m$) |
+| Lado derecho $\mathbf{b}$ ($m$ restricciones) | Coeficientes de costos de la FO $\mathbf{b}^T$ |
+| Coeficientes de la FO $\mathbf{c}$ ($n$ variables) | Lado derecho $\mathbf{c}$ ($n$ restricciones) |
+| Restricción $i$-ésima tipo $\le$ | Variable dual $y_i \ge 0$ |
+| Restricción $i$-ésima tipo $=$ | Variable dual $y_i$ libre (sin restricción de signo) |
+| Variable primal $x_j \ge 0$ | Restricción dual $j$-ésima tipo $\ge$ |
+
+---
+
+# 2. Teorema de Holguras Complementarias
+
+Sean $\mathbf{x}$ factible primal con holguras $\mathbf{s} \ge 0$, e $\mathbf{y}$ factible dual con excesos $\mathbf{e} \ge 0$:
+
+$$s_i \cdot y_i = 0 \quad \text{para todo } i=1, \dots, m$$
+$$x_j \cdot e_j = 0 \quad \text{para todo } j=1, \dots, n$$
+
+<Callout type="note">
+**Interpretación Económica:**
+- Si un recurso tiene holgura positiva ($s_i > 0$, sobró capacidad), su valor marginal o precio sombra es cero ($y_i = 0$). Nadie pagaría por adquirir más de un recurso que sobra.
+- Si una variable de decisión es estrictamente positiva ($x_j > 0$), su restricción dual se cumple con igualdad estricta ($e_j = 0$, costo reducido nulo).
+</Callout>
+
+---
+
+# 3. Código en Python para Obtener las Variables Duales
+
+```python
+from scipy.optimize import linprog
+
+# Primal: Max Z = 40*x1 + 30*x2
+c = [-40, -30]
+A = [
+    [1, 1],    # x1 + x2 <= 100  (Horas trabajo)
+    [2, 1]     # 2*x1 + x2 <= 160 (Material kg)
+]
+b = [100, 160]
+
+res = linprog(c, A_ub=A, b_ub=b, method='highs')
+
+print(f"Solución Primal Óptima: x1={res.x[0]:.2f}, x2={res.x[1]:.2f}")
+print(f"Valor Óptimo Z = {-res.fun:.2f}")
+
+# En HiGHS, los multiplicadores de Lagrange (variables duales) se encuentran en res.ineqlin.marginals
+precios_sombra = -res.ineqlin.marginals
+print(f"\nVariables Duales (Precios Sombra):")
+print(f"y1 (Horas trabajo) = ${precios_sombra[0]:.2f} por hora")
+print(f"y2 (Material)      = ${precios_sombra[1]:.2f} por kg")
+print(f"Valor Dual W = 100*y1 + 160*y2 = ${100*precios_sombra[0] + 160*precios_sombra[1]:.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Teoría de la Dualidad"
+  questions={[
+    {
+      id: "q_dual_1",
+      text: "Si el problema Primal de maximización es no acotado (Z -> +infinito), ¿qué ocurre con el problema Dual?",
+      options: [
+        { id: "a", text: "El problema Dual es infactible (no tiene región factible)", isCorrect: true, explanation: "Correcto: por el Teorema Débil de Dualidad, si el primal no tiene cota superior, el dual no puede tener ningún punto factible." },
+        { id: "b", text: "El problema Dual tiene solución óptima finita igual a 0", isCorrect: false, explanation: "La dualidad débil impide que el dual sea factible si el primal es no acotado." },
+        { id: "c", text: "El problema Dual es también no acotado hacia -infinito", isCorrect: false, explanation: "Un problema primal no acotado siempre implica un dual infactible." }
+      ]
+    },
+    {
+      id: "q_dual_2",
+      text: "Si en la solución óptima de una fábrica quedan 15 horas de máquina sin utilizar (holgura s_1 = 15), ¿cuál es el precio sombra (variable dual y_1) de esa máquina?",
+      options: [
+        { id: "a", text: "$0.00", isCorrect: true, explanation: "Por holguras complementarias (s_i * y_i = 0), si sobra recurso (s_i > 0), su valor marginal es exactamente cero." },
+        { id: "b", text: "$15.00", isCorrect: false, explanation: "15 es la cantidad de holgura física, no su valor monetario marginal." },
+        { id: "c", text: "Infinito", isCorrect: false, explanation: "No tiene sentido pagar un precio infinito por un recurso ocioso." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,112 @@
+---
+title: "Técnicas de Muestreo Probabilístico y Afijación Óptima"
+description: "Muestreo aleatorio simple, estratificado, sistemático y por conglomerados. Cálculo del tamaño de muestra por estratos con Neyman."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+order: 1
+---
+
+# Introducción
+
+> En la industria moderna, inspeccionar el 100% de la producción es económicamente inviable o físicamente imposible cuando las pruebas son destructivas. La teoría de muestreo nos enseña a obtener la máxima precisión con el menor costo posible.
+
+El **muestreo probabilístico** garantiza que cada elemento de la población tenga una probabilidad conocida y no nula de ser seleccionado, eliminando el sesgo del investigador.
+
+<Callout type="info">
+**¿Por qué estratificar?** Si una población tiene subgrupos heterogéneos (por ejemplo, turnos de trabajo mañana/tarde/noche o líneas de producción), el **muestreo estratificado** reduce la varianza del estimador en comparación con el muestreo aleatorio simple.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comparar las ventajas del muestreo aleatorio simple (MAS) frente al estratificado.
+- Calcular tamaños de muestra por estrato mediante afijación proporcional y afijación óptima de Neyman.
+- Implementar rutinas de muestreo reproducible con Python y Pandas.
+
+---
+
+# 1. Métodos Clásicos de Muestreo
+
+### Muestreo Aleatorio Simple (MAS)
+Cada individuo de tamaño $N$ tiene la misma probabilidad $1/N$ de ser seleccionado. Con reemplazo o sin reemplazo (factor de corrección para población finita $\frac{N-n}{N-1}$).
+
+### Muestreo Sistemático
+Se selecciona un punto de inicio aleatorio $k \le K = N/n$ y luego se toma cada $K$-ésimo elemento:
+$$i, i + K, i + 2K, \dots$$
+
+<Callout type="warning">
+**Peligro de periodicidad:** Si la línea de producción tiene una vibración cíclica cada 10 piezas y se muestrea cada $K=10$ unidades, la muestra estará fuertemente sesgada.
+</Callout>
+
+---
+
+# 2. Afijación en Muestreo Estratificado
+
+Supongamos que dividimos una población de tamaño $N$ en $L$ estratos de tamaños $N_1, N_2, \dots, N_L$, con desviaciones estándar $\sigma_h$.
+
+### 1. Afijación Proporcional
+El tamaño de muestra en el estrato $h$ es proporcional a su peso poblacional $W_h = N_h / N$:
+$$n_h = n \cdot \frac{N_h}{N}$$
+
+### 2. Afijación Óptima de Neyman
+Minimiza la varianza del estimador considerando tanto el tamaño del estrato como su dispersión interna:
+$$n_h = n \cdot \frac{N_h \sigma_h}{\sum_{k=1}^L N_k \sigma_k}$$
+
+<Callout type="note">
+**Regla de oro de Neyman:** Los estratos más grandes y con mayor variabilidad interna reciben una porción mayor de la muestra.
+</Callout>
+
+---
+
+# 3. Laboratorio en Python: Afijación de Neyman
+
+```python
+import numpy as np
+import pandas as pd
+
+# Datos de una fábrica con 3 turnos de producción
+turnos = pd.DataFrame({
+    'Turno': ['Mañana', 'Tarde', 'Noche'],
+    'N_h': [5000, 3500, 1500],       # Tamaño del lote
+    'sigma_h': [2.4, 3.8, 6.2]        # Desviación estándar del defecto (mm)
+})
+
+n_total = 300  # Muestra global disponible
+
+# 1. Afijación Proporcional
+N_pob = turnos['N_h'].sum()
+turnos['n_prop'] = np.round(n_total * (turnos['N_h'] / N_pob)).astype(int)
+
+# 2. Afijación de Neyman
+numeradores = turnos['N_h'] * turnos['sigma_h']
+denominador = numeradores.sum()
+turnos['n_neyman'] = np.round(n_total * (numeradores / denominador)).astype(int)
+
+print(turnos[['Turno', 'N_h', 'sigma_h', 'n_prop', 'n_neyman']])
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Métodos de Muestreo y Estratificación"
+  questions={[
+    {
+      id: "q_strat_1",
+      text: "¿Cuál es el principal beneficio de utilizar un muestreo estratificado frente a un MAS?",
+      options: [
+        { id: "a", text: "Garantiza menor varianza del estimador al aislar subgrupos heterogéneos", isCorrect: true, explanation: "Al agrupar elementos homogéneos internamente y heterogéneos entre sí, la varianza global disminuye." },
+        { id: "b", text: "Permite usar fórmulas sin calcular la varianza poblacional", isCorrect: false, explanation: "De hecho, la afijación de Neyman requiere conocer las desviaciones estándar de cada estrato." },
+        { id: "c", text: "Es siempre más económico sin importar el número de estratos", isCorrect: false, explanation: "La logística de estratificación puede ser más costosa si los estratos están dispersos." }
+      ]
+    },
+    {
+      id: "q_strat_2",
+      text: "Si un estrato tiene alta dispersión (sigma grande), la afijación de Neyman le asignará:",
+      options: [
+        { id: "a", text: "Una muestra proporcionalmente mayor para compensar la incertidumbre", isCorrect: true, explanation: "Correcto: a mayor varianza en el estrato, mayor tamaño de muestra asignado." },
+        { id: "b", text: "Menos observaciones para evitar introducir ruido", isCorrect: false, explanation: "Al contrario, se requiere más muestra para estimar con precisión en presencia de alta varianza." },
+        { id: "c", text: "La misma muestra que a un estrato con varianza cero", isCorrect: false, explanation: "Neyman pondera explícitamente por el producto N_h * sigma_h." }
+      ]
+    }
+  ]}
+/>

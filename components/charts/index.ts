@@ -31,4 +31,6 @@ export { MontyHallSim } from "./MontyHallSim"
 export { VennInteractions } from "./VennInteractions"
 export { CountingPrinciples } from "./CountingPrinciples"
 export { CorrelationGame } from "./CorrelationGame"
+export { ZScoreCalculator } from "./ZScoreCalculator"
+export { ExponentialVisualizer } from "./ExponentialVisualizer"
 

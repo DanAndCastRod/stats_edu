@@ -1,0 +1,108 @@
+---
+title: "Distribuciones Muestrales Derivadas: Chi-Cuadrado, t y F"
+description: "Estudio de las distribuciones fundamentales de la inferencia clásica para varianzas, medias desconocidas y cocientes de dispersión."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 55
+order: 2
+---
+
+# Introducción
+
+> ¿Cómo sabemos si dos máquinas tienen la misma precisión o si un nuevo tratamiento reduce la dispersión de un proceso químico? La respuesta reside en el cociente de varianzas y la distribución F de Fisher-Snedecor.
+
+Cuando tomamos muestras de una población normal $N(\mu, \sigma^2)$, surgen de manera natural tres distribuciones muestrales continuas derivadas: $\chi^2$, Student-$t$ y Fisher-$F$.
+
+<Callout type="info">
+**El Teorema de Fisher:** Si $X_1, \dots, X_n \sim N(\mu, \sigma^2)$ independientes, la media muestral $\bar{X}$ y la varianza muestral $S^2$ son **estocásticamente independientes**.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comprender la relación matemática entre la normal estándar y las distribuciones $\chi^2$, $t$ y $F$.
+- Utilizar la distribución F para contrastar razones de varianzas poblacionales $\sigma_1^2 / \sigma_2^2$.
+- Explorar de forma interactiva el efecto de los grados de libertad en la cola de la distribución F.
+
+---
+
+# 1. Definiciones Teóricas Fundamentales
+
+### 1. Distribución Chi-Cuadrado ($\chi^2$)
+Si $Z_1, \dots, Z_k \sim N(0, 1)$ independientes:
+$$Y = \sum_{i=1}^k Z_i^2 \sim \chi^2(k)$$
+Para la varianza muestral de una muestra normal:
+$$\frac{(n - 1)S^2}{\sigma^2} \sim \chi^2(n - 1)$$
+
+### 2. Distribución t de Student
+Cociente entre una Normal Estándar y la raíz de una Chi-Cuadrado independiente:
+$$T = \frac{Z}{\sqrt{\chi^2(k) / k}} \sim t(k)$$
+
+### 3. Distribución F de Snedecor
+Cociente entre dos variables Chi-Cuadrado independientes divididas por sus grados de libertad:
+$$F = \frac{\chi_1^2 / d_1}{\chi_2^2 / d_2} \sim F(d_1, d_2)$$
+
+Para dos muestras independientes con varianzas $S_1^2$ y $S_2^2$:
+$$F = \frac{S_1^2 / \sigma_1^2}{S_2^2 / \sigma_2^2}$$
+
+---
+
+# 2. Visualizador Interactivo: La Distribución F
+
+Ajusta los grados de libertad del numerador ($d_1$) y del denominador ($d_2$) para observar cómo cambia la asíntota y el valor crítico $F_{\alpha}$.
+
+<FDistribution initialDf1={5} initialDf2={20} initialAlpha={0.05} />
+
+<Callout type="note">
+**Observa:** A medida que los grados de libertad del denominador crecen ($d_2 \to \infty$), la distribución $F$ se estabiliza. Esta distribución es la base de las pruebas ANOVA y de regresión.
+</Callout>
+
+---
+
+# 3. Cálculo en Python con SciPy
+
+```python
+import numpy as np
+from scipy import stats
+
+# Prueba de razón de varianzas entre dos métodos de manufactura
+muestra_A = [12.4, 12.1, 12.8, 12.5, 12.9, 12.3]
+muestra_B = [11.8, 12.9, 11.2, 13.5, 12.0, 13.8, 11.4]
+
+s1_sq = np.var(muestra_A, ddof=1)
+s2_sq = np.var(muestra_B, ddof=1)
+df1 = len(muestra_A) - 1
+df2 = len(muestra_B) - 1
+
+# Estadístico F
+f_stat = s1_sq / s2_sq if s1_sq > s2_sq else s2_sq / s1_sq
+p_value = 2 * (1 - stats.f.cdf(f_stat, df1, df2))
+
+print(f"Varianza A: {s1_sq:.4f}, Varianza B: {s2_sq:.4f}")
+print(f"Estadístico F: {f_stat:.4f}, p-valor: {p_value:.4f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Distribuciones Chi-Cuadrado, t y F"
+  questions={[
+    {
+      id: "q_dist_1",
+      text: "La distribución F de Fisher se construye matemáticamente como el cociente de:",
+      options: [
+        { id: "a", text: "Dos variables Chi-cuadrado independientes divididas por sus grados de libertad", isCorrect: true, explanation: "Correcto: F = (Chi1 / d1) / (Chi2 / d2)." },
+        { id: "b", text: "Una normal estándar sobre una exponencial", isCorrect: false, explanation: "Esa construcción no genera la distribución F." },
+        { id: "c", text: "Dos distribuciones t de Student con iguales grados de libertad", isCorrect: false, explanation: "El cuadrado de una t(v) es una F(1, v), pero la definición general parte de dos Chi-cuadrado." }
+      ]
+    },
+    {
+      id: "q_dist_2",
+      text: "¿Qué forma geométrica tiene la distribución F?",
+      options: [
+        { id: "a", text: "Siempre simétrica alrededor de 0", isCorrect: false, explanation: "La distribución F solo toma valores no negativos (F >= 0) y es asimétrica positiva." },
+        { id: "b", text: "Asimétrica a la derecha (sesgada positivamente), definida en [0, infinito)", isCorrect: true, explanation: "Al ser un cociente de sumas de cuadrados, F siempre es >= 0 y tiene cola a la derecha." },
+        { id: "c", text: "Bimodal con dos picos simétricos", isCorrect: false, explanation: "Tiene un único máximo unimodal positivo." }
+      ]
+    }
+  ]}
+/>

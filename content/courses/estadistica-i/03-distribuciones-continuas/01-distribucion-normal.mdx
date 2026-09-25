@@ -52,15 +52,24 @@ La distribución normal es **simétrica** y tiene forma de **campana**.
 
 # 2. Estandarización: El Puntaje Z
 
-Para comparar datos de diferentes escalas, los convertimos a una **Normal Estándar** ($\mu=0$, $\sigma=1$).
+Para comparar datos de diferentes escalas o calcular probabilidades exactas, convertimos cualquier variable normal $X \sim N(\mu, \sigma)$ a una **Normal Estándar** $Z \sim N(0, 1)$:
 
 $$Z = \frac{X - \mu}{\sigma}$$
 
-### Ejemplo
-Un estudiante saca 85 en un examen donde la media es 70 y la desviación 10.
+### Ejemplo Práctico
+Un estudiante saca 85 en un examen donde la media es 70 y la desviación 10:
 $$Z = \frac{85 - 70}{10} = 1.5$$
 
-Esto significa que el estudiante está **1.5 desviaciones estándar por encima de la media**. ¡Excelente!
+Esto significa que el estudiante está **1.5 desviaciones estándar por encima de la media** (superando al 93.32% de sus compañeros).
+
+<ZScoreCalculator initialMean={70} initialStd={10} initialX={85} />
+
+<Callout type="note">
+**¡Experimenta con la calculadora interactiva!**
+- Cambia la media $\mu$ y desviación $\sigma$ para adaptarlo a cualquier caso de estudio (salarios, tiempos de ciclo, pesos de piezas).
+- Alterna entre **Cola Izquierda** (percentil acumulado), **Cola Derecha** (probabilidad de superar la meta) e **Intervalo Central** (porcentaje de control).
+- Observa cómo el valor $Z$ ubica con exactitud la posición relativa de la observación sin importar las unidades originales.
+</Callout>
 
 ---
 

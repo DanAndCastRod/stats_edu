@@ -1,0 +1,110 @@
+---
+title: "Diagnóstico de Supuestos y Multicolinealidad en Regresión"
+description: "Verificación de normalidad, homocedasticidad, independencia y diagnóstico de multicolinealidad con el Factor de Inflación de Varianza (VIF)."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 55
+order: 2
+---
+
+# Introducción
+
+> "Todos los modelos son erróneos, pero algunos son útiles." — George Box. Un modelo de regresión con un $R^2$ del 98% puede ser completamente engañoso si viola los supuestos de homocedasticidad o si sus predictores están fuertemente colineales.
+
+El **diagnóstico de regresión** evalúa la validez de los cuatro supuestos fundamentales de Gauss-Markov sobre los residuos $\epsilon_i$:
+1. **Linealidad:** $E[\epsilon_i] = 0$.
+2. **Homocedasticidad:** $Var(\epsilon_i) = \sigma^2$ (varianza constante).
+3. **Independencia:** $Cov(\epsilon_i, \epsilon_j) = 0$.
+4. **Normalidad:** $\epsilon_i \sim N(0, \sigma^2)$ (para inferencia e intervalos).
+
+<Callout type="info">
+**Multicolinealidad:** Ocurre cuando dos o más variables independientes están altamente correlacionadas entre sí, inflando las varianzas de los estimadores $\beta_j$ y haciendo que los coeficientes sean inestables e interpretables erróneamente.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Identificar patrones patológicos en gráficos de residuos (cono/embudo, parábola, autocorrelación).
+- Calcular e interpretar el Factor de Inflación de Varianza (VIF).
+- Explorar de forma interactiva el comportamiento de los residuos con el widget dedicado.
+
+---
+
+# 1. Gráficos de Diagnóstico de Residuos
+
+A continuación interactúa con el visualizador de residuos para observar patrones ideales (nube aleatoria) vs patologías clásicas (heterocedasticidad y no linealidad).
+
+<ResidualPlot />
+
+<Callout type="note">
+**Regla Visual:**
+- **Nube aleatoria homogénea:** Supuestos cumplidos.
+- **Forma de embudo (cono):** Heterocedasticidad (varianza no constante). Solución: transformación Box-Cox o Mínimos Cuadrados Ponderados (WLS).
+- **Curvatura parabólica:** No linealidad. Solución: incluir términos cuadráticos ($X^2$) o splines.
+</Callout>
+
+---
+
+# 2. Factor de Inflación de Varianza (VIF)
+
+Para la variable predictora $X_j$:
+
+$$VIF_j = \frac{1}{1 - R_j^2}$$
+
+Donde $R_j^2$ es el coeficiente de determinación obtenido al regresar $X_j$ sobre todas las demás variables predictoras.
+
+| Rango de VIF | Diagnóstico |
+| :--- | :--- |
+| $VIF \approx 1$ | Variables completamente ortogonales (sin colinealidad). |
+| $1 < VIF < 5$ | Colinealidad moderada (tolerable en la práctica). |
+| $VIF \ge 5 - 10$ | **Multicolinealidad severa.** Se recomienda eliminar variables redundantes o usar Regresión Ridge/Lasso. |
+
+---
+
+# 3. Código en Python con `statsmodels`
+
+```python
+import pandas as pd
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+import statsmodels.api as sm
+
+# DataFrame con variables predictoras
+df_X = pd.DataFrame({
+    'Temp_C': [20, 22, 24, 25, 28, 30, 32, 35],
+    'Temp_F': [68, 71.6, 75.2, 77, 82.4, 86, 89.6, 95],  # Colinealidad casi perfecta
+    'Presion': [100, 102, 101, 105, 108, 110, 112, 115]
+})
+
+X_const = sm.add_constant(df_X)
+
+vif_data = pd.DataFrame()
+vif_data["Variable"] = X_const.columns
+vif_data["VIF"] = [variance_inflation_factor(X_const.values, i) for i in range(X_const.shape[1])]
+
+print(vif_data[vif_data['Variable'] != 'const'])
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Diagnóstico de Supuestos y VIF"
+  questions={[
+    {
+      id: "q_diag_1",
+      text: "Un gráfico de residuos frente a valores ajustados con forma de abanico o cono (la dispersión aumenta con Y_hat) indica:",
+      options: [
+        { id: "a", text: "Heterocedasticidad (violación del supuesto de varianza constante)", isCorrect: true, explanation: "Correcto: la varianza de los residuos no es homogénea a lo largo de las predicciones." },
+        { id: "b", text: "Normalidad perfecta", isCorrect: false, explanation: "La forma de cono es una clara patología de varianza." },
+        { id: "c", text: "Que no existe ninguna relación entre las variables", isCorrect: false, explanation: "El modelo puede tener alta correlación pero varianza inestable." }
+      ]
+    },
+    {
+      id: "q_diag_2",
+      text: "Si una variable predictora tiene un VIF = 18.5, la acción recomendada es:",
+      options: [
+        { id: "a", text: "Investigar multicolinealidad y considerar removerla o aplicar regularización (Ridge/PCA)", isCorrect: true, explanation: "Un VIF > 10 indica redundancia casi total con otras variables del modelo." },
+        { id: "b", text: "Aumentar el valor de R^2 agregando 10 variables más", isCorrect: false, explanation: "Agregar más variables predictoras aumentaría aún más la colinealidad." },
+        { id: "c", text: "Ignorar el resultado porque el VIF solo aplica a series temporales", isCorrect: false, explanation: "El VIF es la métrica estándar de colinealidad en cualquier regresión múltiple." }
+      ]
+    }
+  ]}
+/>

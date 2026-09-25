@@ -1,0 +1,117 @@
+---
+title: "El Modelo de Regresión Lineal Múltiple"
+description: "Formulación matricial del modelo OLS, estimación de coeficientes beta, interpretación de pendientes parciales y significancia global F."
+bloomLevel: "APPLY"
+estimatedMinutes: 55
+order: 1
+---
+
+# Introducción
+
+> En el mundo real, una variable de respuesta raramente depende de un solo predictor. La resistencia de un polímero depende de la temperatura, la presión y el porcentaje de aditivo simultáneamente.
+
+El modelo de **Regresión Lineal Múltiple (RLM)** extiende la recta simple a hiperplanos de dimensión $p$:
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p + \epsilon$$
+
+<Callout type="info">
+**Interpretación de Coeficientes Parciales ($\beta_j$):** $\beta_j$ representa el cambio esperado en la respuesta $Y$ por cada incremento unitario en $X_j$, **manteniendo todas las demás variables predictoras constantes** (*ceteris paribus*).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Expresar el modelo en notación matricial: $\mathbf{Y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}$.
+- Comprender la solución de Mínimos Cuadrados Ordinarios: $\hat{\boldsymbol{\beta}} = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{Y}$.
+- Diferenciar entre el coeficiente $R^2$ y el $R^2$ ajustado.
+
+---
+
+# 1. Álgebra Matricial de Mínimos Cuadrados
+
+Dada la matriz de diseño $\mathbf{X}$ de dimensión $n \times (p + 1)$:
+
+$$\mathbf{X} = \begin{bmatrix}
+1 & X_{11} & X_{12} & \dots & X_{1p} \\
+1 & X_{21} & X_{22} & \dots & X_{2p} \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+1 & X_{n1} & X_{n2} & \dots & X_{np}
+\end{bmatrix}, \quad
+\mathbf{Y} = \begin{bmatrix} Y_1 \\ Y_2 \\ \vdots \\ Y_n \end{bmatrix}$$
+
+El vector de estimadores de mínimos cuadrados que minimiza la suma de residuos al cuadrado $\boldsymbol{\epsilon}^T \boldsymbol{\epsilon}$ es:
+
+$$\hat{\boldsymbol{\beta}} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T \mathbf{Y}$$
+
+---
+
+# 2. Coeficiente $R^2$ y $R^2$ Ajustado
+
+$$R^2 = 1 - \frac{SCE}{SCT}$$
+
+<Callout type="warning">
+**La Trampa del $R^2$:** Cada vez que agregamos una nueva variable explicativa al modelo, el $R^2$ tradicional **siempre aumenta o se mantiene igual**, incluso si la variable es puro ruido. Por ello, en regresión múltiple se debe usar el **$R^2$ Ajustado**:
+$$R_{adj}^2 = 1 - \left[\frac{SCE / (n - p - 1)}{SCT / (n - 1)}\right]$$
+</Callout>
+
+---
+
+# 3. Laboratorio en Python con `statsmodels`
+
+```python
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+
+# Predicción del Consumo Energético en una planta industrial
+np.random.seed(42)
+n = 50
+temperatura = np.random.uniform(15, 35, n)
+produccion_tn = np.random.uniform(100, 300, n)
+horas_maquina = np.random.uniform(40, 90, n)
+
+# Variable respuesta Y con ruido gaussiano
+consumo_kwh = (
+    500 + 12.5 * temperatura + 3.2 * produccion_tn + 8.1 * horas_maquina + np.random.normal(0, 40, n)
+)
+
+df = pd.DataFrame({
+    'Temperatura': temperatura,
+    'Produccion': produccion_tn,
+    'Horas': horas_maquina,
+    'Consumo': consumo_kwh
+})
+
+# Ajuste OLS
+X = sm.add_constant(df[['Temperatura', 'Produccion', 'Horas']])
+y = df['Consumo']
+modelo = sm.OLS(y, X).fit()
+
+print(modelo.summary())
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Regresión Lineal Múltiple"
+  questions={[
+    {
+      id: "q_mlr_1",
+      text: "¿Por qué se prefiere el R^2 ajustado frente al R^2 convencional en modelos multivariados?",
+      options: [
+        { id: "a", text: "Porque penaliza la inclusión de variables predictoras que no aportan valor explicativo real", isCorrect: true, explanation: "Correcto: incorpora los grados de libertad en el numerador y denominador." },
+        { id: "b", text: "Porque siempre es mayor que 1.0", isCorrect: false, explanation: "R^2 ajustado nunca supera a 1.0 e incluso puede ser negativo en modelos muy malos." },
+        { id: "c", text: "Porque no requiere calcular los residuos del modelo", isCorrect: false, explanation: "Depende directamente de la suma de cuadrados del error SCE." }
+      ]
+    },
+    {
+      id: "q_mlr_2",
+      text: "En la ecuación matricial beta = (X^T X)^(-1) X^T Y, ¿qué condición debe cumplir la matriz (X^T X) para ser invertible?",
+      options: [
+        { id: "a", text: "Las columnas de X deben ser linealmente independientes (rango completo)", isCorrect: true, explanation: "Si existe multicolinealidad perfecta, el determinante es 0 y la matriz no se puede invertir." },
+        { id: "b", text: "El tamaño de muestra debe ser exactamente igual al número de variables", isCorrect: false, explanation: "Se requiere n > p + 1 (más observaciones que variables)." },
+        { id: "c", text: "Todos los elementos de X deben ser números enteros", isCorrect: false, explanation: "X contiene números reales continuos o dummies." }
+      ]
+    }
+  ]}
+/>

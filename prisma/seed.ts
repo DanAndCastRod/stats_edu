@@ -145,7 +145,7 @@ async function main() {
                 const topicContent = fs.readFileSync(path.join(modulePath, topicFile), 'utf-8')
 
                 // Parse simple frontmatter manually to avoid dependencies or use gray-matter
-                const frontmatterRegex = /---\n([\s\S]*?)\n---/
+                const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---/
                 const match = frontmatterRegex.exec(topicContent)
 
                 let title = topicFile.replace('.mdx', '')
@@ -154,13 +154,13 @@ async function main() {
 
                 if (match) {
                     const fm = match[1]
-                    const titleMatch = fm.match(/title:\s*"(.*)"/)
-                    const orderMatch = fm.match(/order:\s*(\d+)/)
-                    const bloomMatch = fm.match(/bloomLevel:\s*"(.*)"/)
+                    const titleMatch = fm.match(/title:\s*["']?(.*?)["']?\s*$/m)
+                    const orderMatch = fm.match(/order:\s*(\d+)/m)
+                    const bloomMatch = fm.match(/bloomLevel:\s*["']?(.*?)["']?\s*$/m)
 
-                    if (titleMatch) title = titleMatch[1]
+                    if (titleMatch) title = titleMatch[1].trim()
                     if (orderMatch) order = parseInt(orderMatch[1])
-                    if (bloomMatch) bloomLevel = bloomMatch[1]
+                    if (bloomMatch) bloomLevel = bloomMatch[1].trim()
                 }
 
                 const topicSlug = topicFile.replace('.mdx', '')

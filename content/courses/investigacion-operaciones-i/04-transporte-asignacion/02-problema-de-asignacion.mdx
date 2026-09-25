@@ -1,0 +1,90 @@
+---
+title: "El Problema de Asignación y el Algoritmo Húngaro"
+description: "Emparejamiento biyectivo óptimo uno a uno: trabajadores a tareas, máquinas a órdenes de trabajo. Pasos del Algoritmo Húngaro de Kuhn-Munkres."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+order: 2
+---
+
+# Introducción
+
+> Tienes 4 ingenieros disponibles y 4 proyectos por liderar. Cada ingeniero tiene una experiencia y tarifa horaria diferente, por lo que el costo de asignar el ingeniero $i$ al proyecto $j$ varía. ¿Cómo asignar exactamente un ingeniero a cada proyecto para minimizar el costo total?
+
+El **Problema de Asignación** es un caso particular del problema de transporte donde cada oferta $a_i = 1$, cada demanda $b_j = 1$ y las variables son binarias ($x_{ij} \in \{0, 1\}$).
+
+<Callout type="info">
+**El Teorema de König:** Si una constante se suma o resta a todos los elementos de una fila o columna de una matriz de costos, la solución óptima de asignación **no cambia**. Este es el cimiento algebraico del Algoritmo Húngaro.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Modelar problemas de emparejamiento 1 a 1 mediante matrices de costos cuadradas $n \times n$.
+- Aplicar los pasos de reducción de filas y columnas del Algoritmo Húngaro.
+- Resolver asignaciones óptimas con la función `linear_sum_assignment` de SciPy.
+
+---
+
+# 1. Pasos del Algoritmo Húngaro (Kuhn-Munkres)
+
+1. **Reducción de Filas:** Restar el menor valor de cada fila a todos los elementos de esa fila.
+2. **Reducción de Columnas:** En la matriz resultante, restar el menor valor de cada columna a todos los elementos de esa columna.
+3. **Cobertura de Ceros:** Trazar el número mínimo de líneas horizontales y verticales necesarias para cubrir todos los ceros de la matriz:
+   - Si el número de líneas $= n$, se tiene una **asignación óptima** factible.
+   - Si el número de líneas $< n$, pasar al paso 4.
+4. **Creación de Nuevos Ceros:** Encontrar el menor elemento no cubierto por ninguna línea ($k$). Restar $k$ a todos los elementos no cubiertos y sumarlo a los elementos en las intersecciones de dos líneas. Volver al paso 3.
+
+---
+
+# 2. Código en Python con `scipy.optimize.linear_sum_assignment`
+
+```python
+import numpy as np
+from scipy.optimize import linear_sum_assignment
+
+# Matriz de costos [4 Trabajadores x 4 Tareas]
+matriz_costos = np.array([
+    [90, 75, 75, 80],   # Trabajador 1
+    [35, 85, 55, 65],   # Trabajador 2
+    [125, 95, 90, 105], # Trabajador 3
+    [45, 110, 95, 115]  # Trabajador 4
+])
+
+# Ejecución del Algoritmo Húngaro
+filas, columnas = linear_sum_assignment(matriz_costos)
+
+print("Asignación Óptima:")
+costo_total = 0
+for f, c in zip(filas, columnas):
+    costo = matriz_costos[f, c]
+    costo_total += costo
+    print(f"Trabajador {f + 1} asignado a Tarea {c + 1} (Costo: ${costo})")
+
+print(f"\nCosto Total Mínimo: ${costo_total}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Problema de Asignación"
+  questions={[
+    {
+      id: "q_asig_1",
+      text: "Si la matriz de asignación no es cuadrada (por ejemplo, hay 5 operarios y solo 3 máquinas), ¿qué ajuste debe realizarse antes de aplicar el Algoritmo Húngaro?",
+      options: [
+        { id: "a", text: "Agregar 2 máquinas ficticias con costos iguales a cero para balancear la matriz a 5x5", isCorrect: true, explanation: "Correcto: el Algoritmo Húngaro requiere una matriz estrictamente cuadrada n x n." },
+        { id: "b", text: "Eliminar al azar a 2 operarios para que queden 3 y 3", isCorrect: false, explanation: "Eso alteraría el problema original y dejaría trabajadores sin considerar." },
+        { id: "c", text: "Multiplicar los costos por -1", isCorrect: false, explanation: "Multiplicar por -1 se usa para problemas de maximización, no para balancear dimensiones." }
+      ]
+    },
+    {
+      id: "q_asig_2",
+      text: "En el Algoritmo Húngaro, si el número mínimo de líneas para cubrir todos los ceros es igual a la dimensión n de la matriz:",
+      options: [
+        { id: "a", text: "Se ha alcanzado la asignación óptima", isCorrect: true, explanation: "Existe un conjunto de n ceros independientes que corresponden a la asignación perfecta." },
+        { id: "b", text: "El problema no tiene solución", isCorrect: false, explanation: "El problema de asignación balanceado siempre tiene al menos una solución óptima finita." },
+        { id: "c", text: "Se deben restar las filas de nuevo", isCorrect: false, explanation: "Las reducciones ya terminaron." }
+      ]
+    }
+  ]}
+/>
