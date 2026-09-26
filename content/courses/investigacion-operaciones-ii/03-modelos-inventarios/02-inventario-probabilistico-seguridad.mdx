@@ -1,0 +1,184 @@
+---
+title: "Inventarios Probabilísticos, Stock de Seguridad y Modelo del Vendedor de Periódicos"
+description: "Gestión de inventarios bajo demanda estocástica, cálculo de stock de seguridad para niveles de servicio objetivo y optimización de productos perecederos (Newsvendor)."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 55
+order: 2
+---
+
+# Introducción
+
+En el mundo empresarial real, la demanda futura casi nunca es fija ni determinística. Si la demanda durante el tiempo de entrega supera el promedio previsto, se produce una **rotura de stock (desabastecimiento)**, acarreando pérdidas de ventas, penalizaciones contractuales y daño reputacional irreparable.
+
+Para amortiguar esta variabilidad aleatoria, las organizaciones introducen un colchón estratégico denominado **Stock de Seguridad (Safety Stock)**. Por otra parte, para bienes estacionales o perecederos (como moda textil, vacunas o alimentos frescos) donde el inventario no vendido pierde prácticamente todo su valor al final del ciclo, se aplica el modelo clásico del **Vendedor de Periódicos (Newsvendor Problem)**.
+
+<Callout type="info">
+**Nivel de Servicio al Ciclo (CSL - Cycle Service Level):**
+Es la probabilidad deseada de no sufrir roturas de stock durante el tiempo de reposición del pedido:
+$$ CSL = P(\text{Demanda durante el Lead Time} \le ROP) = 1 - \alpha $$
+Donde $\alpha$ es la tasa de riesgo tolerada de caer en desabastecimiento.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Modelar la distribución de demanda durante el tiempo de entrega ($D_L$).
+- Calcular analíticamente el Stock de Seguridad ($SS$) y el Punto de Reorden ($ROP$) en función del nivel de servicio objetivo ($Z_{\alpha}$).
+- Resolver el modelo de período único (Newsvendor) mediante el ratio crítico de costo de subestimación vs sobreestimación.
+
+---
+
+# 1. Demanda Estocástica y Stock de Seguridad
+
+Supongamos que la demanda diaria sigue una distribución normal independiente:
+$$ d \sim N(\mu_d, \sigma_d^2) $$
+
+Si el tiempo de entrega del proveedor es constante y dura $L$ días, la demanda total acumulada durante el tiempo de entrega ($D_L$) es la suma de $L$ variables aleatorias independientes:
+
+$$ \mu_L = L \cdot \mu_d $$
+$$ \sigma_L = \sqrt{L \cdot \sigma_d^2} = \sigma_d \sqrt{L} $$
+
+<Callout type="warning">
+**La Raíz Cuadrada del Tiempo:**
+La desviación estándar de la demanda no crece linealmente con los días de espera, sino con la **raíz cuadrada** de $L$. Por ello, reducir a la mitad el tiempo del proveedor disminuye la incertidumbre en un $29.3\%$ ($1 - 1/\sqrt{2}$).
+</Callout>
+
+### Punto de Reorden con Stock de Seguridad:
+$$ ROP = \mu_L + SS $$
+$$ \boxed{SS = Z_{\alpha} \cdot \sigma_d \sqrt{L}} $$
+$$ \boxed{ROP = L \cdot \mu_d + Z_{\alpha} \cdot \sigma_d \sqrt{L}} $$
+
+Donde $Z_{\alpha}$ es el valor crítico de la distribución normal estándar ($Z = 1.645$ para $95\%$, $Z = 2.326$ para $99\%$).
+
+---
+
+# 2. El Modelo del Vendedor de Periódicos (Newsvendor)
+
+Aplica cuando solo se puede realizar **un único pedido previo** a la temporada de venta:
+- **Costo de Subestimar la Demanda ($C_u$ - Underage):** Ganancia unitaria marginal que se deja de percibir por no tener stock suficiente ($C_u = \text{Precio de Venta} - \text{Costo de Compra}$).
+- **Costo de Sobreestimar la Demanda ($C_o$ - Overage):** Pérdida unitaria neta incurrida por cada unidad sobrante no vendida ($C_o = \text{Costo de Compra} - \text{Valor de Rescate / Salvamento}$).
+
+### Condición de Optimalidad del Fractil Crítico:
+El tamaño óptimo de pedido $Q^*$ equilibra el costo esperado de quedarse corto con el de quedarse largo:
+
+$$ \boxed{P(D \le Q^*) = \frac{C_u}{C_u + C_o}} $$
+
+Si la demanda sigue una distribución normal $N(\mu, \sigma^2)$:
+$$ Q^* = \mu + Z^* \cdot \sigma $$
+Donde $Z^*$ se obtiene de la función de distribución acumulada inversa normal estándar $\Phi(Z^*) = \frac{C_u}{C_u + C_o}$.
+
+---
+
+# 3. Caso Industrial Integrado
+
+### Caso A: Centro de Repuestos Críticos (Stock de Seguridad)
+- Demanda diaria de sensores: $\mu_d = 50$ unidades/día, $\sigma_d = 8$ unidades/día.
+- Lead time del fabricante: $L = 9$ días.
+- Nivel de servicio exigido por la gerencia: $98\%$ ($Z = 2.054$).
+
+Cálculos:
+$$ \mu_L = 9 \times 50 = 450 \text{ unidades} $$
+$$ \sigma_L = 8 \times \sqrt{9} = 24 \text{ unidades} $$
+$$ SS = 2.054 \times 24 \approx 50 \text{ unidades} $$
+$$ ROP = 450 + 50 = 500 \text{ unidades} $$
+
+### Caso B: Campaña Navideña de Juguetes Especiales (Newsvendor)
+- Demanda estacional pronosticada: $\mu = 10,000$, $\sigma = 2,500$.
+- Precio de venta al público: $P = \$80$.
+- Costo de compra al importador: $C = \$30$.
+- Valor de liquidación en remate post-navidad: $V = \$10$.
+
+Costos:
+$$ C_u = 80 - 30 = \$50 \quad (\text{Margen perdido por venta no realizada}) $$
+$$ C_o = 30 - 10 = \$20 \quad (\text{Pérdida por remate de unidad sobrante}) $$
+$$ \text{Fractil Crítico} = \frac{50}{50 + 20} = \frac{50}{70} \approx 0.7143 $$
+
+---
+
+# 4. Implementación en Python: Simulación y Decisión
+
+```python
+import numpy as np
+from scipy import stats
+
+# ===============================================
+# PARTE A: PUNTO DE REORDEN Y STOCK DE SEGURIDAD
+# ===============================================
+mu_d = 50.0
+sigma_d = 8.0
+L = 9.0
+csl = 0.98
+
+Z = stats.norm.ppf(csl)
+sigma_L = sigma_d * np.sqrt(L)
+mu_L = mu_d * L
+safety_stock = Z * sigma_L
+rop = mu_L + safety_stock
+
+print("=== PARTE A: DIMENSIONAMIENTO DE STOCK DE SEGURIDAD ===")
+print(f"Demanda esperada durante lead time: {mu_L:.1f} unidades")
+print(f"Desviación estándar lead time (sigma_L): {sigma_L:.2f} unidades")
+print(f"Nivel de Servicio Objetivo: {csl*100:.1f}% (Z = {Z:.3f})")
+print(f"Stock de Seguridad requerido (SS): {safety_stock:.1f} unidades")
+print(f"Punto de Reorden Óptimo (ROP): {rop:.1f} unidades")
+
+# ===============================================
+# PARTE B: MODELO NEWSVENDOR (VENTA ESTACIONAL)
+# ===============================================
+precio_venta = 80.0
+costo_compra = 30.0
+valor_salvamento = 10.0
+
+Cu = precio_venta - costo_compra       # 50.0
+Co = costo_compra - valor_salvamento   # 20.0
+fractil_critico = Cu / (Cu + Co)       # 0.7143
+
+mu_demanda = 10000.0
+sigma_demanda = 2500.0
+
+Z_star = stats.norm.ppf(fractil_critico)
+Q_star = mu_demanda + Z_star * sigma_demanda
+
+print("\n=== PARTE B: OPTIMIZACIÓN NEWSVENDOR ===")
+print(f"Costo de Subestimar (Cu): ${Cu:.2f}")
+print(f"Costo de Sobreestimar (Co): ${Co:.2f}")
+print(f"Fractil Crítico: {fractil_critico:.4f}")
+print(f"Z crítico: {Z_star:.3f}")
+print(f"🎯 Lote Óptimo a Ordenar (Q*): {Q_star:.0f} unidades")
+print(f"   (Se ordenan {Q_star - mu_demanda:.0f} unidades por encima del promedio porque el margen de ganancia supera a la pérdida de remate)")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Modelos Probabilísticos e Incertidumbre de Inventarios"
+  questions={[
+    {
+      id: "q_prob_inv_1",
+      text: "Si la demanda diaria de un componente tiene una desviación estándar σ_d = 10 unidades y el tiempo de reposición del proveedor se alarga de 4 a 16 días, ¿cómo varía la desviación estándar durante el tiempo de entrega (σ_L)?",
+      options: [
+        { id: "a", text: "Se duplica (pasa de 10 × √4 = 20 a 10 × √16 = 40 unidades), incrementando la necesidad de stock de seguridad al doble", isCorrect: true, explanation: "Correcto: Dado que σ_L = σ_d · √L, al cuadruplicar el tiempo (16/4 = 4), la dispersión y el stock de seguridad requerido se multiplican por √4 = 2." },
+        { id: "b", text: "Se cuadruplica a 80 unidades", isCorrect: false, explanation: "Crece con la raíz cuadrada del tiempo, no linealmente." },
+        { id: "c", text: "Permanece en 10 unidades porque la desviación diaria no cambió", isCorrect: false, explanation: "La variabilidad se acumula a lo largo de los días de espera aumentando el riesgo global." }
+      ]
+    },
+    {
+      id: "q_prob_inv_2",
+      text: "En el modelo del vendedor de periódicos (Newsvendor), si el costo de quedarse corto por no tener inventario (Cu) es mucho mayor que el costo de liquidar sobrantes (Co), ¿cuál es la decisión racional sobre la cantidad Q a ordenar?",
+      options: [
+        { id: "a", text: "Ordenar una cantidad estrictamente superior a la demanda promedio esperada (Q* > μ), porque el fractil crítico supera el 50%", isCorrect: true, explanation: "Correcto: Al ser Cu > Co, el fractil Cu / (Cu + Co) > 0.50, lo que arroja un Z* positivo y justifica asumir el riesgo de sobrantes para proteger ventas altamente rentables." },
+        { id: "b", text: "Ordenar exactamente la demanda promedio (Q* = μ)", isCorrect: false, explanation: "Solo sería óptimo ordenar la media si Cu = Co (fractil del 50%)." },
+        { id: "c", text: "Ordenar cero unidades para eliminar cualquier riesgo de sobrestock", isCorrect: false, explanation: "Eso eliminaría cualquier ingreso de la temporada." }
+      ]
+    },
+    {
+      id: "q_prob_inv_3",
+      text: "¿Por qué aumentar el nivel de servicio deseado del 95% al 99.9% exige una inversión desproporcionadamente gigantesca en capital de trabajo para inventarios?",
+      options: [
+        { id: "a", text: "Porque el factor Z de la distribución normal crece de manera asintótica y exponencial en las colas extremas (Z pasa de 1.645 a más de 3.09), requiriendo multiplicar el stock de seguridad", isCorrect: true, explanation: "Correcto: Garantizar un 99.9% de disponibilidad en ambientes estocásticos genera retornos decrecientes, requiriendo inventario masivo para cubrir eventos de muy baja probabilidad." },
+        { id: "b", text: "Porque los proveedores cobran un recargo obligatorio por certificar niveles de servicio altos", isCorrect: false, explanation: "Es un costo financiero interno de inventario, no una tarifa directa del fabricante." },
+        { id: "c", text: "Porque la tasa de demanda anual se triplica automáticamente", isCorrect: false, explanation: "La demanda de los clientes no depende de la meta interna de servicio fijada por la compañía." }
+      ]
+    }
+  ]}
+/>

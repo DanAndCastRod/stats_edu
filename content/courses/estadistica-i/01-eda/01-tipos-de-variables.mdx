@@ -64,14 +64,79 @@ Para refinar el análisis, usamos las 4 escalas de Stevens. La regla de oro es: 
 
 Imagina que descargas un CSV de la planta con las siguientes columnas. Clasifiquémoslas rigurosamente:
 
-1.  **ID_Lote** (e.g., "L-1004"): **Cualitativa Nominal**. (Es solo una etiqueta).
-2.  **Temperatura_Horno** (e.g., 180.5 °C): **Cuantitativa Continua** (Escala Intervalo).
-3.  **Piezas_Defectuosas** (e.g., 5 piezas): **Cuantitativa Discreta** (Escala Razón).
-4.  **Nivel_Alerta** (e.g., 1, 2, 3): **Cualitativa Ordinal**. (Aunque sean números, representan jerarquía).
+1. **ID_Lote** (e.g., "L-1004"): **Cualitativa Nominal** (etiqueta identificadora).
+2. **Temperatura_Horno** (e.g., 180.5 °C): **Cuantitativa Continua** (Escala Intervalo).
+3. **Piezas_Defectuosas** (e.g., 5 piezas): **Cuantitativa Discreta** (Escala Razón).
+4. **Nivel_Alerta** (e.g., 1, 2, 3): **Cualitativa Ordinal** (representa severidad jerárquica).
 
 ---
 
-# Verificación de Conceptos
+# 4. Laboratorio en Python: Tipos de Datos con Pandas
 
-SI tuvieras que calcular el promedio de la columna **Nivel_Alerta** (1, 2, 3), ¿sería válido?
-*   **Respuesta:** Matemáticamente sí (te da 2), pero estadísticamente es riesgoso. Un promedio de 2.5 en alerta no significa "Alerta y media". Es mejor usar la **Mediana** o la **Moda** para variables ordinales.
+```python
+import pandas as pd
+import numpy as np
+
+# Creación de DataFrame con diferentes tipos de variables industriales
+datos_planta = pd.DataFrame({
+    'Lote_ID': ['L-101', 'L-102', 'L-103', 'L-104', 'L-105'],
+    'Operador': ['Carlos', 'Diana', 'Carlos', 'Elena', 'Diana'],
+    'Severidad': ['Baja', 'Alta', 'Media', 'Critica', 'Baja'],
+    'Defectos': [2, 7, 3, 12, 1],
+    'Tiempo_Ciclo_s': [45.2, 52.8, 44.9, 61.4, 43.1]
+})
+
+# Conversión de variable ordinal a categoría ordenada
+orden_severidad = ['Baja', 'Media', 'Alta', 'Critica']
+datos_planta['Severidad'] = pd.Categorical(
+    datos_planta['Severidad'], 
+    categories=orden_severidad, 
+    ordered=True
+)
+
+print("Estructura de tipos de datos (.info()):")
+print(datos_planta.dtypes)
+
+print("\nFrecuencias de variable ordinal:")
+print(datos_planta['Severidad'].value_counts())
+
+print("\nEstadísticos de variables cuantitativas de razón:")
+print(datos_planta[['Defectos', 'Tiempo_Ciclo_s']].describe())
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Tipos de Variables y Escalas de Medición"
+  questions={[
+    {
+      id: "q_vars_1",
+      text: "La temperatura medida en grados Celsius (°C) pertenece a la escala de:",
+      options: [
+        { id: "a", text: "Intervalo, porque el 0°C es un punto de referencia arbitrario (congelación del agua) y no significa ausencia total de calor", isCorrect: true, explanation: "Correcto: 20°C no es el doble de calor que 10°C; para razones proporcionales se requiere la escala Kelvin (cero absoluto)." },
+        { id: "b", text: "Razón, porque podemos multiplicar grados libremente", isCorrect: false, explanation: "La multiplicación de ratios solo es válida con cero absoluto." },
+        { id: "c", text: "Nominal, porque solo clasifica frío o caliente", isCorrect: false, explanation: "Tiene valores numéricos continuos con distancia constante entre grados." }
+      ]
+    },
+    {
+      id: "q_vars_2",
+      text: "El número de paradas no programadas de una máquina durante un mes es una variable:",
+      options: [
+        { id: "a", text: "Cuantitativa Discreta en escala de Razón", isCorrect: true, explanation: "Proviene de un conteo de enteros no negativos (0, 1, 2...) y el 0 indica ausencia total de paradas." },
+        { id: "b", text: "Cuantitativa Continua en escala de Intervalo", isCorrect: false, explanation: "No se pueden tener 2.7 paradas de máquina." },
+        { id: "c", text: "Cualitativa Ordinal", isCorrect: false, explanation: "Es un valor numérico aritméticamente computable, no una categoría." }
+      ]
+    },
+    {
+      id: "q_vars_3",
+      text: "Si calculamos el promedio numérico de una encuesta de satisfacción con valores 1=Malo, 2=Regular, 3=Bueno, el riesgo estadístico es:",
+      options: [
+        { id: "a", text: "Asumir falsamente que la distancia perceptible entre 'Malo' y 'Regular' es idéntica a la distancia entre 'Regular' y 'Bueno'", isCorrect: true, explanation: "Las escalas ordinales solo garantizan orden; la distancia psicológica entre niveles no es necesariamente equidistante." },
+        { id: "b", text: "Que el software de Python generará un error de división por cero", isCorrect: false, explanation: "Numéricamente se calculará sin error técnico, pero la interpretación será defectuosa." },
+        { id: "c", text: "Ninguno, el promedio es siempre el mejor estimador para cualquier tipo de dato", isCorrect: false, explanation: "Para datos ordinales es preferible reportar la mediana o la distribución de frecuencias." }
+      ]
+    }
+  ]}
+/>

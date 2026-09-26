@@ -18,7 +18,6 @@ export default async function CourseLayout({
     params: Promise<{ slug: string }>
 }) {
     const session = await auth()
-    if (!session?.user) redirect("/api/auth/signin")
 
     // Await params
     const { slug } = await params

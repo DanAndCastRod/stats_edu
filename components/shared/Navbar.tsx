@@ -47,24 +47,33 @@ export default function Navbar({ user }: { user?: AuthUser }) {
 
                         <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 hidden sm:block mx-1" />
 
-                        <div className="flex items-center gap-3 pl-1">
-                            <div className="flex flex-col items-end hidden sm:flex">
-                                <span className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-none">{user?.name}</span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Estudiante</span>
-                            </div>
-
-                            {user?.image ? (
-                                <img
-                                    src={user.image}
-                                    alt="Avatar"
-                                    className="w-10 h-10 rounded-xl border-2 border-white dark:border-slate-800 shadow-md object-cover ring-2 ring-brand-blue/10"
-                                />
-                            ) : (
-                                <div className="w-10 h-10 rounded-xl bg-brand-blue/10 text-brand-blue flex items-center justify-center border-2 border-brand-blue/20 shadow-sm">
-                                    <UserIcon size={20} />
+                        {user ? (
+                            <div className="flex items-center gap-3 pl-1">
+                                <div className="flex flex-col items-end hidden sm:flex">
+                                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-none">{user.name || user.email}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Estudiante</span>
                                 </div>
-                            )}
-                        </div>
+
+                                {user.image ? (
+                                    <img
+                                        src={user.image}
+                                        alt="Avatar"
+                                        className="w-10 h-10 rounded-xl border-2 border-white dark:border-slate-800 shadow-md object-cover ring-2 ring-brand-blue/10"
+                                    />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-xl bg-brand-blue/10 text-brand-blue flex items-center justify-center border-2 border-brand-blue/20 shadow-sm">
+                                        <UserIcon size={20} />
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <Link
+                                href="/api/auth/signin"
+                                className="inline-flex h-9 items-center justify-center rounded-xl bg-brand-blue px-4 text-xs font-bold text-white transition-all hover:bg-blue-600 active:scale-95"
+                            >
+                                Iniciar Sesión
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>

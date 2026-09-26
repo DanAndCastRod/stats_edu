@@ -1,0 +1,185 @@
+---
+title: "Teoría de Juegos: Juegos de Suma Cero y Puntos de Silla"
+description: "Modelación de conflictos estratégicos y competencia de mercado, criterios Maximin y Minimax, y condiciones de existencia de puntos de equilibrio en estrategias puras."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+order: 1
+---
+
+# Introducción
+
+Hasta ahora hemos estudiado la optimización contra la naturaleza o sistemas inertes (como fallas mecánicas aleatorias o colas de espera). Sin embargo, en el entorno empresarial los tomadores de decisiones se enfrentan a **competidores inteligentes y racionales** cuyas metas se oponen directamente a las propias: guerras de precios, licitaciones de contratos públicos, campañas de mercadeo y negociaciones sindicales.
+
+La **Teoría de Juegos**, fundada matemáticamente por John von Neumann y Oskar Morgenstern (1944), modela formalmente situaciones donde el resultado económico de un participante depende no solo de su propia acción, sino de las decisiones elegidas por todos los demás actores.
+
+<Callout type="info">
+**Estructura de un Juego Estratégico:**
+1. **Jugadores:** Dos o más agentes racionales que toman decisiones.
+2. **Estrategias:** Conjunto exhaustivo de planes de acción que cada jugador puede ejecutar.
+3. **Matriz de Pagos ($A$):** Recompensas o pérdidas monetarias resultantes de cada combinación de estrategias jugadas.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formular matrices de pagos para juegos bipersonales de suma constante o suma cero.
+- Aplicar los principios conservadores de decisión Maximin y Minimax.
+- Identificar analíticamente la existencia de puntos de silla (equilibrios en estrategias puras) y calcular el valor del juego.
+
+---
+
+# 1. Juegos de Suma Cero entre Dos Jugadores
+
+En un juego de **suma cero**, la ganancia total de un jugador equivale exactamente a la pérdida del otro: lo que gana el Jugador 1 es pagado íntegramente por el Jugador 2:
+
+$$ \text{Ganancia Jugador 1} + \text{Ganancia Jugador 2} = 0 $$
+
+Por convención estándar:
+- El **Jugador 1 (Filas)** elige la estrategia $i$ buscando **maximizar** su ganancia.
+- El **Jugador 2 (Columnas)** elige la estrategia $j$ buscando **minimizar** la ganancia que debe pagarle al Jugador 1.
+
+$$
+A = \begin{pmatrix}
+a_{11} & a_{12} & \cdots & a_{1n} \\
+a_{21} & a_{22} & \cdots & a_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+a_{m1} & a_{m2} & \cdots & a_{mn}
+\end{pmatrix}
+$$
+
+---
+
+# 2. Criterios Maximin, Minimax y Punto de Silla
+
+### El Criterio Maximin (Para el Jugador de las Filas):
+El Jugador 1 asume con prudencia que ante cualquier fila $i$ que elija, el oponente responderá con la columna que minimice su pago ($ \min_j a_{ij} $). Por lo tanto, selecciona la fila que maximice su peor escenario:
+
+$$ \underline{v} = \max_i \left( \min_j a_{ij} \right) \quad (\text{Valor Inferior del Juego}) $$
+
+### El Criterio Minimax (Para el Jugador de las Columnas):
+El Jugador 2 asume que si elige la columna $j$, el Jugador 1 elegirá la fila que maximice su pago ($ \max_i a_{ij} $). Por tanto, elige la columna que minimice esa máxima pérdida:
+
+$$ \bar{v} = \min_j \left( \max_i a_{ij} \right) \quad (\text{Valor Superior del Juego}) $$
+
+<Callout type="warning">
+**Teorema Fundamental del Punto de Silla:**
+En todo juego matricial siempre se cumple que $\underline{v} \le \bar{v}$. Si y solo si:
+$$ \underline{v} = \bar{v} = V $$
+El juego posee un **Punto de Silla (Saddle Point)**. Las estrategias correspondientes $(i^*, j^*)$ constituyen un equilibrio en estrategias puras y $V$ es el **Valor del Juego**. Si $V = 0$, el juego es estrictamente justo.
+</Callout>
+
+---
+
+# 3. Caso Industrial: Guerra de Precios entre Dos Cadenas Minoristas
+
+Dos cadenas de supermercados competidoras (Cadena Alpha y Cadena Beta) deciden simultáneamente su estrategia promocional para el fin de semana. La matriz de pagos representa el cambio porcentual en la cuota de mercado neta ganada por Alpha a costa de Beta:
+
+| Estrategia de Alpha \ Beta | B1: Descuento Fuerte | B2: Cupón 2x1 | B3: Publicidad TV | Mínimo de Fila |
+| :--- | :---: | :---: | :---: | :---: |
+| **A1: Descuento Fuerte** | +2% | +4% | +5% | **+2%** |
+| **A2: Cupón 2x1** | -1% | +1% | +3% | -1% |
+| **A3: Publicidad TV** | -3% | 0% | +2% | -3% |
+| **Máximo de Columna** | **+2%** | +4% | +5% | |
+
+Evaluación:
+- Maximin de Alpha: $\max(+2\%, -1\%, -3\%) = \mathbf{+2\%}$ (Estrategia A1).
+- Minimax de Beta: $\min(+2\%, +4\%, +5\%) = \mathbf{+2\%}$ (Estrategia B1).
+- Como $\underline{v} = \bar{v} = +2\%$, existe un **Punto de Silla** en $(A1, B1)$.
+- Ninguno de los dos jugadores puede mejorar su cuota de mercado desviándose individualmente de la estrategia de "Descuento Fuerte".
+
+---
+
+# 4. Implementación en Python: Detector de Puntos de Silla
+
+```python
+import numpy as np
+
+def analyze_saddle_point(payoff_matrix):
+    """
+    Analiza una matriz de pagos de suma cero y determina
+    si existe punto de silla en estrategias puras.
+    """
+    A = np.array(payoff_matrix)
+    
+    # 1. Mínimos de cada fila (peor escenario para el Jugador 1)
+    row_mins = np.min(A, axis=1)
+    maximin_val = np.max(row_mins)
+    best_rows = np.where(row_mins == maximin_val)[0]
+    
+    # 2. Máximos de cada columna (peor escenario para el Jugador 2)
+    col_maxs = np.max(A, axis=0)
+    minimax_val = np.min(col_maxs)
+    best_cols = np.where(col_maxs == minimax_val)[0]
+    
+    has_saddle = (maximin_val == minimax_val)
+    
+    print("=== ANÁLISIS DE LA MATRIZ DE PAGOS ===")
+    print("Matriz A:")
+    print(A)
+    print(f"\nMínimos de fila : {row_mins} => Maximin (v_inf) = {maximin_val}")
+    print(f"Máximos de col  : {col_maxs} => Minimax (v_sup) = {minimax_val}")
+    
+    if has_saddle:
+        print(f"\n🎯 ¡PUNTO DE SILLA ENCONTRADO!")
+        print(f"Valor del Juego (V): {maximin_val}")
+        for r in best_rows:
+            for c in best_cols:
+                if A[r, c] == maximin_val:
+                    print(f"  -> Estrategia Óptima Pura: (Fila {r+1}, Columna {c+1})")
+    else:
+        print("\n⚠️ No existe punto de silla en estrategias puras.")
+        print("El juego debe resolverse mediante ESTRATEGIAS MIXTAS (probabilidades).")
+        
+    return has_saddle, maximin_val, minimax_val
+
+# Caso 1: Supermercados
+matriz_mercado = [
+    [ 2,  4,  5],
+    [-1,  1,  3],
+    [-3,  0,  2]
+]
+analyze_saddle_point(matriz_mercado)
+
+# Caso 2: Juego sin punto de silla (Piedra, Papel o Tijera modificado)
+matriz_sin_silla = [
+    [ 1, -1],
+    [-1,  1]
+]
+print("\n" + "="*50)
+analyze_saddle_point(matriz_sin_silla)
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Juegos de Suma Cero y Punto de Silla"
+  questions={[
+    {
+      id: "q_juegos_1",
+      text: "En un juego de suma cero para dos personas, si el valor Maximin del jugador 1 es igual al valor Minimax del jugador 2 (v̲ = v̄ = V), ¿qué propiedad matemática y estratégica se garantiza?",
+      options: [
+        { id: "a", text: "Existe al menos un punto de silla, lo que significa que ambos jugadores cuentan con una estrategia pura óptima de la cual ninguno tiene incentivo individual para desviarse (equilibrio de Nash)", isCorrect: true, explanation: "Correcto: El punto de silla asegura estabilidad perfecta en estrategias determinísticas sin necesidad de recurrir a la aleatorización." },
+        { id: "b", text: "El juego es forzosamente un empate donde nadie gana dinero", isCorrect: false, explanation: "El valor del juego V puede ser positivo (favorece al jugador 1) o negativo (favorece al jugador 2); solo si V = 0 es un empate estricto." },
+        { id: "c", text: "El juego es inestable y no tiene solución computable", isCorrect: false, explanation: "Al contrario, es el caso más directo y estable de resolver." }
+      ]
+    },
+    {
+      id: "q_juegos_2",
+      text: "Dada la siguiente matriz de pagos para el Jugador 1: Fila 1 = [3, 5], Fila 2 = [4, 2]. ¿Existe un punto de silla en estrategias puras?",
+      options: [
+        { id: "a", text: "No, porque los mínimos de fila son [3, 2] con Maximin = 3, mientras que los máximos de columna son [4, 5] con Minimax = 4, siendo 3 ≠ 4", isCorrect: true, explanation: "Correcto: Al no coincidir el valor inferior (3) con el valor superior (4), no existe punto de silla y se requiere una solución en estrategias mixtas." },
+        { id: "b", text: "Sí, en la posición (1, 2) con valor 5", isCorrect: false, explanation: "El jugador 2 nunca elegiría la columna 2 si el jugador 1 jugara la fila 1, pues concedería 5 en vez de 3." },
+        { id: "c", text: "Sí, en la posición (2, 1) con valor 4", isCorrect: false, explanation: "Si el jugador 2 sabe que el rival jugará la fila 2, cambiaría a la columna 2 concediendo solo 2." }
+      ]
+    },
+    {
+      id: "q_juegos_3",
+      text: "¿Por qué el criterio Maximin se califica en teoría de la decisión como una estrategia racional conservadora o pesimista?",
+      options: [
+        { id: "a", text: "Porque evalúa el peor escenario posible que el oponente inteligente puede infligir a cada opción y luego maximiza dicho resultado garantizado mínimo", isCorrect: true, explanation: "Correcto: Es la doctrina de la mejor defensa ante un rival óptimo: garantiza un piso de ganancia sin depender de que el rival cometa errores." },
+        { id: "b", text: "Porque asume que el oponente siempre elegirá de forma totalmente aleatoria", isCorrect: false, explanation: "El juego asume racionalidad estratégica antagónica del oponente, no estupidez ni aleatoriedad pura." },
+        { id: "c", text: "Porque solo es aplicable cuando la empresa se encuentra en bancarrota", isCorrect: false, explanation: "Se aplica ampliamente en planificación estratégica, ciberseguridad militar y subastas comerciales." }
+      ]
+    }
+  ]}
+/>

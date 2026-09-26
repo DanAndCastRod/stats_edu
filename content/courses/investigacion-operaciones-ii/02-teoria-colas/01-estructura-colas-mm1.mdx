@@ -1,0 +1,181 @@
+---
+title: "Teoría de Líneas de Espera: Estructura General y Modelo M/M/1"
+description: "Modelación estocástica del flujo de clientes o ítems, notación de Kendall, procesos de nacimiento y muerte, Ley de Little y métricas operativas del sistema M/M/1."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+order: 1
+---
+
+# Introducción
+
+Las colas o líneas de espera son inevitables en operaciones industriales, centros logísticos y telecomunicaciones. Se originan porque tanto la llegada de solicitudes como la duración del servicio son variables aleatorias: aunque la capacidad media de servicio supere la tasa media de llegadas, las fluctuaciones aleatorias crean congestión temporal y tiempos muertos.
+
+El objetivo de la **Teoría de Colas** es cuantificar el equilibrio económico entre el costo de proveer mayor capacidad de servicio y el costo derivado de los tiempos de espera de clientes o inventario en proceso (WIP).
+
+<Callout type="info">
+**Notación de Kendall ($A / B / c / K / m / Z$):**
+- **$A$:** Distribución de llegadas ($M$ = Markoviano/Exponencial, $D$ = Determinístico, $G$ = General).
+- **$B$:** Distribución de tiempos de servicio ($M$, $D$, $G$).
+- **$c$:** Número de servidores o canales en paralelo ($1, 2, \dots$).
+- **$K$:** Capacidad máxima del sistema (por defecto $\infty$).
+- **$m$:** Tamaño de la población fuente (por defecto $\infty$).
+- **$Z$:** Disciplina de atención (por defecto FIFO: First In, First Out).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comprender la estructura de un sistema de colas y los supuestos de nacimiento y muerte.
+- Calcular la intensidad de tráfico ($\rho$) y verificar la condición de estabilidad ($\rho < 1$).
+- Derivar y aplicar las métricas operativas clave ($L, L_q, W, W_q$) utilizando la **Ley de Little**.
+
+---
+
+# 1. El Modelo Canónico $M/M/1$
+
+Supuestos del modelo $M/M/1$:
+1. Las llegadas siguen un proceso de Poisson con tasa media constante $\lambda$ (tiempos entre llegadas exponenciales con media $1/\lambda$).
+2. Los tiempos de servicio son variables aleatorias exponenciales independientes con tasa media $\mu$ (tiempo medio de servicio $1/\mu$).
+3. Existe un único servidor ($c = 1$).
+4. Capacidad de cola infinita y disciplina FIFO.
+
+### Factor de Utilización del Servidor ($\rho$):
+$$ \rho = \frac{\lambda}{\mu} $$
+
+<Callout type="warning">
+**Condición de Estabilidad Estocástica:**
+Para que el sistema alcance el equilibrio y no colapse en una cola infinitamente creciente, se requiere estrictamente que:
+$$ \rho = \frac{\lambda}{\mu} < 1 \quad \iff \quad \lambda < \mu $$
+Si $\lambda \ge \mu$, la cola crecerá sin límite con el paso del tiempo.
+</Callout>
+
+---
+
+# 2. Distribución de Estados y Métricas de Desempeño
+
+La probabilidad de que haya exactamente $n$ clientes en el sistema (en cola + en atención) en estado estacionario es:
+
+$$ P_n = (1 - \rho) \rho^n, \quad n = 0, 1, 2, \dots $$
+
+Donde la probabilidad de que el servidor esté desocupado (ocio) es:
+$$ P_0 = 1 - \rho $$
+
+### La Ley de Little:
+Formulada por John Little en 1961, vincula la cantidad media de clientes con el tiempo medio de permanencia:
+$$ L = \lambda \cdot W \quad \text{y} \quad L_q = \lambda \cdot W_q $$
+
+### Ecuaciones Operativas del $M/M/1$:
+
+| Métrica | Definición Conceptual | Fórmula Analítica |
+| :--- | :--- | :---: |
+| **$L$** | Número medio de clientes en el sistema total | $L = \frac{\lambda}{\mu - \lambda} = \frac{\rho}{1 - \rho}$ |
+| **$L_q$** | Número medio de clientes esperando en la cola | $L_q = \frac{\lambda^2}{\mu(\mu - \lambda)} = \frac{\rho^2}{1 - \rho}$ |
+| **$W$** | Tiempo medio total de permanencia en el sistema | $W = \frac{1}{\mu - \lambda} = \frac{L}{\lambda}$ |
+| **$W_q$** | Tiempo medio de espera en la fila antes de ser atendido | $W_q = \frac{\lambda}{\mu(\mu - \lambda)} = \frac{L_q}{\lambda}$ |
+
+---
+
+# 3. Caso Industrial: Bahía de Inspección de Calidad de Motores
+
+En una línea de ensamblaje, los motores terminados llegan a una estación de inspección por ultrasonido a una tasa de $\lambda = 8$ motores por hora (proceso de Poisson).
+El inspector técnico tarda en promedio 6 minutos en examinar cada motor, distribuidos exponencialmente ($\mu = 10$ motores por hora).
+
+Calculamos:
+1. **Utilización del inspector:** $\rho = \frac{8}{10} = 0.80$ (el inspector está ocupado el 80% del tiempo).
+2. **Probabilidad de estación vacía:** $P_0 = 1 - 0.80 = 0.20$ (20% de tiempo ocioso).
+3. **Motores promedio en espera en el buffer:**
+   $$ L_q = \frac{8^2}{10(10 - 8)} = \frac{64}{20} = 3.2 \text{ motores} $$
+4. **Tiempo promedio de espera antes de inspección:**
+   $$ W_q = \frac{L_q}{\lambda} = \frac{3.2}{8} = 0.40 \text{ horas} = 24 \text{ minutos} $$
+5. **Tiempo total en la estación:**
+   $$ W = W_q + \frac{1}{\mu} = 0.40 + 0.10 = 0.50 \text{ horas} = 30 \text{ minutos} $$
+
+---
+
+# 4. Implementación y Simulación en Python
+
+```python
+import numpy as np
+
+def mm1_metrics(lambd, mu):
+    """Calcula analíticamente las métricas de un sistema M/M/1."""
+    if lambd >= mu:
+        raise ValueError("El sistema es inestable: lambda debe ser estrictamente menor que mu.")
+    
+    rho = lambd / mu
+    P0 = 1 - rho
+    L = rho / (1 - rho)
+    Lq = (rho ** 2) / (1 - rho)
+    W = 1 / (mu - lambd)
+    Wq = lambd / (mu * (mu - lambd))
+    
+    return {
+        "rho": rho,
+        "P0": P0,
+        "L": L,
+        "Lq": Lq,
+        "W_hrs": W,
+        "W_mins": W * 60,
+        "Wq_hrs": Wq,
+        "Wq_mins": Wq * 60
+    }
+
+# Parámetros del caso
+lambd = 8.0  # motores/hora
+mu = 10.0    # motores/hora
+
+res = mm1_metrics(lambd, mu)
+
+print("=== MÉTRICAS DEL SISTEMA M/M/1 ===")
+print(f"Utilización del servidor (rho) : {res['rho']*100:.1f}%")
+print(f"Probabilidad de ocio (P0)       : {res['P0']*100:.1f}%")
+print(f"Longitud media en cola (Lq)     : {res['Lq']:.2f} motores")
+print(f"Longitud media en sistema (L)   : {res['L']:.2f} motores")
+print(f"Tiempo de espera en cola (Wq)   : {res['Wq_mins']:.1f} minutos")
+print(f"Tiempo total en sistema (W)     : {res['W_mins']:.1f} minutos")
+
+# ¿Qué pasa si la demanda sube a 9.5 motores/hora (+18.75%)?
+res_alta = mm1_metrics(9.5, 10.0)
+print(f"\nSi lambda sube a 9.5 motores/hora:")
+print(f"Utilización (rho)               : {res_alta['rho']*100:.1f}%")
+print(f"Tiempo de espera en cola (Wq)   : {res_alta['Wq_mins']:.1f} minutos (¡Aumento no lineal drástico!)")
+```
+
+<Callout type="note">
+**Comportamiento Hiperbólico:** Cuando la utilización $\rho$ se aproxima a 1.0, el tiempo de espera no crece de manera lineal sino asintótica hacia el infinito. Pasar del 80% al 95% de utilización multiplica la espera de 24 a 114 minutos.
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Fundamentos de Teoría de Colas y Modelo M/M/1"
+  questions={[
+    {
+      id: "q_colas_1",
+      text: "¿Qué postula la Ley de Little (L = λ · W) en el análisis de operaciones y colas?",
+      options: [
+        { id: "a", text: "Que el número promedio de clientes en un sistema estacionario es igual al producto de la tasa media de llegadas por el tiempo promedio que un cliente pasa en dicho sistema", isCorrect: true, explanation: "Correcto: Es un teorema fundamental universalmente válido independientemente de las distribuciones de probabilidad específicas de llegadas o servicio." },
+        { id: "b", text: "Que la longitud de la cola siempre es inversamente proporcional al número de servidores", isCorrect: false, explanation: "Esa es una relación empírica aproximada, no la definición de Little." },
+        { id: "c", text: "Que la tasa de llegadas debe ser mayor que la tasa de servicio para evitar pérdidas", isCorrect: false, explanation: "Si la tasa de llegada fuera mayor que la de servicio, el sistema sería inestable y tendería a cola infinita." }
+      ]
+    },
+    {
+      id: "q_colas_2",
+      text: "En un sistema M/M/1 con λ = 6 clientes/hora y μ = 8 clientes/hora, ¿cuál es la probabilidad de que un cliente llegue y encuentre el servidor inmediatamente desocupado (sin tener que esperar en cola)?",
+      options: [
+        { id: "a", text: "0.25 (25%), correspondiente a P₀ = 1 - (λ / μ) = 1 - 0.75", isCorrect: true, explanation: "Correcto: La probabilidad de encontrar el servidor desocupado es exactamente P₀ = 1 - ρ = 1 - (6/8) = 0.25." },
+        { id: "b", text: "0.75 (75%)", isCorrect: false, explanation: "0.75 es la probabilidad de que el servidor esté OCUPADO (ρ)." },
+        { id: "c", text: "0.50 (50%)", isCorrect: false, explanation: "El cálculo directo de P₀ da 0.25." }
+      ]
+    },
+    {
+      id: "q_colas_3",
+      text: "Si un administrador observa que la utilización de su único servidor es del 90% (ρ = 0.90) y decide no contratar otro servidor porque 'todavía sobra un 10% de tiempo libre', ¿cuál es el grave riesgo técnico de esta decisión?",
+      options: [
+        { id: "a", text: "Debido a la relación hiperbólica (1 / (1 - ρ)), a niveles superiores al 85-90% pequeñas fluctuaciones aleatorias en las llegadas provocan explosiones exponenciales en los tiempos de espera y la longitud de la cola", isCorrect: true, explanation: "Correcto: En sistemas estocásticos, operar al 90%+ genera cuellos de botella severos porque la variabilidad acumulada no tiene colchón de capacidad para amortiguarse." },
+        { id: "b", text: "Que el servidor consumirá el doble de energía eléctrica", isCorrect: false, explanation: "No es el fundamento operativo principal de la teoría de colas." },
+        { id: "c", text: "Que la disciplina FIFO se transforma automáticamente en LIFO", isCorrect: false, explanation: "La disciplina de atención no se altera por la intensidad de tráfico." }
+      ]
+    }
+  ]}
+/>

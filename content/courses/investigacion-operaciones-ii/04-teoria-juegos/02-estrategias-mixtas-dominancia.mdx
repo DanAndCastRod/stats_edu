@@ -1,0 +1,208 @@
+---
+title: "Estrategias Mixtas, Principio de Dominancia y Programación Lineal"
+description: "Resolución de juegos sin punto de silla, reducción dimensional por dominancia estricta y formulación de juegos matriciales mediante Programación Lineal primal-dual."
+bloomLevel: "CREATE"
+estimatedMinutes: 55
+order: 2
+---
+
+# Introducción
+
+¿Qué ocurre cuando un juego de suma cero no posee punto de silla? Si un jugador adopta una estrategia fija y predecible, el contrincante inteligente podrá anticiparla y explotarla implacablemente (como jugar siempre "Piedra" en Piedra, Papel o Tijera).
+
+En tales escenarios, la única decisión óptima racional es **aleatorizar las jugadas** asignando una distribución de probabilidad a cada opción disponible. Esta formulación probabilística se denomina **Estrategia Mixta**.
+
+En 1928, John von Neumann demostró el célebre **Teorema del Minimax**: todo juego finito de dos personas y suma cero posee al menos un equilibrio en estrategias mixtas donde ambos jugadores maximizan su ganancia mínima esperada.
+
+<Callout type="info">
+**Teorema del Minimax de Von Neumann:**
+Para todo juego matricial con matriz de pagos $A_{m \times n}$, existen vectores de probabilidad $p^* = [p_1, \dots, p_m]$ y $q^* = [q_1, \dots, q_n]$ y un valor único $V$ tal que:
+$$ \max_p \min_q p \cdot A \cdot q^T = \min_q \max_p p \cdot A \cdot q^T = V $$
+</Callout>
+
+## Objetivos de Aprendizaje
+- Simplificar matrices de pagos complejas eliminando filas y columnas estrictamente dominadas.
+- Resolver analíticamente juegos $2 \times 2$ mediante el principio de indiferencia.
+- Transformar cualquier juego matricial general de tamaño $m \times n$ en un problema dual de Programación Lineal.
+
+---
+
+# 1. El Principio de Dominancia
+
+Antes de emprender cálculos matemáticos complejos, se debe examinar si existen estrategias que ningún jugador racional elegiría jamás:
+
+1. **Dominancia de Filas (Jugador 1 - Maximiza):**
+   Si cada entrada de la fila $r$ es menor o igual a la entrada correspondiente de la fila $k$ ($a_{rj} \le a_{kj} \quad \forall j$) y al menos una es estrictamente menor, la fila $k$ **domina** a la fila $r$. La fila $r$ se **elimina** (el jugador 1 nunca la elegirá).
+2. **Dominancia de Columnas (Jugador 2 - Minimiza):**
+   Si cada entrada de la columna $c$ es mayor o igual a la de la columna $l$ ($a_{ic} \ge a_{il} \quad \forall i$), la columna $c$ concede mayores pagos al rival. Por tanto, la columna $l$ **domina** a la columna $c$, y la columna $c$ se **elimina**.
+
+---
+
+# 2. Resolución Analítica para Juegos $2 \times 2$
+
+Sea la matriz reducida:
+$$
+A = \begin{pmatrix}
+a_{11} & a_{12} \\
+a_{21} & a_{22}
+\end{pmatrix}
+$$
+
+El Jugador 1 busca elegir $p = (p_1, 1 - p_1)$ de modo que su ganancia esperada sea idéntica sin importar si el Jugador 2 elige la columna 1 o la columna 2 (**Principio de Indiferencia**):
+
+$$ p_1 a_{11} + (1 - p_1) a_{21} = p_1 a_{12} + (1 - p_1) a_{22} $$
+
+Despejando $p_1$:
+$$ \boxed{p_1 = \frac{a_{22} - a_{21}}{(a_{11} + a_{22}) - (a_{12} + a_{21})}} $$
+
+Y el valor esperado del juego es:
+$$ \boxed{V = \frac{a_{11} a_{22} - a_{12} a_{21}}{(a_{11} + a_{22}) - (a_{12} + a_{21})}} $$
+
+---
+
+# 3. Formulación de Teoría de Juegos como Programación Lineal (PL)
+
+Para matrices generales de tamaño $m \times n$, el juego se formula y resuelve directamente como un modelo de Programación Lineal.
+
+Para el **Jugador 1 (Filas)**, buscando maximizar el valor garantizado $V$:
+$$ \text{Maximizar } V $$
+Sujeto a:
+$$ \sum_{i=1}^m p_i a_{ij} \ge V \quad \forall j=1, \dots, n \quad (\text{Pago esperado contra cada columna } j) $$
+$$ \sum_{i=1}^m p_i = 1, \quad p_i \ge 0 \quad \forall i $$
+
+Para el **Jugador 2 (Columnas)**, el modelo es su **Dual exacto**:
+$$ \text{Minimizar } V $$
+Sujeto a:
+$$ \sum_{j=1}^n a_{ij} q_j \le V \quad \forall i=1, \dots, m $$
+$$ \sum_{j=1}^n q_j = 1, \quad q_j \ge 0 \quad \forall j $$
+
+---
+
+# 4. Caso Industrial: Ciberseguridad en Infraestructura Crítica
+
+Un equipo de ciberseguridad industrial (Defensor / Filas) debe proteger una refinería petrolera contra ataques de un actor malicioso (Atacante / Columnas).
+- Estrategias del Defensor:
+  - $D_1$: Reforzar Firewalls de Red IT.
+  - $D_2$: Parchear Firmware de Controladores PLC (OT).
+  - $D_3$: Auditoría y Monitoreo de Accesos de Empleados.
+- Estrategias del Atacante:
+  - $A_1$: Ataque de Ransomware vía Phishing.
+  - $A_2$: Inyección de Malware Industrial Stuxnet-like en PLC.
+  - $A_3$: Exfiltración de Credenciales de Acceso.
+
+Matriz de pagos (Efectividad neta de defensa en puntos de seguridad):
+$$
+A = \begin{pmatrix}
+6 & 2 & 4 \\
+1 & 5 & 3 \\
+3 & 4 & 5
+\end{pmatrix}
+$$
+
+---
+
+# 5. Implementación en Python con `scipy.optimize.linprog`
+
+```python
+import numpy as np
+from scipy.optimize import linprog
+
+def solve_zero_sum_game(A):
+    """
+    Resuelve cualquier juego de suma cero m x n mediante Programación Lineal.
+    Retorna (V, p_probabilidades, q_probabilidades).
+    """
+    A = np.array(A, dtype=float)
+    m, n = A.shape
+    
+    # Si la matriz contiene valores negativos, sumamos una constante c para hacer A > 0
+    min_val = np.min(A)
+    shift = 0.0
+    if min_val <= 0:
+        shift = abs(min_val) + 1.0
+        A = A + shift
+        
+    # Cambio de variable: x_i = p_i / V  =>  sum(x_i) = 1/V
+    # Maximizar V equivale a Minimizar sum(x_i)
+    # Sujeto a: A^T * x >= 1  =>  -A^T * x <= -1
+    c_lp = np.ones(m)
+    A_ub = -A.T
+    b_ub = -np.ones(n)
+    
+    res = linprog(c=c_lp, A_ub=A_ub, b_ub=b_ub, bounds=[(0, None)]*m, method='highs')
+    
+    if not res.success:
+        raise RuntimeError("No se pudo resolver el problema de PL.")
+        
+    # Recuperación de variables
+    sum_x = res.fun
+    V_shifted = 1.0 / sum_x
+    p_opt = res.x * V_shifted
+    V_final = V_shifted - shift
+    
+    # Obtención de la estrategia del Jugador 2 (precios sombra / duales)
+    q_opt = -res.slack[:n] * V_shifted  # O resolviendo directamente el dual
+    # Método alternativo robusto para Jugador 2: resolver directamente el modelo dual
+    c_dual = -np.ones(n)
+    res_dual = linprog(c=c_dual, A_ub=A, b_ub=np.ones(m), bounds=[(0, None)]*n, method='highs')
+    sum_y = -res_dual.fun
+    q_opt = res_dual.x / sum_y
+    
+    return V_final, p_opt, q_opt
+
+# Matriz de Ciberseguridad
+A_ciber = [
+    [6, 2, 4],
+    [1, 5, 3],
+    [3, 4, 5]
+]
+
+V, p, q = solve_zero_sum_game(A_ciber)
+
+print("=== SOLUCIÓN ÓPTIMA DEL JUEGO EN ESTRATEGIAS MIXTAS ===")
+print(f"🎯 Valor del Juego (V): {V:.3f}")
+print("\nEstrategia Mixta Óptima del Defensor (Jugador 1):")
+for i, prob in enumerate(p, 1):
+    print(f"  D{i}: {prob*100:.1f}% del tiempo/presupuesto")
+
+print("\nEstrategia Mixta Óptima del Atacante (Jugador 2):")
+for j, prob in enumerate(q, 1):
+    print(f"  A{j}: {prob*100:.1f}% de probabilidad de ataque")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Estrategias Mixtas y Programación Lineal en Juegos"
+  questions={[
+    {
+      id: "q_mixtas_1",
+      text: "Si al inspeccionar una matriz de pagos para el Jugador 1 se observa que la Fila 3 otorga pagos estrictamente menores a la Fila 1 para todas y cada una de las columnas del adversario, ¿cuál es el paso analítico inmediato según el principio de dominancia?",
+      options: [
+        { id: "a", text: "Eliminar definitivamente la Fila 3 del análisis, ya que un tomador de decisiones racional nunca la elegirá frente a la Fila 1 que domina a la Fila 3 en todo escenario", isCorrect: true, explanation: "Correcto: El principio de dominancia estricta permite podar filas dominadas para el jugador maximizador y columnas con pagos más altos para el jugador minimizador." },
+        { id: "b", text: "Asignarle un 50% de probabilidad fija a la Fila 3", isCorrect: false, explanation: "Su probabilidad óptima p₃ será estrictamente cero." },
+        { id: "c", text: "Invertir los signos de toda la fila 3", isCorrect: false, explanation: "Alteraría por completo la naturaleza de los pagos del juego." }
+      ]
+    },
+    {
+      id: "q_mixtas_2",
+      text: "¿Por qué en un juego sin punto de silla los jugadores se ven forzados a jugar estrategias mixtas (probabilidades) en lugar de una estrategia pura fija?",
+      options: [
+        { id: "a", text: "Porque si un jugador elige una estrategia pura predecible, el oponente siempre puede anticiparse y seleccionar la mejor respuesta que explote dicha previsibilidad", isCorrect: true, explanation: "Correcto: La aleatorización crea incertidumbre estratégica calculada, impidiendo que el adversario obtenga ventajas informativas." },
+        { id: "b", text: "Porque los algoritmos de computadora son incapaces de generar números enteros", isCorrect: false, explanation: "Es un fundamento de la teoría económica y matemática del comportamiento estratégico, no un límite de software." },
+        { id: "c", text: "Porque el teorema del Minimax solo es válido si las probabilidades suman 2.0", isCorrect: false, explanation: "Las probabilidades siempre deben sumar exactamente 1.0." }
+      ]
+    },
+    {
+      id: "q_mixtas_3",
+      text: "Al transformar un juego de suma cero de tamaño m x n a Programación Lineal, ¿cuál es la relación matemática fundamental entre el modelo del Jugador 1 y el del Jugador 2?",
+      options: [
+        { id: "a", text: "Son exactamente problemas Primal y Dual entre sí, por lo que el Teorema de Dualidad Fuerte de PL garantiza la igualdad de sus valores objetivo (V_primal = V_dual)", isCorrect: true, explanation: "Correcto: La dualidad en Programación Lineal es el reflejo matemático exacto del Teorema del Minimax de Von Neumann." },
+        { id: "b", text: "Son problemas completamente desconectados sin relación matemática", isCorrect: false, explanation: "Existe una correspondencia biunívoca rigurosa entre sus variables y restricciones." },
+        { id: "c", text: "Ambos problemas buscan minimizar simultáneamente la misma función objetivo", isCorrect: false, explanation: "Uno maximiza su ganancia mínima y el otro minimiza su pérdida máxima." }
+      ]
+    }
+  ]}
+/>

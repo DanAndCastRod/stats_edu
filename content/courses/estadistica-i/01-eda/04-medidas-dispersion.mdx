@@ -83,3 +83,40 @@ cv = (desviacion / df.mean()) * 100
 print(f"Desviación: {desviacion:.2f}")
 print(f"CV: {cv:.2f}%")
 ```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Medidas de Dispersión y Variabilidad de Procesos"
+  questions={[
+    {
+      id: "q_disp_1",
+      text: "¿Por qué en la fórmula de la varianza muestral (S²) se divide entre (n - 1) en lugar de n?",
+      options: [
+        { id: "a", text: "Es la corrección de Bessel para obtener un estimador insesgado de la varianza poblacional, compensando que los desvíos se calculan respecto a la media muestral y no a la verdadera media poblacional", isCorrect: true, explanation: "Correcto: Al estimar primero x̄ a partir de la muestra, se pierde 1 grado de libertad; dividir por n subestimaría sistemáticamente la dispersión real." },
+        { id: "b", text: "Porque se asume que al menos una observación de la muestra siempre es errónea y se descarta", isCorrect: false, explanation: "No se descarta ninguna observación; es una corrección matemática de grados de libertad." },
+        { id: "c", text: "Para evitar divisiones entre cero cuando el tamaño de muestra es muy grande", isCorrect: false, explanation: "Al contrario, cuando n es muy grande, la diferencia entre n y n-1 es insignificante." }
+      ]
+    },
+    {
+      id: "q_disp_2",
+      text: "La Línea A produce tornillos con longitud promedio 50 mm y desviación 2 mm (CV = 4%). La Línea B produce pernos de anclaje de 500 mm y desviación 10 mm (CV = 2%). ¿Cuál proceso tiene menor dispersión relativa?",
+      options: [
+        { id: "a", text: "La Línea B, porque su Coeficiente de Variación es menor (2% vs 4%), mostrando mayor precisión proporcional al tamaño nominal", isCorrect: true, explanation: "Correcto: Aunque la desviación absoluta de B (10 mm) sea mayor que la de A (2 mm), en términos relativos respecto a su escala, B es dos veces más consistente." },
+        { id: "b", text: "La Línea A, porque 2 mm es menor que 10 mm en valor absoluto", isCorrect: false, explanation: "Comparar dispersiones absolutas con escalas nominales distintas (50 vs 500) es engañoso; se debe usar el CV." },
+        { id: "c", text: "Ambas tienen idéntica dispersión porque ambas están dentro de tolerancias estándar", isCorrect: false, explanation: "El CV demuestra objetivamente que la Línea B tiene la mitad de variabilidad relativa." }
+      ]
+    },
+    {
+      id: "q_disp_3",
+      text: "En control de calidad industrial, ¿cuál es la principal ventaja de utilizar la Desviación Estándar (S) en lugar de la Varianza (S²)?",
+      options: [
+        { id: "a", text: "Que la Desviación Estándar conserva las mismas unidades de medida físicas que la variable original (ej. mm, kg, segundos), permitiendo crear intervalos intuitivos como x̄ ± 3S", isCorrect: true, explanation: "Correcto: La varianza queda expresada en unidades al cuadrado (mm², kg²), lo que impide sumarla o restarla directamente a la media de la pieza." },
+        { id: "b", text: "Que la Desviación Estándar no se ve afectada por valores atípicos (outliers)", isCorrect: false, explanation: "Tanto la varianza como la desviación estándar son muy sensibles a valores atípicos por elevar las diferencias al cuadrado." },
+        { id: "c", text: "Que su cálculo no requiere computar raíces cuadradas", isCorrect: false, explanation: "Al contrario, la desviación estándar es precisamente la raíz cuadrada de la varianza." }
+      ]
+    }
+  ]}
+/>

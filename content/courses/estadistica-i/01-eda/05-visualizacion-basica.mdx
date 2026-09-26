@@ -90,3 +90,40 @@ Usa el editor de Python a la derecha.
 1.  Crea un DataFrame con 50 números aleatorios (`numpy.random.normal(50, 5, 50)`).
 2.  Grafica su histograma.
 3.  ¿Se parece a una campana perfecta? (Pista: Con pocos datos, a menudo se ve "feo". Es la Ley de los Grandes Números operando en tu contra).
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Visualización de Datos e Interpretación Gráfica"
+  questions={[
+    {
+      id: "q_vis_1",
+      text: "En un diagrama de caja (Boxplot) bajo el criterio estándar de John Tukey, ¿cómo se determinan los límites de los bigotes para identificar valores atípicos (outliers)?",
+      options: [
+        { id: "a", text: "Q1 - 1.5 × IQR para el bigote inferior y Q3 + 1.5 × IQR para el bigote superior; los puntos fuera de ese rango son outliers", isCorrect: true, explanation: "Correcto: El criterio 1.5 × IQR define las vallas interiores de Tukey. Todo dato más allá de estos umbrales se representa como punto individual sospechoso." },
+        { id: "b", text: "El valor mínimo absoluto y el valor máximo absoluto de toda la muestra", isCorrect: false, explanation: "Si los bigotes llegaran al mínimo y máximo absoluto, ningún dato se clasificaría visualmente como outlier." },
+        { id: "c", text: "La media ± 3 desviaciones estándar", isCorrect: false, explanation: "Ese es el criterio de la regla empírica o Z-score, no la formulación basada en cuartiles de Tukey." }
+      ]
+    },
+    {
+      id: "q_vis_2",
+      text: "Para diagnosticar si el tiempo de ensamble de un componente sigue una distribución bimodal (dos picos), ¿cuál de los siguientes gráficos es el MÁS idóneo?",
+      options: [
+        { id: "a", text: "Un Histograma con número adecuado de intervalos (bins) o una curva de densidad Kernel (KDE)", isCorrect: true, explanation: "Correcto: El histograma y la curva KDE muestran directamente la frecuencia en cada rango continuo, revelando si hay múltiples modas o valles." },
+        { id: "b", text: "Un gráfico circular (Pie chart)", isCorrect: false, explanation: "Los gráficos circulares solo aplican para porcentajes de variables categóricas con pocas clases." },
+        { id: "c", text: "Un diagrama de caja (Boxplot)", isCorrect: false, explanation: "Un boxplot puede ocultar la bimodalidad, ya que solo muestra cuartiles y una única línea central de mediana." }
+      ]
+    },
+    {
+      id: "q_vis_3",
+      text: "Al analizar la relación entre la temperatura del horno y el porcentaje de merma defectuosa mediante un diagrama de dispersión (Scatter Plot), se observa una forma de 'U'. ¿Qué conclusión estadística es correcta?",
+      options: [
+        { id: "a", text: "Existe una relación no lineal evidente (cuadrática), por lo que el coeficiente de correlación lineal de Pearson r puede ser cercano a cero a pesar de haber una fuerte dependencia", isCorrect: true, explanation: "Correcto: El coeficiente de Pearson r solo mide asociación lineal; relaciones cuadráticas o en 'U' exigen modelos polinomiales o análisis no lineal." },
+        { id: "b", text: "No existe ninguna relación entre temperatura y defectos", isCorrect: false, explanation: "Existe una fuerte relación funcional, pero no es lineal." },
+        { id: "c", text: "Se debe forzar una recta de regresión simple con pendiente negativa", isCorrect: false, explanation: "Ajustar una recta lineal a una curva en 'U' cometería un error grave de especificación del modelo." }
+      ]
+    }
+  ]}
+/>

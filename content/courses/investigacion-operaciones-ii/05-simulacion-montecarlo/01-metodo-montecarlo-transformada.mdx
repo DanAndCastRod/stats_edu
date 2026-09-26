@@ -1,0 +1,168 @@
+---
+title: "Método de Monte Carlo y Generación de Variables Aleatorias"
+description: "Fundamentos de la simulación computacional, números pseudoaleatorios, método de la transformada inversa y análisis de riesgo de proyectos de inversión (VPN)."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+order: 1
+---
+
+# Introducción
+
+Cuando un sistema estocástico industrial involucra múltiples fuentes acopladas de incertidumbre (tiempos de ciclo no exponenciales, dependencias correlacionadas, reglas de despacho complejas), las soluciones analíticas cerradas de lápiz y papel resultan matemáticamente imposibles de derivar.
+
+La **Simulación de Monte Carlo**, desarrollada por Stanislaw Ulam, John von Neumann y Nicholas Metropolis durante el Proyecto Manhattan en Los Álamos, resuelve estos problemas mediante experimentación numérica computacional masiva: generando miles de trayectorias aleatorias basadas en las leyes de probabilidad del sistema para estimar sus parámetros de desempeño con alta precisión estadística.
+
+<Callout type="info">
+**Principio de la Transformada Inversa:**
+Si $U$ es una variable aleatoria continua con distribución uniforme estándar en el intervalo $(0, 1)$, y $F(x)$ es cualquier función de distribución de probabilidad acumulada continua y estrictamente creciente con inversa $F^{-1}$, entonces:
+$$ X = F^{-1}(U) $$
+sigue exactamente la distribución de probabilidad $F(x)$.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comprender el funcionamiento de los generadores de números pseudoaleatorios $U(0, 1)$.
+- Derivar expresiones analíticas para generar variables aleatorias mediante el **Método de la Transformada Inversa**.
+- Simular el Valor Presente Neto (VPN) de un proyecto de ingeniería y calcular el Valor en Riesgo (VaR).
+
+---
+
+# 1. El Método de la Transformada Inversa
+
+Pasos del algoritmo:
+1. Generar un número aleatorio uniforme $u \sim U(0, 1)$.
+2. Igualar la función de distribución acumulada teórica al valor uniforme: $F(x) = u$.
+3. Despejar algebraicamente $x$ en función de $u$: $x = F^{-1}(u)$.
+
+### A. Distribución Exponencial:
+Función de distribución acumulada:
+$$ F(x) = 1 - e^{-\lambda x}, \quad x \ge 0 $$
+Igualando a $u$:
+$$ 1 - e^{-\lambda x} = u \implies e^{-\lambda x} = 1 - u \implies -\lambda x = \ln(1 - u) $$
+Dado que si $U \sim U(0, 1)$, $(1 - U)$ también se distribuye idénticamente como $U(0, 1)$:
+$$ \boxed{X = -\frac{1}{\lambda} \ln(U)} $$
+
+### B. Distribución Weibull (Confiabilidad y Fallas):
+Función de distribución acumulada:
+$$ F(x) = 1 - e^{-(x/\eta)^\beta} $$
+Invertida analíticamente:
+$$ \boxed{X = \eta \left[ -\ln(1 - U) \right]^{1/\beta}} $$
+
+---
+
+# 2. El Método de Aceptación y Rechazo
+
+Cuando la función acumulada $F(x)$ no posee una forma analítica invertible de manera sencilla (como en las distribuciones Beta, Gamma o Normal multivariada), se utiliza el **Método de Aceptación y Rechazo**:
+
+1. Se selecciona una función auxiliar de densidad $g(x)$ fácil de muestrear (ej. Uniforme).
+2. Se determina una constante $c \ge 1$ tal que $f(x) \le c \cdot g(x)$ para todo $x$.
+3. Se genera un candidato $Y$ a partir de $g(x)$, y un valor uniforme independiente $U \sim U(0, 1)$.
+4. Si $U \le \frac{f(Y)}{c \cdot g(Y)}$, se **acepta** $X = Y$.
+5. De lo contrario, se **rechaza** el candidato y se repite el procedimiento.
+
+---
+
+# 3. Caso Industrial: Evaluación de Riesgo de Inversión en una Línea de Producción
+
+Una empresa metalmecánica evalúa instalar una nueva celda robotizada. La inversión inicial es fija ($I_0 = \$250,000$). Los flujos de caja netos anuales durante 5 años dependen de tres variables altamente inciertas:
+- **Demanda anual de piezas ($D$):** Normal con media $\mu = 15,000$ y $\sigma = 2,500$ piezas/año.
+- **Margen de contribución neto ($M$):** Triangular(min=\$5, moda=\$7, max=\$10) por pieza.
+- **Costo operativo fijo anual ($CF$):** Uniforme entre \$20,000 y \$35,000 al año.
+- **Tasa de descuento de capital ($r$):** 12% anual.
+
+El **Valor Presente Neto (VPN)** para cada iteración de la simulación es:
+
+$$ \text{VPN} = -I_0 + \sum_{t=1}^5 \frac{(D_t \cdot M_t - CF_t)}{(1 + r)^t} $$
+
+---
+
+# 4. Implementación en Python: Simulación Monte Carlo de 10,000 Iteraciones
+
+```python
+import numpy as np
+
+# Semilla para reproducibilidad
+np.random.seed(42)
+N_SIMULACIONES = 10000
+
+# Parámetros del proyecto
+I_0 = 250000.0
+r = 0.12
+ANIOS = 5
+
+vpns = np.zeros(N_SIMULACIONES)
+
+for i in range(N_SIMULACIONES):
+    flujo_presente_total = 0.0
+    for t in range(1, ANIOS + 1):
+        # Muestreo estocástico de las variables inciertas
+        demanda = np.random.normal(15000, 2500)
+        margen = np.random.triangular(left=5.0, mode=7.0, right=10.0)
+        costo_fijo = np.random.uniform(20000, 35000)
+        
+        flujo_neto = (demanda * margen) - costo_fijo
+        flujo_descontado = flujo_neto / ((1 + r) ** t)
+        flujo_presente_total += flujo_descontado
+        
+    vpns[i] = -I_0 + flujo_presente_total
+
+# Métricas estadísticas del proyecto
+vpn_medio = np.mean(vpns)
+vpn_std = np.std(vpns)
+prob_perdida = np.mean(vpns < 0) * 100
+prob_exito = 100 - prob_perdida
+var_95 = np.percentile(vpns, 5)  # Percentil 5 (Value at Risk al 95%)
+
+print("=== RESULTADOS DE LA SIMULACIÓN MONTE CARLO (10,000 CORRIDAS) ===")
+print(f"VPN Promedio Esperado  : ${vpn_medio:,.2f}")
+print(f"Desviación Estándar VPN: ${vpn_std:,.2f}")
+print(f"Probabilidad de Ganancia (VPN > 0): {prob_exito:.2f}%")
+print(f"Probabilidad de Ruina (VPN < 0)   : {prob_perdida:.2f}%")
+print(f"Valor en Riesgo al 95% (VaR 95%)   : ${var_95:,.2f}")
+
+print("\nDiagnóstico Financiero:")
+if prob_exito >= 85.0 and var_95 > -30000:
+    print("✅ PROYECTO RECOMENDADO: Alta viabilidad económica con riesgo controlado.")
+else:
+    print("⚠️ PROYECTO RIESGOSO: Requiere cobertura o reducción de costos fijos.")
+```
+
+<Callout type="note">
+**Potencia del Análisis de Monte Carlo:** Mientras que un análisis determinístico tradicional con valores promedio reportaría una falsa ilusión de certeza, la simulación de Monte Carlo revela con precisión la distribución completa de probabilidades, permitiendo cuantificar el riesgo de ruina.
+</Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Método de Monte Carlo y Transformada Inversa"
+  questions={[
+    {
+      id: "q_mc_1",
+      text: "Si se genera el número pseudoaleatorio u = 0.05 a partir de una distribución Uniforme(0, 1), ¿cuál es el valor resultante para una variable exponencial con tasa λ = 2 eventos/hora mediante el método de la transformada inversa X = -ln(u) / λ?",
+      options: [
+        { id: "a", text: "X ≈ 1.498 horas (calculado como -ln(0.05) / 2 = 2.9957 / 2 ≈ 1.498)", isCorrect: true, explanation: "Correcto: Sustituyendo u = 0.05 en la fórmula analítica de la transformada inversa exponencial se obtiene exactamente 1.498 horas." },
+        { id: "b", text: "X = 0.025 horas", isCorrect: false, explanation: "No se multiplica linealmente; la inversa involucra la función logaritmo natural." },
+        { id: "c", text: "X = -2.995 horas", isCorrect: false, explanation: "El tiempo entre eventos nunca puede ser un valor negativo." }
+      ]
+    },
+    {
+      id: "q_mc_2",
+      text: "¿Cuál es la ventaja decisiva del método de simulación de Monte Carlo frente al análisis clásico de sensibilidad de 'mejor caso / peor caso / caso base'?",
+      options: [
+        { id: "a", text: "Que Monte Carlo evalúa millones de combinaciones ponderadas por su verdadera probabilidad conjunta, evitando tanto la falacia del optimismo extremo como el pánico infundado del peor escenario simultáneo", isCorrect: true, explanation: "Correcto: Que todas las variables caigan simultáneamente en su peor valor es un evento de probabilidad prácticamente cero; Monte Carlo refleja la realidad estadística." },
+        { id: "b", text: "Que no requiere computadoras para su ejecución", isCorrect: false, explanation: "Al contrario, requiere cómputo masivo para generar miles de iteraciones." },
+        { id: "c", text: "Que elimina por completo el riesgo operativo del proyecto", isCorrect: false, explanation: "La simulación cuantifica el riesgo existente, no lo hace desaparecer." }
+      ]
+    },
+    {
+      id: "q_mc_3",
+      text: "En un análisis de riesgo financiero de un proyecto, ¿qué significa que el Valor en Riesgo al 95% (VaR 95%) del VPN sea de +$45,000?",
+      options: [
+        { id: "a", text: "Existe un 95% de confianza estadística de que el proyecto generará un VPN de al menos $45,000 o más (solo hay un 5% de probabilidad de que el rendimiento caiga por debajo)", isCorrect: true, explanation: "Correcto: Es la interpretación técnica del percentil 5 en análisis de distribución de rentabilidad." },
+        { id: "b", text: "Que la empresa perderá $45,000 en el 95% de los años", isCorrect: false, explanation: "El valor es positivo, indicando ganancia incluso en el escenario adverso del percentil 5." },
+        { id: "c", text: "Que la tasa de interés del préstamo bancario es del 95%", isCorrect: false, explanation: "No tiene relación con tasas bancarias." }
+      ]
+    }
+  ]}
+/>

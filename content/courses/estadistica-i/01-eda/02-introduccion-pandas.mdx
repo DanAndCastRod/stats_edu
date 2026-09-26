@@ -127,3 +127,40 @@ Este laboratorio introduce las siguientes funciones esenciales que usarás en to
 - `df.head(n)`: Vista previa.
 - `df.info()`: Resumen técnico (nulos y tipos).
 - `df.describe()`: Resumen estadístico rápido (veremos esto en detalle la próxima clase).
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Fundamentos de Pandas y Manipulación de Datos"
+  questions={[
+    {
+      id: "q_pandas_1",
+      text: "Si una columna numérica de peso en kg aparece con tipo de dato 'object' en df.info(), la causa más probable es:",
+      options: [
+        { id: "a", text: "Existe al menos un registro con caracteres no numéricos o espacios que impidió a Pandas inferir float/int", isCorrect: true, explanation: "Correcto: cuando Pandas encuentra valores como 'N/A', texto o errores tipográficos en una columna de números, convierte toda la serie al tipo general 'object'." },
+        { id: "b", text: "Pandas siempre asigna 'object' a números con más de 3 decimales", isCorrect: false, explanation: "Para decimales se asigna float64 independientemente de la cantidad de decimales." },
+        { id: "c", text: "El archivo CSV está corrupto y debe eliminarse", isCorrect: false, explanation: "Se puede limpiar con pd.to_numeric(errors='coerce')." }
+      ]
+    },
+    {
+      id: "q_pandas_2",
+      text: "¿Cuál es la sintaxis correcta en Pandas para filtrar los lotes donde la 'Temperatura' supera 150 °C?",
+      options: [
+        { id: "a", text: "df[df['Temperatura'] > 150]", isCorrect: true, explanation: "Correcto: se utiliza indexación booleana pasando la condición lógica como máscara a los corchetes del DataFrame." },
+        { id: "b", text: "df.filter('Temperatura > 150')", isCorrect: false, explanation: "df.filter() se usa principalmente para filtrar etiquetas de columnas o índices, no para filtrado condicional booleano." },
+        { id: "c", text: "df.where('Temperatura > 150')", isCorrect: false, explanation: "df.where reemplaza los valores que no cumplen la condición con NaN en vez de filtrar filas." }
+      ]
+    },
+    {
+      id: "q_pandas_3",
+      text: "La propiedad df.shape devuelve:",
+      options: [
+        { id: "a", text: "Una tupla con (número de filas, número de columnas)", isCorrect: true, explanation: "df.shape devuelve las dimensiones del DataFrame en formato (filas, columnas)." },
+        { id: "b", text: "La lista de nombres de las columnas", isCorrect: false, explanation: "Los nombres de las columnas se consultan con df.columns." },
+        { id: "c", text: "El tamaño del archivo en megabytes en memoria RAM", isCorrect: false, explanation: "El uso de memoria se consulta con df.memory_usage()." }
+      ]
+    }
+  ]}
+/>

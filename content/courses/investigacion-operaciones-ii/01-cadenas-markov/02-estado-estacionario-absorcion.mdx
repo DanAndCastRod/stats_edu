@@ -1,0 +1,194 @@
+---
+title: "Estado Estacionario y Cadenas de Markov Absorbentes"
+description: "Distribución límite a largo plazo, resolución de sistemas lineales para probabilidades estacionarias, y análisis de cadenas absorbentes con matriz fundamental."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 55
+order: 2
+---
+
+# Introducción
+
+A medida que un sistema dinámico opera durante cientos o miles de ciclos, el efecto de las condiciones iniciales tiende a desvanecerse. En muchas cadenas de Markov, las probabilidades de encontrarse en cada estado convergen hacia una distribución de equilibrio independiente del pasado, conocida como **Distribución de Estado Estacionario**.
+
+Por otro lado, existen procesos donde ciertos estados son "trampas" o puntos finales de los cuales es imposible salir (como la quiebra financiera, el pago total de una deuda o la destrucción irreparable de un componente). Estos sistemas se analizan mediante la teoría de **Cadenas de Markov Absorbentes**.
+
+<Callout type="info">
+**Conceptos Clave:**
+- **Cadena Irreducible:** Es posible transitar desde cualquier estado hacia cualquier otro en un número finito de pasos.
+- **Cadena Recurrente:** Se tiene la certeza de regresar a cada estado infinitas veces a largo plazo.
+- **Cadena Absorbente:** Contiene al menos un estado absorbente ($P_{ii} = 1$) y desde todo estado transitorio se puede alcanzar algún estado absorbente.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular las probabilidades de estado estacionario ($\pi$) resolviendo sistemas lineales con la condición de normalización.
+- Evaluar costos e ingresos promedio esperados en el largo plazo para decisiones de mantenimiento y calidad.
+- Formular la forma canónica de cadenas absorbentes y calcular la matriz fundamental $N = (I - Q)^{-1}$.
+
+---
+
+# 1. Probabilidades de Estado Estacionario
+
+Para una cadena de Markov finita, irreducible y aperiódica (ergódica), existe un vector fila único de probabilidades $\pi = [\pi_1, \pi_2, \dots, \pi_M]$ tal que:
+
+$$ \pi P = \pi $$
+$$ \sum_{i=1}^M \pi_i = 1, \quad \pi_i > 0 $$
+
+En términos interpretativos, $\pi_i$ representa la **fracción de tiempo a largo plazo** que el proceso pasará en el estado $i$.
+
+### Evaluación de Costos Operativos a Largo Plazo:
+Si operar en el estado $i$ genera un costo por turno $C_i$, el costo promedio esperado a largo plazo por unidad de tiempo es:
+
+$$ E[\text{Costo}] = \sum_{i=1}^M \pi_i C_i $$
+
+---
+
+# 2. Cadenas de Markov Absorbentes
+
+Un estado $k$ es **absorbente** si $P_{kk} = 1$ y $P_{kj} = 0$ para $j \ne k$. Los estados restantes se denominan **transitorios**.
+
+Reordenando los estados para colocar primero los $r$ estados transitorios y luego los $s$ estados absorbentes, la matriz de transición adopta la **Forma Canónica**:
+
+$$
+P = \begin{pmatrix}
+Q & R \\
+0 & I_s
+\end{pmatrix}
+$$
+
+Donde:
+- $Q$ ($r \times r$): Probabilidades de transición entre estados transitorios.
+- $R$ ($r \times s$): Probabilidades de transición de estados transitorios a estados absorbentes.
+- $0$ ($s \times r$): Matriz de ceros (no se puede salir de un absorbente).
+- $I_s$ ($s \times s$): Matriz identidad (los estados absorbentes se quedan en sí mismos).
+
+### La Matriz Fundamental ($N$):
+$$ N = (I_r - Q)^{-1} $$
+- El elemento $N_{ij}$ representa el **número esperado de visitas** al estado transitorio $j$ antes de la absorción, dado que se inició en el estado transitorio $i$.
+- El vector $t = N \cdot \mathbf{1}$ entrega el **tiempo esperado total** hasta que el sistema cae en algún estado absorbente.
+- La matriz $B = N \cdot R$ proporciona la **probabilidad de ser absorbido** en cada estado absorbente específico partiendo desde cualquier estado transitorio.
+
+---
+
+# 3. Caso Industrial: Gestión de Cuentas por Cobrar (Crédito)
+
+Una empresa de suministros industriales clasifica sus facturas mensuales en 4 estados:
+- **Transitorios:** 
+  1. Corriente (0-30 días).
+  2. Vencida (31-90 días).
+- **Absorbentes:** 
+  3. Cobrada (Ingreso liquidado).
+  4. Incobrable (Pérdida por incobrabilidad / Castigo).
+
+Matriz de transición en forma canónica:
+
+$$
+P = \begin{pmatrix}
+0.20 & 0.30 & 0.50 & 0.00 \\
+0.00 & 0.40 & 0.40 & 0.20 \\
+0.00 & 0.00 & 1.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 1.00
+\end{pmatrix}
+$$
+
+---
+
+# 4. Implementación en Python: Cálculo Matricial Completo
+
+```python
+import numpy as np
+
+# ==========================================
+# PARTE A: ESTADO ESTACIONARIO (Máquina CNC)
+# ==========================================
+P_cnc = np.array([
+    [0.70, 0.25, 0.05],
+    [0.00, 0.80, 0.20],
+    [1.00, 0.00, 0.00]
+])
+
+# Para resolver pi * P = pi  =>  pi * (P - I) = 0  con sum(pi) = 1:
+# Sustituimos una de las ecuaciones redundantes por la ecuación de normalización
+A = (P_cnc.T - np.eye(3))
+A[-1, :] = [1.0, 1.0, 1.0]  # Ecuación de normalización
+b = np.array([0.0, 0.0, 1.0])
+
+pi = np.linalg.solve(A, b)
+print("=== PARTE A: ESTADO ESTACIONARIO CNC ===")
+print(f"pi_Óptimo   : {pi[0]:.4f} ({pi[0]*100:.1f}% del tiempo)")
+print(f"pi_Desgaste : {pi[1]:.4f} ({pi[1]*100:.1f}% del tiempo)")
+print(f"pi_Falla    : {pi[2]:.4f} ({pi[2]*100:.1f}% del tiempo)")
+
+# Costos por turno: Óptimo=$0, Desgaste=$120 (scrap menor), Falla=$1500 (reparación y paro)
+costos = np.array([0, 120, 1500])
+costo_esperado = np.dot(pi, costos)
+print(f"Costo operativo esperado a largo plazo: ${costo_esperado:.2f} por turno")
+
+# ==========================================
+# PARTE B: CADENA ABSORBENTE (Crédito)
+# ==========================================
+# Submatrices en forma canónica:
+# Estados transitorios: 1=Corriente, 2=Vencida
+Q = np.array([
+    [0.20, 0.30],
+    [0.00, 0.40]
+])
+
+# Estados absorbentes: 3=Cobrada, 4=Incobrable
+R = np.array([
+    [0.50, 0.00],
+    [0.40, 0.20]
+])
+
+I_r = np.eye(2)
+N = np.linalg.inv(I_r - Q)  # Matriz Fundamental
+B = N @ R                   # Probabilidades de absorción
+
+print("\n=== PARTE B: MATRIZ FUNDAMENTAL Y ABSORCIÓN ===")
+print("Matriz Fundamental N (visitas promedio):")
+print(np.round(N, 3))
+
+print("\nMatriz B (Probabilidad de absorción [Cobrada, Incobrable]):")
+print(np.round(B, 3))
+
+prob_cobro_corriente = B[0, 0]
+prob_incobrable_corriente = B[0, 1]
+print(f"\nUna factura nueva tiene {prob_cobro_corriente*100:.1f}% de probabilidad de ser cobrada")
+print(f"y un riesgo de incobrabilidad de {prob_incobrable_corriente*100:.1f}%.")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Estado Estacionario y Cadenas Absorbentes"
+  questions={[
+    {
+      id: "q_estacionario_1",
+      text: "Para calcular las probabilidades de estado estacionario de una cadena de Markov ergódica, ¿cuál de los siguientes sistemas de ecuaciones debe resolverse?",
+      options: [
+        { id: "a", text: "π · P = π sujeto a la condición de normalización ∑ πᵢ = 1", isCorrect: true, explanation: "Correcto: El vector π es un vector propio por la izquierda con autovalor λ = 1, normalizado para sumar 1.0." },
+        { id: "b", text: "P · π = 0 sujeto a π > 0", isCorrect: false, explanation: "El producto se hace por la izquierda (vector fila π · P) y el resultado debe ser π, no el vector cero." },
+        { id: "c", text: "π = P⁻¹ · 1", isCorrect: false, explanation: "La matriz de transición P frecuentemente ni siquiera es invertible (ej. si tiene columnas idénticas)." }
+      ]
+    },
+    {
+      id: "q_estacionario_2",
+      text: "En una cadena de Markov absorbente con matriz en forma canónica, ¿qué representa el elemento Nᵢⱼ de la matriz fundamental N = (I - Q)⁻¹?",
+      options: [
+        { id: "a", text: "El número promedio esperado de periodos que el sistema pasará en el estado transitorio j, partiendo desde el estado transitorio i, antes de llegar a la absorción", isCorrect: true, explanation: "Correcto: Es la definición matemática rigurosa de los elementos de la matriz fundamental N." },
+        { id: "b", text: "La probabilidad directa de que el estado i sea absorbido por el estado j", isCorrect: false, explanation: "Esa probabilidad proviene de la matriz de absorción B = N · R, no de N individualmente." },
+        { id: "c", text: "El costo monetario total incurrido en el estado j", isCorrect: false, explanation: "N es un conteo de pasos o visitas temporales, no una métrica de costos." }
+      ]
+    },
+    {
+      id: "q_estacionario_3",
+      text: "Si la probabilidad de que una cuenta por cobrar nueva termine siendo incobrable (Estado 4) es del 10% y la empresa emite $5,000,000 mensuales en crédito, ¿cuál es la provisión contable técnica recomendada basada en la matriz B?",
+      options: [
+        { id: "a", text: "$500,000 mensuales (el 10% del total originado)", isCorrect: true, explanation: "Correcto: Al multiplicar el valor total originado por la probabilidad de absorción en incobrabilidad B[0, 1] = 0.10, la provisión esperada para pérdidas crediticias es exactamente $500,000." },
+        { id: "b", text: "$50,000 mensuales", isCorrect: false, explanation: "Representaría únicamente el 1%, subestimando gravemente el riesgo del modelo estocástico." },
+        { id: "c", text: "$0, porque toda cuenta por cobrar se asume recuperable", isCorrect: false, explanation: "Ignorar las pérdidas esperadas calculadas por Markov viola las normas contables internacionales (NIIF 9 / IFRS 9)." }
+      ]
+    }
+  ]}
+/>

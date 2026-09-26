@@ -122,3 +122,40 @@ print(f"Media: {media:.1f}, Mediana: {mediana:.1f}")
 <Callout type="note">
 **Regla de Dedo:** Si |Media - Mediana| es muy grande, investiga outliers. Tu proceso puede estar fuera de control.
 </Callout>
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Medidas de Tendencia Central y Asimetría"
+  questions={[
+    {
+      id: "q_central_1",
+      text: "En una planta de inyección de plástico, el 95% de las piezas tardan entre 42 y 46 segundos en enfriarse, pero un fallo eléctrico provocó 3 ciclos de 450 segundos. ¿Qué medida de centralidad representa mejor el tiempo de ciclo típico del proceso estable?",
+      options: [
+        { id: "a", text: "La Mediana, porque es resistente (robusta) a valores extremos o atípicos generados por fallas", isCorrect: true, explanation: "Correcto: La mediana no se deja arrastrar por los valores atípicos (outliers) de 450s, reflejando el comportamiento típico de la planta." },
+        { id: "b", text: "La Media aritmética, porque considera numéricamente todos los datos registrados sin descartar nada", isCorrect: false, explanation: "La media aritmética se inflaría drásticamente por los 3 valores de 450s, falseando la velocidad real de la operación normal." },
+        { id: "c", text: "El Rango medio (máximo + mínimo) / 2", isCorrect: false, explanation: "El rango medio es aún más sensible a los valores extremos que la propia media." }
+      ]
+    },
+    {
+      id: "q_central_2",
+      text: "Si la distribución de salarios en una empresa manufacturera presenta un sesgo positivo marcado a la derecha (asimetría positiva), la relación esperada entre las medidas es:",
+      options: [
+        { id: "a", text: "Media > Mediana > Moda", isCorrect: true, explanation: "En distribuciones asimétricas a la derecha con salarios directivos altos, la media es atraída hacia la cola derecha superando a la mediana y a la moda." },
+        { id: "b", text: "Moda > Mediana > Media", isCorrect: false, explanation: "Esta relación corresponde a una distribución con sesgo negativo o a la izquierda." },
+        { id: "c", text: "Media = Mediana = Moda", isCorrect: false, explanation: "Esta igualdad estricta solo ocurre en distribuciones perfectamente simétricas unimodales como la Normal." }
+      ]
+    },
+    {
+      id: "q_central_3",
+      text: "Para un conjunto de datos bimodal con dos picos de producción distintos (Turno Día = 80 pzs/h, Turno Noche = 40 pzs/h), ¿cuál es el peligro de reportar únicamente el promedio global (60 pzs/h)?",
+      options: [
+        { id: "a", text: "El promedio de 60 cae en un valle donde casi ningún turno opera realmente, ocultando la existencia de dos subprocesos diferentes", isCorrect: true, explanation: "Reportar solo la media en datos multimodales enmascara causas asignables; se deben estratificar y analizar ambos turnos por separado." },
+        { id: "b", text: "Que el promedio matemático es inválido según los teoremas de probabilidad", isCorrect: false, explanation: "Matemáticamente es válido calcularlo, pero operativamente conduce a decisiones gerenciales erróneas." },
+        { id: "c", text: "Que la desviación estándar se vuelve negativa", isCorrect: false, explanation: "La desviación estándar nunca puede ser negativa." }
+      ]
+    }
+  ]}
+/>
