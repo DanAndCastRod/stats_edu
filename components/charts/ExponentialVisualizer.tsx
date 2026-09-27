@@ -190,11 +190,11 @@ export function ExponentialVisualizer({
                     <strong>Fórmula Aplicada: </strong>
                     {probType === "lessThan" ? (
                         <span>
-                            $P(X \le {xVal.toFixed(1)}) = 1 - e^{{-{lambda.toFixed(2)} \times {xVal.toFixed(1)}}} = {(probLessThan * 100).toFixed(2)}\%$ (Probabilidad de falla o arribo temprano).
+                            {`P(X ≤ ${xVal.toFixed(1)}) = 1 - e^(-${lambda.toFixed(2)} × ${xVal.toFixed(1)}) = ${(probLessThan * 100).toFixed(2)}%`} (Probabilidad de falla o arribo temprano).
                         </span>
                     ) : (
                         <span>
-                            $P(X &gt; {xVal.toFixed(1)}) = e^{{-{lambda.toFixed(2)} \times {xVal.toFixed(1)}}} = {(probGreaterThan * 100).toFixed(2)}\%$ (Función de Confiabilidad / Supervivencia $R(t)$).
+                            {`P(X > ${xVal.toFixed(1)}) = e^(-${lambda.toFixed(2)} × ${xVal.toFixed(1)}) = ${(probGreaterThan * 100).toFixed(2)}%`} (Función de Confiabilidad / Supervivencia R(t)).
                         </span>
                     )}
                 </div>

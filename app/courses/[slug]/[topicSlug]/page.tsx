@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { db } from "@/lib/db"
+import { getCourseData } from "@/lib/courses"
 import { getTopicContent, mdxOptions } from "@/lib/mdx"
 import { MDXRemote } from "next-mdx-remote/rsc"
 import { components } from "@/components/mdx/MDXComponents"
@@ -16,24 +16,7 @@ export default async function LessonPage({
     const { slug, topicSlug } = await params
 
     // 1. Get Course and all Topics for Navigation
-    const course = await db.course.findUnique({
-        where: { slug },
-        include: {
-            modules: {
-                orderBy: { order: 'asc' },
-                include: {
-                    weeks: {
-                        orderBy: { number: 'asc' },
-                        include: {
-                            topics: {
-                                orderBy: { order: 'asc' }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    })
+    const course = await getCourseData(slug)
 
     if (!course) notFound()
 

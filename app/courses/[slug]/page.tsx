@@ -1,4 +1,4 @@
-import { db } from "@/lib/db"
+import { getCourseData } from "@/lib/courses"
 import { notFound, redirect } from "next/navigation"
 
 export default async function CourseRootPage({
@@ -8,28 +8,7 @@ export default async function CourseRootPage({
 }) {
     const { slug } = await params
 
-    // Find the first topic of the first week of the first module
-    const course = await db.course.findUnique({
-        where: { slug },
-        include: {
-            modules: {
-                orderBy: { order: 'asc' },
-                take: 1,
-                include: {
-                    weeks: {
-                        orderBy: { number: 'asc' },
-                        take: 1,
-                        include: {
-                            topics: {
-                                orderBy: { order: 'asc' },
-                                take: 1
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    })
+    const course = await getCourseData(slug)
 
     if (!course) notFound()
 

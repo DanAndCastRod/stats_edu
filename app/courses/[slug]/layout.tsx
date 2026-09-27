@@ -1,14 +1,11 @@
-import { db } from "@/lib/db"
-import { notFound, redirect } from "next/navigation"
+import { getCourseData } from "@/lib/courses"
+import { notFound } from "next/navigation"
 import { auth } from "@/auth"
 import Navbar from "@/components/shared/Navbar"
 import { CourseSidebar } from "./components/CourseSidebar"
 import { MobileBottomNav } from "@/components/shared/MobileBottomNav"
 import { MobileSidebarDrawer } from "@/components/shared/MobileSidebarDrawer"
 import { PresentationMode } from "@/components/widgets/PresentationMode"
-
-// Helper to check if topic is active would require client component for highlighting
-// or checking params in server component. Layout receives params.
 
 export default async function CourseLayout({
     children,
@@ -17,36 +14,24 @@ export default async function CourseLayout({
     children: React.ReactNode
     params: Promise<{ slug: string }>
 }) {
-    const session = await auth()
+    let session = null
+    try {
+        session = await auth()
+    } catch {
+        // auth optional for guest viewing
+    }
 
     // Await params
     const { slug } = await params
 
-    const course = await db.course.findUnique({
-        where: { slug: slug },
-        include: {
-            modules: {
-                orderBy: { order: 'asc' },
-                include: {
-                    weeks: {
-                        orderBy: { number: 'asc' },
-                        include: {
-                            topics: {
-                                orderBy: { order: 'asc' }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    })
+    const course = await getCourseData(slug)
 
     if (!course) notFound()
 
     return (
         <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
             {/* Top Navbar */}
-            <Navbar user={session.user} />
+            <Navbar user={session?.user} />
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Desktop Sidebar */}
