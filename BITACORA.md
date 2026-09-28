@@ -268,3 +268,59 @@
   - `node ./node_modules/next/dist/bin/next lint`: 0 errores, 0 warnings.
 - **Estado General**: Todo operativo y verificado estáticamente.
 
+---
+
+### Sesión 5: 2026-09-28 — Profundización de Módulos, Expansión a 10 Herramientas Computacionales e Inventario de Tools
+- **Objetivo**:
+  1. Profundizar en los módulos de aprendizaje integrando más elementos interactivos y ejecutores de código en vivo (`PyodideRunner`) con problemas industriales reales.
+  2. Generar nuevas herramientas computacionales especializadas en la suite `/tools` para cubrir las áreas formativas de Control de Calidad, Inventarios, Pronósticos y Gestión de Proyectos.
+  3. Consolidar el inventario exhaustivo de herramientas interactivas disponibles en la plataforma.
+- **Acciones Ejecutadas**:
+  1. **Desarrollo de 4 Nuevas Herramientas Computacionales en `/tools` (Suite ampliada de 6 a 10 herramientas)**:
+     - **Herramienta 7: Control Estadístico de Calidad & Capacidad (SPC)** (`components/tools/SpcQualityControlWorkbench.tsx`, ancla `#spc`):
+       * Gráficos Shewhart $\bar{X} - R$ con tabla de constantes $A_2, D_3, D_4, d_2$ para subgrupos de tamaño variable.
+       * Cálculo de límites de control $\pm 3\sigma$ y detección visual de causas asignables / puntos fuera de control.
+       * Cálculo de índices de capacidad del proceso: $C_p$, $C_{pk}$, $C_{pm}$ (Taguchi), PPM defectuosos estimados mediante la integral normal de Gauss y nivel de madurez Sigma ($Z$).
+       * Gráfico SVG interactivo de la trayectoria de medias muestrales con límites y puntos fuera de control resaltados en color carmesí.
+       * Exportación a CSV y generación de resumen ejecutivo en Markdown para informes de aseguramiento de calidad.
+     - **Herramienta 8: Optimizador de Inventarios & Lote Económico (EOQ / ROP)** (`components/tools/InventoryOptimizationTool.tsx`, ancla `#inventory`):
+       * Modelo clásico de Lote Económico de Pedido ($EOQ = \sqrt{2DS/H}$).
+       * Cálculo de Punto de Reorden ($ROP = d \cdot L + SS$) bajo demanda estocástica con tiempo de entrega $L$.
+       * Cálculo de Stock de Seguridad ($SS = Z_\alpha \sigma_L$) para niveles de servicio configurables (90%, 95%, 99%).
+       * Visualizador SVG interactivo de la curva de costos anuales (Costo de Ordenar, Costo de Mantener y Costo Total) con marcado exacto del óptimo $Q^*$.
+       * Diagrama de diente de sierra que ilustra la dinámica de reabastecimiento en almacén, el período de Lead Time y la reserva de seguridad.
+       * Exportación a CSV y copia de tabla resumen en Markdown.
+     - **Herramienta 9: Pronósticos de Demanda & Series de Tiempo** (`components/tools/ForecastingWorkbench.tsx`, ancla `#forecasting`):
+       * Modelos cuantitativos implementados: Promedios Móviles Simples (SMA), Suavizamiento Exponencial Simple (SES con parámetro $\alpha$), y Modelo Lineal de Holt para series con tendencia (parámetros de nivel $\alpha$ y tendencia $\beta$).
+       * Métricas de evaluación de exactitud calculadas en tiempo real: Desviación Absoluta Media (MAD), Error Cuadrático Medio (MSE), Raíz del Error Cuadrático Medio (RMSE), Error Porcentual Absoluto Medio (MAPE) y Señal de Rastreo (Tracking Signal acumulado).
+       * Gráfico SVG de trayectoria que superpone la demanda real histórica contra la serie pronosticada y proyecta el período futuro $t+1$.
+       * Presets industriales (tendencia de crecimiento, estacionalidad y demanda estacionaria) con tabla detallada de errores por período.
+       * Exportación a CSV y copia de informe en Markdown.
+     - **Herramienta 10: Optimizador de Redes de Proyectos (CPM / PERT)** (`components/tools/CpmPertNetworkOptimizer.tsx`, ancla `#cpm`):
+       * Red de actividades con duraciones determinísticas o estimaciones probabilísticas de 3 tiempos (optimista $a$, más probable $m$, pesimista $b$).
+       * Cálculo de tiempos esperados $T_e = (a + 4m + b)/6$ y varianzas $\sigma^2 = ((b-a)/6)^2$.
+       * Algoritmo de pase hacia adelante ($ES, EF$) y pase hacia atrás ($LS, LF$).
+       * Cálculo de holguras totales ($H_i = LS_i - ES_i$) e identificación unívoca de la Ruta Crítica ($H_i = 0$).
+       * Varianza y desviación estándar del proyecto a lo largo de la ruta crítica.
+       * Módulo de análisis de riesgo de culminación: cálculo de puntaje $Z$ y probabilidad normal de entregar el proyecto antes de un plazo meta $T_{target}$.
+       * Tabla estructurada con pases adelante/atrás, exportación a CSV y copia en Markdown.
+  2. **Ampliación del Motor Matemático (`lib/tools-math.ts`)**:
+     - Incorporación de funciones analíticas: `calculateSPCXR`, `calculateInventoryOptimization`, `calculateForecasting` y `solveCPMPERT`.
+  3. **Integración en la Suite de Herramientas (`app/tools/page.tsx` & `components/tools/index.ts`)**:
+     - Exportación unificada de las 10 herramientas computacionales.
+     - Actualización de metadatos, iconos, etiquetas y escucha de eventos de ancla `#spc`, `#inventory`, `#forecasting` y `#cpm`.
+  4. **Actualización del Índice Global de Búsqueda (`lib/search-data.ts` & `scripts/build-search-index.mjs`)**:
+     - Indexación ampliada a 171 elementos (21 asignaturas, 10 herramientas interactivas, 4 rutas de navegación y 136 lecciones).
+     - Validación unitaria con `scripts/test-command-palette.mjs`: 100% de pruebas aprobadas.
+  5. **Profundización en Módulos Curriculares con Código Interactivo en Vivo (`<PyodideRunner />`)**:
+     - `estadistica-ii/01-muestreo-distribuciones/02-distribuciones-muestrales-chi-t-f.mdx`: Laboratorio de prueba de razón de varianzas F de Fisher-Snedecor con SciPy.
+     - `estadistica-iii/01-regresion-multiple-correlacion/01-modelo-lineal-multiple-matricial.mdx`: Estimación matricial MCO $\hat{\beta} = (X^T X)^{-1} X^T Y$, matriz sombrero $H$, contrastes $t$ individuales y ANOVA $F$.
+     - `gestion-produccion-logistica/01-pronosticos-demanda/02-modelo-holt-winters-metricas-error.mdx`: Ajuste del modelo de Holt con parámetros $\alpha$ y $\beta$, métricas MAD, RMSE, MAPE y Tracking Signal.
+     - `procesos-estocasticos/01-cadenas-markov-discretas/02-distribucion-estado-estable.mdx`: Cálculo del vector estacionario $\pi$, tiempos medios de recurrencia y evaluación de costos diarios de mantenimiento en planta.
+- **Verificación Técnica**:
+  - `node ./node_modules/typescript/bin/tsc --noEmit`: 0 errores.
+  - `node ./node_modules/next/dist/bin/next lint`: 0 errores, 0 warnings.
+  - `node scripts/test-command-palette.mjs`: 100% de pruebas aprobadas (10 herramientas, 21 asignaturas).
+- **Estado General**: Plataforma enriquecida con 10 herramientas de ingeniería industrial y ejecución de código en vivo en lecciones clave.
+
+

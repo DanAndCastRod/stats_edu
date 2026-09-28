@@ -69,21 +69,20 @@ Sea $e_t = Y_t - F_t$ el error en el periodo $t$ para $n$ periodos evaluados:
 
 ---
 
-# Laboratorio en Python: Modelo de Holt y Auditoría de Errores
+# Laboratorio en Python: Modelo de Holt y Auditoría de Errores (Ejecutable en Vivo)
 
-```python
-import numpy as np
-import pandas as pd
+<PyodideRunner
+  title="Laboratorio Python: Ajuste del Modelo de Holt y Métricas de Error"
+  description="Calcula los niveles L_t, tendencias T_t, pronósticos F_t, métricas MAD, RMSE, MAPE y Tracking Signal ejecutados en WebAssembly."
+  initialCode={`import numpy as np
 
-# Serie de demanda con tendencia lineal (10 meses)
-demanda = np.array([100, 115, 128, 140, 155, 168, 185, 198, 215, 230])
+# Serie de demanda con tendencia lineal en planta (10 meses)
+demanda = np.array([100, 115, 128, 140, 155, 168, 185, 198, 215, 230], dtype=float)
 n = len(demanda)
 
-# Parámetros del modelo de Holt
 alfa = 0.40
 beta = 0.30
 
-# Inicialización
 L = np.zeros(n)
 T = np.zeros(n)
 F = np.zeros(n)
@@ -97,37 +96,33 @@ for t in range(1, n):
     L[t] = alfa * demanda[t] + (1.0 - alfa) * (L[t - 1] + T[t - 1])
     T[t] = beta * (L[t] - L[t - 1]) + (1.0 - beta) * T[t - 1]
 
-# Cálculo de Métricas de Error
 errores = demanda[1:] - F[1:]
-mad = np.mean(np.abs(errores))
-mse = np.mean(errores**2)
-rmse = np.sqrt(mse)
-mape = np.mean(np.abs(errores / demanda[1:])) * 100.0
+mad = float(np.mean(np.abs(errores)))
+mse = float(np.mean(errores**2))
+rmse = float(np.sqrt(mse))
+mape = float(np.mean(np.abs(errores / demanda[1:])) * 100.0)
 
-# Tracking Signal acumulado
 rsfe = np.cumsum(errores)
 mads_acum = [np.mean(np.abs(errores[:i+1])) for i in range(len(errores))]
 tracking_signal = rsfe / mads_acum
 
-df_holt = pd.DataFrame({
-    'Mes': range(1, n + 1),
-    'Demanda': demanda,
-    'Nivel_L': L,
-    'Tendencia_T': T,
-    'Pronostico_F': F
-})
+print("=== TABLA DE AJUSTE DEL MODELO DE HOLT ===")
+print("Mes | Demanda | Nivel (L) | Tendencia (T) | Pronóstico (F) | Error (e)")
+print("-" * 65)
+for t in range(n):
+    f_str = f"{F[t]:14.1f}" if not np.isnan(F[t]) else "           N/A"
+    e_str = f"{demanda[t] - F[t]:9.1f}" if not np.isnan(F[t]) else "      N/A"
+    print(f"{t+1:3d} | {demanda[t]:7.0f} | {L[t]:9.1f} | {T[t]:13.1f} | {f_str} | {e_str}")
 
-# Proyección para meses 11 y 12
+print("\n--- EVALUACIÓN DE EXACTITUD ---")
+print(f"MAD: {mad:.2f} u | RMSE: {rmse:.2f} u | MAPE: {mape:.2f}%")
+print(f"Tracking Signal final: {tracking_signal[-1]:.2f} (Dentro de límites [-4, 4])")
+
 F_11 = L[-1] + 1 * T[-1]
 F_12 = L[-1] + 2 * T[-1]
-
-print("MODELO DE HOLT CON TENDENCIA LINEAL:")
-print(df_holt.round(1).to_string(index=False))
-print(f"\nEVALUACIÓN DE EXACTITUD:")
-print(f"MAD: {mad:.2f} unidades | RMSE: {rmse:.2f} | MAPE: {mape:.2f}%")
-print(f"Tracking Signal final: {tracking_signal[-1]:.2f} (Dentro de límites [-4, 4])")
-print(f"\nProyecciones Futuras: Mes 11 = {F_11:.1f} | Mes 12 = {F_12:.1f}")
-```
+print(f"\nProyecciones Futuras: Mes 11 = {F_11:.1f} u | Mes 12 = {F_12:.1f} u")
+`}
+/>
 
 ---
 

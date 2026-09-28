@@ -94,61 +94,59 @@ $$s^2 = MSE = \frac{e^T e}{n - (k + 1)}$$
 
 Un ingeniero industrial supervisa la resistencia a la compresión ($Y$, en MPa) de probetas de concreto en función del contenido de cemento ($X_1$, kg/m³) y la relación agua/cemento ($X_2$). Se cuenta con $n=6$ probetas de prueba.
 
-### Laboratorio en Python
+### Laboratorio en Python (Ejecutable en Vivo)
 
-```python
-import numpy as np
-import pandas as pd
+<PyodideRunner
+  title="Laboratorio Python: Estimación Matricial MCO y Diagnóstico ANOVA"
+  description="Calcula la matriz sombrero H, el estimador beta=(X'X)^(-1)X'Y, los errores estándar y los contrastes de significancia individual."
+  initialCode={`import numpy as np
 from scipy import stats
 
-# 1. Definición de datos experimentales
-# X1: Cemento (kg/m3), X2: Relacion agua/cemento, Y: Resistencia (MPa)
-datos = pd.DataFrame({
-    'Cemento': [300, 320, 350, 380, 400, 420],
-    'Agua_Cemento': [0.55, 0.52, 0.48, 0.45, 0.42, 0.40],
-    'Resistencia_MPa': [25.4, 28.1, 33.6, 38.2, 42.0, 45.8]
-})
+# 1. Definición de datos experimentales de resistencia de concreto
+cemento = np.array([300, 320, 350, 380, 400, 420], dtype=float)
+agua_cemento = np.array([0.55, 0.52, 0.48, 0.45, 0.42, 0.40], dtype=float)
+Y = np.array([25.4, 28.1, 33.6, 38.2, 42.0, 45.8], dtype=float)
 
-n = len(datos)
-k = 2  # Dos predictores
+n = len(Y)
+k = 2  # Predictores
 
-# 2. Construcción de matriz de diseño X y vector Y
-X = np.column_stack([np.ones(n), datos['Cemento'], datos['Agua_Cemento']])
-Y = datos['Resistencia_MPa'].values
+# 2. Construcción de matriz de diseño X
+X = np.column_stack([np.ones(n), cemento, agua_cemento])
 
-# 3. Estimación matricial de beta: (X^T X)^(-1) X^T Y
+# 3. Estimación MCO: beta = (X^T X)^(-1) X^T Y
 XtX = X.T @ X
 XtY = X.T @ Y
 beta_hat = np.linalg.inv(XtX) @ XtY
 
-# 4. Matriz sombrero H, valores predichos y residuos
-H = X @ np.linalg.inv(XtX) @ X.T
-Y_hat = H @ Y
+# 4. Predicciones y residuos
+Y_hat = X @ beta_hat
 residuos = Y - Y_hat
 
-# 5. Varianza residual y errores estándar de los coeficientes
-SSE = residuos.T @ residuos
-grados_libertad = n - (k + 1)
-s2 = SSE / grados_libertad
+# 5. ANOVA y R^2
+SSE = float(residuos.T @ residuos)
+SST = float(np.sum((Y - np.mean(Y))**2))
+SSR = SST - SSE
+R2 = SSR / SST
+R2_adj = 1.0 - (SSE / (n - (k + 1))) / (SST / (n - 1))
+
+s2 = SSE / (n - (k + 1))
+s = np.sqrt(s2)
 var_beta = s2 * np.linalg.inv(XtX)
 se_beta = np.sqrt(np.diag(var_beta))
-
-# 6. Estadísticos t y p-valores
 t_stats = beta_hat / se_beta
-p_values = [2 * (1 - stats.t.cdf(np.abs(t), df=grados_libertad)) for t in t_stats]
+p_values = [2.0 * (1.0 - stats.t.cdf(np.abs(t), df=n - (k + 1))) for t in t_stats]
 
-resultados = pd.DataFrame({
-    'Parametro': ['Intercepto (beta0)', 'Cemento (beta1)', 'Agua/Cemento (beta2)'],
-    'Estimacion': beta_hat,
-    'Error_Estandar': se_beta,
-    'Estadistico_t': t_stats,
-    'p_valor': p_values
-})
+print("=== REGRESIÓN LINEAL MÚLTIPLE MATRICIAL (MCO) ===")
+nombres = ["Intercepto (β0)", "Cemento (β1)", "Agua/Cemento (β2)"]
+for nom, b, se, t, p in zip(nombres, beta_hat, se_beta, t_stats, p_values):
+    print(f"{nom:20s}: Coef={b:9.4f} | SE={se:8.4f} | t={t:7.3f} | p={p:.5f}")
 
-print("Resultados de Estimación Matricial MCO:")
-print(resultados.round(4))
-print(f"\nDesviacion estandar residual s: {np.sqrt(s2):.4f} MPa")
-```
+print("\n--- ANÁLISIS DE BONDAD DE AJUSTE ---")
+print(f"R²: {R2:.4f} (El {R2*100:.1f}% de la varianza es explicada por el modelo)")
+print(f"R² ajustado: {R2_adj:.4f}")
+print(f"Error estándar residual (s): {s:.4f} MPa")
+`}
+/>
 
 ---
 

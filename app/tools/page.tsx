@@ -27,8 +27,13 @@ import {
     MarkovChainAnalyzer,
     EngineeringEconomicsCalculator,
     DeaEfficiencyCalculator,
-    SimplexSolverTool
+    SimplexSolverTool,
+    SpcQualityControlWorkbench,
+    InventoryOptimizationTool,
+    ForecastingWorkbench,
+    CpmPertNetworkOptimizer
 } from "@/components/tools"
+import { Boxes, Network as NetworkIcon } from "lucide-react"
 
 type ToolCategory =
     | "all"
@@ -122,6 +127,54 @@ const TOOLS_CATALOG: ToolCardMeta[] = [
         icon: Table2,
         tags: ["Simplex Primal", "Tablas Paso a Paso", "Precios Sombra", "Dualidad"],
         component: SimplexSolverTool
+    },
+    {
+        id: "spc",
+        title: "Control Estadístico de Calidad & Capacidad (SPC)",
+        shortDesc: "Gráficos de control Shewhart X-barra y R, cálculo de límites a ±3σ, detección de causas asignables e índices de capacidad Cp, Cpk, Cpm, PPM y nivel Sigma.",
+        category: "stats",
+        categoryLabel: "Estadística & Probabilidad",
+        courseCode: "II5A3 / II6A2",
+        level: "Pregrado",
+        icon: Activity,
+        tags: ["X-Bar y R", "Shewhart", "Cp y Cpk", "Capacidad 6-Sigma", "PPM Defectos"],
+        component: SpcQualityControlWorkbench
+    },
+    {
+        id: "inventory",
+        title: "Optimizador de Inventarios & Lote Económico (EOQ / ROP)",
+        shortDesc: "Modelos de lote económico de pedido (EOQ), punto de reorden (ROP) bajo demanda estocástica, stock de seguridad con niveles de servicio Z y curva de costos totales.",
+        category: "finance_prod",
+        categoryLabel: "Finanzas & Producción",
+        courseCode: "II723 / II8B3",
+        level: "Pregrado",
+        icon: Boxes,
+        tags: ["EOQ Q*", "Punto de Reorden ROP", "Stock de Seguridad", "Diente de Sierra", "Curva de Costos"],
+        component: InventoryOptimizationTool
+    },
+    {
+        id: "forecasting",
+        title: "Pronósticos de Demanda & Series de Tiempo",
+        shortDesc: "Modelos cuantitativos de pronóstico: Suavizamiento Exponencial Simple (SES), Modelo Lineal de Holt para tendencia y Promedios Móviles con diagnóstico MAD/MAPE.",
+        category: "finance_prod",
+        categoryLabel: "Finanzas & Producción",
+        courseCode: "II723 / IO123",
+        level: "Ambos",
+        icon: Sparkles,
+        tags: ["Holt", "Suavizamiento Exponencial", "MAD / MAPE", "Tracking Signal", "Series Temporales"],
+        component: ForecastingWorkbench
+    },
+    {
+        id: "cpm",
+        title: "Optimizador de Redes de Proyectos (CPM / PERT)",
+        shortDesc: "Cálculo de ruta crítica, tiempos más tempranos (ES, EF) y tardíos (LS, LF), holguras totales, varianza del proyecto y probabilidad de culminación antes del plazo.",
+        category: "operations",
+        categoryLabel: "Investigación de Operaciones",
+        courseCode: "II7D3 / II8B3 / MIOE",
+        level: "Ambos",
+        icon: NetworkIcon,
+        tags: ["Ruta Crítica", "Holgura Total", "Pases Adelante/Atrás", "Varianza PERT", "Probabilidad Z"],
+        component: CpmPertNetworkOptimizer
     }
 ]
 

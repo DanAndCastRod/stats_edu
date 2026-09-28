@@ -1,9 +1,9 @@
 /**
  * Buscador Global Inteligente de StatsEdu UTP
  * Archivo autogenerado con indexación completa de asignaturas, herramientas y lecciones.
- * Total de elementos indexados: 167
+ * Total de elementos indexados: 171
  * - Asignaturas oficiales: 21
- * - Herramientas interactivas: 6
+ * - Herramientas interactivas: 10
  * - Accesos de navegación: 4
  * - Lecciones y contenidos MDX: 136
  */
@@ -219,6 +219,90 @@ export const SEARCH_ITEMS: SearchItem[] = [
             "quantiles",
             "densidad",
             "probabilidad"
+        ]
+    },
+    {
+        "id": "tool-spc",
+        "title": "Control Estadístico de Calidad & Capacidad (SPC)",
+        "subtitle": "Gráficos Shewhart X-barra y R, límites de control ±3σ e índices Cp, Cpk, Cpm y nivel Sigma",
+        "code": "II5A3 / II6A2",
+        "program": "Pregrado",
+        "category": "Herramientas Computacionales",
+        "href": "/tools#spc",
+        "tags": [
+            "spc",
+            "calidad",
+            "shewhart",
+            "x-bar",
+            "graficos de control",
+            "cp",
+            "cpk",
+            "capacidad",
+            "sigma",
+            "ppm",
+            "tolerancias"
+        ]
+    },
+    {
+        "id": "tool-inventory",
+        "title": "Optimizador de Inventarios & Lote Económico (EOQ / ROP)",
+        "subtitle": "Lote económico de pedido (EOQ), punto de reorden (ROP) bajo demanda estocástica y stock de seguridad",
+        "code": "II723 / II8B3",
+        "program": "Pregrado",
+        "category": "Herramientas Computacionales",
+        "href": "/tools#inventory",
+        "tags": [
+            "inventarios",
+            "eoq",
+            "lote economico",
+            "rop",
+            "punto de reorden",
+            "stock de seguridad",
+            "cadena de suministro",
+            "almacen",
+            "costo mantener"
+        ]
+    },
+    {
+        "id": "tool-forecasting",
+        "title": "Pronósticos de Demanda & Series de Tiempo",
+        "subtitle": "Suavizamiento Exponencial Simple (SES), Modelo de Holt (Tendencia lineal) y Promedios Móviles con MAD/MAPE",
+        "code": "II723 / IO123",
+        "program": "Transversal",
+        "category": "Herramientas Computacionales",
+        "href": "/tools#forecasting",
+        "tags": [
+            "pronosticos",
+            "demanda",
+            "series de tiempo",
+            "holt",
+            "suavizamiento exponencial",
+            "mad",
+            "mape",
+            "rmse",
+            "tracking signal",
+            "prediccion"
+        ]
+    },
+    {
+        "id": "tool-cpm",
+        "title": "Optimizador de Redes de Proyectos (CPM / PERT)",
+        "subtitle": "Cálculo de ruta crítica, holguras totales (ES, EF, LS, LF), varianza del proyecto y probabilidad Z",
+        "code": "II7D3 / II8B3 / MIOE",
+        "program": "Transversal",
+        "category": "Herramientas Computacionales",
+        "href": "/tools#cpm",
+        "tags": [
+            "cpm",
+            "pert",
+            "ruta critica",
+            "proyectos",
+            "redes",
+            "holgura",
+            "grafo",
+            "gestion de proyectos",
+            "tiempo esperado",
+            "varianza pert"
         ]
     },
     {

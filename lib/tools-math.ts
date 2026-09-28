@@ -1009,3 +1009,589 @@ export function solveDEACCR(dmus: DMUData[]): DEAResult[] {
         }
     })
 }
+
+// ==========================================
+// 6. STATISTICAL PROCESS CONTROL (SPC) ENGINE
+// ==========================================
+
+export interface SPCSubgroup {
+    subgroupId: number
+    values: number[]
+}
+
+export interface SPCFactorsTable {
+    A2: number
+    D3: number
+    D4: number
+    d2: number
+}
+
+export const SHEWHART_FACTORS: Record<number, SPCFactorsTable> = {
+    2: { A2: 1.880, D3: 0, D4: 3.267, d2: 1.128 },
+    3: { A2: 1.023, D3: 0, D4: 2.574, d2: 1.693 },
+    4: { A2: 0.729, D3: 0, D4: 2.282, d2: 2.059 },
+    5: { A2: 0.577, D3: 0, D4: 2.114, d2: 2.326 },
+    6: { A2: 0.483, D3: 0, D4: 2.004, d2: 2.534 },
+    7: { A2: 0.419, D3: 0.076, D4: 1.924, d2: 2.704 },
+    8: { A2: 0.373, D3: 0.136, D4: 1.864, d2: 2.847 },
+    9: { A2: 0.337, D3: 0.184, D4: 1.816, d2: 2.970 },
+    10: { A2: 0.308, D3: 0.223, D4: 1.777, d2: 3.078 }
+}
+
+export interface SPCXRResult {
+    subgroupCount: number
+    sampleSize: number
+    xMeans: number[]
+    rValues: number[]
+    xDoubleBar: number
+    rBar: number
+    sigmaHat: number
+    xBarChart: {
+        ucl: number
+        cl: number
+        lcl: number
+        outOfControl: number[]
+    }
+    rChart: {
+        ucl: number
+        cl: number
+        lcl: number
+        outOfControl: number[]
+    }
+    capability?: {
+        lsl: number
+        usl: number
+        target?: number
+        cp: number
+        cpk: number
+        cpl: number
+        cpu: number
+        cpm: number
+        ppmDefect: number
+        sigmaLevel: number
+    }
+}
+
+export function calculateSPCXR(
+    subgroups: SPCSubgroup[],
+    specLimits?: { lsl: number; usl: number; target?: number }
+): SPCXRResult {
+    const k = subgroups.length
+    if (k === 0) throw new Error("Se requiere al menos un subgrupo")
+    const n = subgroups[0].values.length
+    const factors = SHEWHART_FACTORS[n] || SHEWHART_FACTORS[5]
+
+    const xMeans: number[] = []
+    const rValues: number[] = []
+
+    for (const sg of subgroups) {
+        const vals = sg.values
+        const mean = vals.reduce((a, b) => a + b, 0) / vals.length
+        const r = Math.max(...vals) - Math.min(...vals)
+        xMeans.push(mean)
+        rValues.push(r)
+    }
+
+    const xDoubleBar = xMeans.reduce((a, b) => a + b, 0) / k
+    const rBar = rValues.reduce((a, b) => a + b, 0) / k
+    const sigmaHat = rBar / factors.d2
+
+    // X-bar limits
+    const xUCL = xDoubleBar + factors.A2 * rBar
+    const xCL = xDoubleBar
+    const xLCL = xDoubleBar - factors.A2 * rBar
+
+    // R limits
+    const rUCL = factors.D4 * rBar
+    const rCL = rBar
+    const rLCL = factors.D3 * rBar
+
+    const xOutOfControl = xMeans
+        .map((m, idx) => (m > xUCL || m < xLCL ? idx + 1 : -1))
+        .filter((i) => i !== -1)
+
+    const rOutOfControl = rValues
+        .map((r, idx) => (r > rUCL || r < rLCL ? idx + 1 : -1))
+        .filter((i) => i !== -1)
+
+    let capability: SPCXRResult["capability"] = undefined
+
+    if (specLimits && specLimits.usl > specLimits.lsl) {
+        const { lsl, usl, target } = specLimits
+        const cp = (usl - lsl) / (6 * sigmaHat)
+        const cpu = (usl - xDoubleBar) / (3 * sigmaHat)
+        const cpl = (xDoubleBar - lsl) / (3 * sigmaHat)
+        const cpk = Math.min(cpu, cpl)
+
+        const nom = typeof target === "number" ? target : (usl + lsl) / 2
+        const tau = Math.sqrt(Math.pow(sigmaHat, 2) + Math.pow(xDoubleBar - nom, 2))
+        const cpm = (usl - lsl) / (6 * tau)
+
+        // PPM defects using normal CDF
+        const pUpper = 1 - jStat.normal.cdf(usl, xDoubleBar, sigmaHat)
+        const pLower = jStat.normal.cdf(lsl, xDoubleBar, sigmaHat)
+        const ppmDefect = Math.round((pUpper + pLower) * 1_000_000)
+        const sigmaLevel = Number((cpk * 3).toFixed(2))
+
+        capability = {
+            lsl,
+            usl,
+            target: nom,
+            cp: Number(cp.toFixed(3)),
+            cpk: Number(cpk.toFixed(3)),
+            cpl: Number(cpl.toFixed(3)),
+            cpu: Number(cpu.toFixed(3)),
+            cpm: Number(cpm.toFixed(3)),
+            ppmDefect,
+            sigmaLevel
+        }
+    }
+
+    return {
+        subgroupCount: k,
+        sampleSize: n,
+        xMeans: xMeans.map((v) => Number(v.toFixed(3))),
+        rValues: rValues.map((v) => Number(v.toFixed(3))),
+        xDoubleBar: Number(xDoubleBar.toFixed(3)),
+        rBar: Number(rBar.toFixed(3)),
+        sigmaHat: Number(sigmaHat.toFixed(4)),
+        xBarChart: {
+            ucl: Number(xUCL.toFixed(3)),
+            cl: Number(xCL.toFixed(3)),
+            lcl: Number(xLCL.toFixed(3)),
+            outOfControl: xOutOfControl
+        },
+        rChart: {
+            ucl: Number(rUCL.toFixed(3)),
+            cl: Number(rCL.toFixed(3)),
+            lcl: Number(rLCL.toFixed(3)),
+            outOfControl: rOutOfControl
+        },
+        capability
+    }
+}
+
+// ==========================================
+// 7. INVENTORY OPTIMIZATION ENGINE (EOQ / ROP)
+// ==========================================
+
+export interface InventoryParams {
+    annualDemand: number       // D (unidades/año)
+    orderCost: number          // S ($/pedido)
+    holdingCost: number        // H ($/unidad/año)
+    unitCost?: number          // C ($/unidad)
+    leadTimeDays: number       // L (días)
+    workingDaysPerYear?: number // default 300 o 365
+    dailyDemandStdDev?: number  // sigma_d
+    serviceLevelPercent?: number // 90, 95, 99
+}
+
+export interface InventoryResult {
+    eoq: number                // Q*
+    ordersPerYear: number      // N
+    cycleTimeDays: number      // T (días)
+    annualOrderingCost: number // (D/Q)*S
+    annualHoldingCost: number  // (Q/2)*H
+    totalInventoryCost: number // Ordering + Holding
+    totalAnnualCost?: number   // Total + D*C
+    dailyDemand: number        // d
+    leadTimeDemand: number     // d * L
+    safetyStock: number        // SS = Z * sigma_L
+    reorderPoint: number       // ROP = d*L + SS
+    zFactor: number
+    costSensitivity: { q: number; ordering: number; holding: number; total: number }[]
+}
+
+export function calculateInventoryOptimization(params: InventoryParams): InventoryResult {
+    const {
+        annualDemand: D,
+        orderCost: S,
+        holdingCost: H,
+        unitCost: C = 0,
+        leadTimeDays: L,
+        workingDaysPerYear = 300,
+        dailyDemandStdDev: sigmaD = 0,
+        serviceLevelPercent = 95
+    } = params
+
+    if (D <= 0 || S <= 0 || H <= 0) {
+        throw new Error("Demanda, costo de orden y costo de mantener deben ser mayores a cero.")
+    }
+
+    const eoq = Math.round(Math.sqrt((2 * D * S) / H))
+    const ordersPerYear = Number((D / eoq).toFixed(2))
+    const cycleTimeDays = Number(((eoq / D) * workingDaysPerYear).toFixed(1))
+    const annualOrderingCost = (D / eoq) * S
+    const annualHoldingCost = (eoq / 2) * H
+    const totalInventoryCost = annualOrderingCost + annualHoldingCost
+    const totalAnnualCost = totalInventoryCost + (C > 0 ? D * C : 0)
+
+    const dailyDemand = D / workingDaysPerYear
+    const leadTimeDemand = dailyDemand * L
+
+    // Service level Z
+    const zMap: Record<number, number> = {
+        90: 1.282,
+        95: 1.645,
+        97.5: 1.96,
+        98: 2.054,
+        99: 2.326,
+        99.9: 3.09
+    }
+    const zFactor = zMap[serviceLevelPercent] || 1.645
+    const sigmaL = Math.sqrt(L) * sigmaD
+    const safetyStock = Math.round(zFactor * sigmaL)
+    const reorderPoint = Math.round(leadTimeDemand + safetyStock)
+
+    // Cost Sensitivity Curve
+    const costSensitivity: InventoryResult["costSensitivity"] = []
+    const qMin = Math.max(10, Math.round(eoq * 0.3))
+    const qMax = Math.round(eoq * 2.2)
+    const step = Math.max(5, Math.round((qMax - qMin) / 15))
+
+    for (let q = qMin; q <= qMax; q += step) {
+        const ord = (D / q) * S
+        const hld = (q / 2) * H
+        costSensitivity.push({
+            q,
+            ordering: Number(ord.toFixed(1)),
+            holding: Number(hld.toFixed(1)),
+            total: Number((ord + hld).toFixed(1))
+        })
+    }
+
+    return {
+        eoq,
+        ordersPerYear,
+        cycleTimeDays,
+        annualOrderingCost: Number(annualOrderingCost.toFixed(2)),
+        annualHoldingCost: Number(annualHoldingCost.toFixed(2)),
+        totalInventoryCost: Number(totalInventoryCost.toFixed(2)),
+        totalAnnualCost: C > 0 ? Number(totalAnnualCost.toFixed(2)) : undefined,
+        dailyDemand: Number(dailyDemand.toFixed(2)),
+        leadTimeDemand: Number(leadTimeDemand.toFixed(1)),
+        safetyStock,
+        reorderPoint,
+        zFactor,
+        costSensitivity
+    }
+}
+
+// ==========================================
+// 8. TIME SERIES FORECASTING ENGINE
+// ==========================================
+
+export type ForecastingMethod = "sma" | "ses" | "holt"
+
+export interface ForecastingPoint {
+    period: number
+    actual: number
+    forecast?: number
+    error?: number
+    absError?: number
+    sqError?: number
+    pctError?: number
+}
+
+export interface ForecastingResult {
+    method: ForecastingMethod
+    methodLabel: string
+    params: { alpha?: number; beta?: number; window?: number }
+    series: ForecastingPoint[]
+    nextForecast: number
+    metrics: {
+        mad: number
+        mse: number
+        rmse: number
+        mape: number
+        trackingSignal: number
+    }
+}
+
+export function calculateForecasting(
+    actuals: number[],
+    method: ForecastingMethod,
+    options: { alpha?: number; beta?: number; window?: number } = {}
+): ForecastingResult {
+    const n = actuals.length
+    if (n < 4) throw new Error("Se requieren al menos 4 períodos históricos.")
+
+    const alpha = options.alpha ?? 0.3
+    const beta = options.beta ?? 0.2
+    const window = options.window ?? 3
+
+    const series: ForecastingPoint[] = []
+    let nextForecast = 0
+
+    if (method === "sma") {
+        for (let t = 0; t < n; t++) {
+            if (t < window) {
+                series.push({ period: t + 1, actual: actuals[t] })
+            } else {
+                const slice = actuals.slice(t - window, t)
+                const f = slice.reduce((a, b) => a + b, 0) / window
+                const err = actuals[t] - f
+                series.push({
+                    period: t + 1,
+                    actual: actuals[t],
+                    forecast: Number(f.toFixed(2)),
+                    error: Number(err.toFixed(2)),
+                    absError: Number(Math.abs(err).toFixed(2)),
+                    sqError: Number(Math.pow(err, 2).toFixed(2)),
+                    pctError: Number((Math.abs(err / actuals[t]) * 100).toFixed(2))
+                })
+            }
+        }
+        const lastSlice = actuals.slice(n - window, n)
+        nextForecast = Number((lastSlice.reduce((a, b) => a + b, 0) / window).toFixed(2))
+    } else if (method === "ses") {
+        let prevF = actuals[0]
+        series.push({ period: 1, actual: actuals[0], forecast: prevF })
+
+        for (let t = 1; t < n; t++) {
+            const f = alpha * actuals[t - 1] + (1 - alpha) * prevF
+            const err = actuals[t] - f
+            series.push({
+                period: t + 1,
+                actual: actuals[t],
+                forecast: Number(f.toFixed(2)),
+                error: Number(err.toFixed(2)),
+                absError: Number(Math.abs(err).toFixed(2)),
+                sqError: Number(Math.pow(err, 2).toFixed(2)),
+                pctError: Number((Math.abs(err / actuals[t]) * 100).toFixed(2))
+            })
+            prevF = f
+        }
+        nextForecast = Number((alpha * actuals[n - 1] + (1 - alpha) * prevF).toFixed(2))
+    } else if (method === "holt") {
+        let level = actuals[0]
+        let trend = actuals[1] - actuals[0]
+        series.push({ period: 1, actual: actuals[0], forecast: actuals[0] })
+
+        for (let t = 1; t < n; t++) {
+            const f = level + trend
+            const err = actuals[t] - f
+            const prevLevel = level
+            level = alpha * actuals[t] + (1 - alpha) * (prevLevel + trend)
+            trend = beta * (level - prevLevel) + (1 - beta) * trend
+
+            series.push({
+                period: t + 1,
+                actual: actuals[t],
+                forecast: Number(f.toFixed(2)),
+                error: Number(err.toFixed(2)),
+                absError: Number(Math.abs(err).toFixed(2)),
+                sqError: Number(Math.pow(err, 2).toFixed(2)),
+                pctError: Number((Math.abs(err / actuals[t]) * 100).toFixed(2))
+            })
+        }
+        nextForecast = Number((level + trend).toFixed(2))
+    }
+
+    const evaluable = series.filter((p) => typeof p.error === "number")
+    const mCount = evaluable.length
+    const sumAbsErr = evaluable.reduce((acc, p) => acc + (p.absError || 0), 0)
+    const sumSqErr = evaluable.reduce((acc, p) => acc + (p.sqError || 0), 0)
+    const sumPctErr = evaluable.reduce((acc, p) => acc + (p.pctError || 0), 0)
+    const sumErr = evaluable.reduce((acc, p) => acc + (p.error || 0), 0)
+
+    const mad = mCount > 0 ? sumAbsErr / mCount : 0
+    const mse = mCount > 0 ? sumSqErr / mCount : 0
+    const rmse = Math.sqrt(mse)
+    const mape = mCount > 0 ? sumPctErr / mCount : 0
+    const trackingSignal = mad > 0 ? sumErr / mad : 0
+
+    const labels: Record<ForecastingMethod, string> = {
+        sma: `Promedio Móvil Simple (k = ${window})`,
+        ses: `Suavizamiento Exponencial Simple (α = ${alpha})`,
+        holt: `Modelo Lineal de Holt (α = ${alpha}, β = ${beta})`
+    }
+
+    return {
+        method,
+        methodLabel: labels[method],
+        params: { alpha, beta, window },
+        series,
+        nextForecast,
+        metrics: {
+            mad: Number(mad.toFixed(2)),
+            mse: Number(mse.toFixed(2)),
+            rmse: Number(rmse.toFixed(2)),
+            mape: Number(mape.toFixed(2)),
+            trackingSignal: Number(trackingSignal.toFixed(2))
+        }
+    }
+}
+
+// ==========================================
+// 9. CPM / PERT PROJECT NETWORK ENGINE
+// ==========================================
+
+export interface CPMActivityInput {
+    id: string
+    name: string
+    predecessors: string[] // IDs
+    optimistic?: number    // a
+    mostLikely?: number    // m
+    pessimistic?: number   // b
+    duration?: number      // deterministic
+}
+
+export interface CPMActivityCalculated {
+    id: string
+    name: string
+    predecessors: string[]
+    duration: number       // te
+    variance: number       // sigma^2
+    es: number             // Early Start
+    ef: number             // Early Finish
+    ls: number             // Late Start
+    lf: number             // Late Finish
+    slack: number          // Holgura Total = LS - ES
+    isCritical: boolean
+}
+
+export interface CPMResult {
+    activities: CPMActivityCalculated[]
+    criticalPath: string[]
+    projectDuration: number
+    projectVariance: number
+    projectStdDev: number
+    completionProbability?: {
+        targetTime: number
+        zScore: number
+        probabilityPercent: number
+    }
+}
+
+export function solveCPMPERT(
+    inputs: CPMActivityInput[],
+    targetCompletionTime?: number
+): CPMResult {
+    if (inputs.length === 0) throw new Error("Se requiere al menos una actividad")
+
+    // 1. Calculate duration and variance
+    const calculated: Record<string, CPMActivityCalculated> = {}
+
+    for (const inp of inputs) {
+        let te = inp.duration ?? 0
+        let v = 0
+        if (
+            typeof inp.optimistic === "number" &&
+            typeof inp.mostLikely === "number" &&
+            typeof inp.pessimistic === "number"
+        ) {
+            te = (inp.optimistic + 4 * inp.mostLikely + inp.pessimistic) / 6
+            v = Math.pow((inp.pessimistic - inp.optimistic) / 6, 2)
+        }
+        calculated[inp.id] = {
+            id: inp.id,
+            name: inp.name,
+            predecessors: inp.predecessors || [],
+            duration: Number(te.toFixed(2)),
+            variance: Number(v.toFixed(3)),
+            es: 0,
+            ef: 0,
+            ls: 0,
+            lf: 0,
+            slack: 0,
+            isCritical: false
+        }
+    }
+
+    // 2. Forward Pass (ES & EF)
+    let changed = true
+    let iterations = 0
+    while (changed && iterations < inputs.length * 2) {
+        changed = false
+        iterations++
+        for (const id in calculated) {
+            const act = calculated[id]
+            let maxPredEF = 0
+            for (const pId of act.predecessors) {
+                if (calculated[pId] && calculated[pId].ef > maxPredEF) {
+                    maxPredEF = calculated[pId].ef
+                }
+            }
+            if (act.es !== maxPredEF) {
+                act.es = maxPredEF
+                act.ef = Number((act.es + act.duration).toFixed(2))
+                changed = true
+            }
+        }
+    }
+
+    const projectDuration = Math.max(...Object.values(calculated).map((a) => a.ef))
+
+    // 3. Backward Pass (LF & LS)
+    // Find successors for each activity
+    const successors: Record<string, string[]> = {}
+    for (const id in calculated) successors[id] = []
+    for (const id in calculated) {
+        for (const pId of calculated[id].predecessors) {
+            if (successors[pId]) successors[pId].push(id)
+        }
+    }
+
+    // Initialize terminal nodes LF with projectDuration
+    for (const id in calculated) {
+        calculated[id].lf = projectDuration
+        calculated[id].ls = Number((calculated[id].lf - calculated[id].duration).toFixed(2))
+    }
+
+    // Reverse topological or iterative backward pass
+    changed = true
+    iterations = 0
+    while (changed && iterations < inputs.length * 2) {
+        changed = false
+        iterations++
+        for (const id in calculated) {
+            const act = calculated[id]
+            const succs = successors[id]
+            if (succs.length > 0) {
+                const minSuccLS = Math.min(...succs.map((sId) => calculated[sId].ls))
+                if (act.lf !== minSuccLS) {
+                    act.lf = minSuccLS
+                    act.ls = Number((act.lf - act.duration).toFixed(2))
+                    changed = true
+                }
+            }
+        }
+    }
+
+    // 4. Slack and Critical Path
+    const criticalPath: string[] = []
+    let projectVariance = 0
+
+    for (const id in calculated) {
+        const act = calculated[id]
+        act.slack = Number(Math.max(0, act.ls - act.es).toFixed(2))
+        act.isCritical = act.slack <= 0.05
+        if (act.isCritical) {
+            criticalPath.push(act.id)
+            projectVariance += act.variance
+        }
+    }
+
+    const projectStdDev = Math.sqrt(projectVariance)
+
+    let completionProbability: CPMResult["completionProbability"] = undefined
+    if (typeof targetCompletionTime === "number" && projectStdDev > 0) {
+        const z = (targetCompletionTime - projectDuration) / projectStdDev
+        const prob = jStat.normal.cdf(z, 0, 1)
+        completionProbability = {
+            targetTime: targetCompletionTime,
+            zScore: Number(z.toFixed(2)),
+            probabilityPercent: Number((prob * 100).toFixed(1))
+        }
+    }
+
+    return {
+        activities: Object.values(calculated),
+        criticalPath,
+        projectDuration: Number(projectDuration.toFixed(2)),
+        projectVariance: Number(projectVariance.toFixed(3)),
+        projectStdDev: Number(projectStdDev.toFixed(2)),
+        completionProbability
+    }
+}

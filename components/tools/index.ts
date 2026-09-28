@@ -5,3 +5,8 @@ export * from "./MarkovChainAnalyzer"
 export * from "./EngineeringEconomicsCalculator"
 export * from "./DeaEfficiencyCalculator"
 export * from "./SimplexSolverTool"
+export * from "./SpcQualityControlWorkbench"
+export * from "./InventoryOptimizationTool"
+export * from "./ForecastingWorkbench"
+export * from "./CpmPertNetworkOptimizer"
+

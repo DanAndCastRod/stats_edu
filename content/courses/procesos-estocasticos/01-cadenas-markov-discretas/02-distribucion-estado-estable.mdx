@@ -75,59 +75,54 @@ $$\mu_{ii} = \frac{1}{\pi_i}$$
 
 ---
 
-# Laboratorio en Python: Estado Estable de Confiabilidad y Mantenimiento
+# Laboratorio en Python: Estado Estable de Confiabilidad y Mantenimiento (Ejecutable en Vivo)
 
-```python
-import numpy as np
-import pandas as pd
+<PyodideRunner
+  title="Laboratorio Python: Cálculo Matricial del Vector Estacionario pi y Costos"
+  description="Resuelve el sistema lineal (P' - I)pi = 0 con sum(pi)=1, verifica la convergencia P^100 y calcula el costo esperado por día."
+  initialCode={`import numpy as np
 
-# Proceso de 3 estados de un compresor industrial con mantenimiento:
-# 1: Funcionamiento Normal
-# 2: Mantenimiento Preventivo (parada programada)
-# 3: Mantenimiento Correctivo (falla imprevista)
+# Estados de un compresor industrial en planta:
+# 0: Funcionamiento Normal, 1: Mantenimiento Preventivo, 2: Falla Correctiva
 estados = ['Normal', 'Preventivo', 'Correctivo']
+M = len(estados)
 
-# Matriz de transición diaria P (ergódica)
+# Matriz estocástica de transición diaria P (ergódica)
 P = np.array([
     [0.85, 0.10, 0.05],
     [0.70, 0.25, 0.05],
     [0.40, 0.10, 0.50]
-])
+], dtype=float)
 
-M = len(estados)
-
-# Construcción del sistema lineal: (P^T - I) pi = 0
+# Construcción del sistema lineal: (P^T - I) pi = 0 con sum(pi) = 1
 A = P.T - np.eye(M)
-# Reemplazar la última fila por la restricción sum(pi) = 1
 A[-1, :] = np.ones(M)
 b = np.zeros(M)
 b[-1] = 1.0
 
-# Solución del sistema lineal A * pi = b
+# Solución analítica del vector estacionario
 pi = np.linalg.solve(A, b)
-
-# Cálculo de tiempos medios de retorno en días (mu_ii = 1 / pi_i)
 mu_retorno = 1.0 / pi
 
-# Verificación numérica por potenciación de matrices (P^100)
-P_inf = np.linalg.matrix_power(P, 100)
+# Verificación de convergencia a largo plazo P^100
+P_100 = np.linalg.matrix_power(P, 100)
 
-df_resultado = pd.DataFrame({
-    'Estado': estados,
-    'Probabilidad_Estable (pi)': pi,
-    'Porcentaje_Tiempo (%)': pi * 100,
-    'Tiempo_Medio_Retorno (dias)': mu_retorno,
-    'Fila_P_100': P_inf[0, :]
-})
+print("=== DISTRIBUCIÓN ESTACIONARIA Y TIEMPOS MEDIOS DE RETORNO ===")
+print("Estado       | Probabilidad (π) | % Tiempo | Tiempo Retorno (días) | P^100 Fila 1")
+print("-" * 75)
+for i in range(M):
+    print(f"{estados[i]:12s} | {pi[i]:16.4f} | {pi[i]*100:7.2f}% | {mu_retorno[i]:19.2f} | {P_100[0, i]:12.4f}")
 
-print("DISTRIBUCIÓN DE ESTADO ESTABLE Y TIEMPOS DE RETORNO:")
-print(df_resultado.round(4).to_string(index=False))
+# Costo operativo diario: Normal = $0, Preventivo = $200/día, Correctivo = $800/día
+costos = np.array([0.0, 200.0, 800.0])
+costo_esperado_diario = float(np.sum(pi * costos))
+costo_anual = costo_esperado_diario * 365.0
 
-# Costo diario esperado si: Normal = $0, Prev = $200/día, Corr = $800/día
-costos = np.array([0, 200, 800])
-costo_esperado_diario = np.sum(pi * costos)
-print(f"\nCosto esperado de mantenimiento por día: USD {costo_esperado_diario:.2f}")
-```
+print(f"\n--- EVALUACIÓN ECONÓMICA DE CONFIABILIDAD ---")
+print(f"Costo esperado por día:  $ {costo_esperado_diario:.2f} USD/día")
+print(f"Costo esperado por año:  $ {costo_anual:,.2f} USD/año")
+`}
+/>
 
 ---
 

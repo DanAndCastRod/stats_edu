@@ -19,20 +19,24 @@ if (missingCodes.length === 0) {
     process.exit(1)
 }
 
-// 2. Verificar Herramientas Computacionales (6 herramientas)
+// 2. Verificar Herramientas Computacionales (10 herramientas)
 const tools = SEARCH_ITEMS.filter(i => i.category === 'Herramientas Computacionales')
-console.log(`\n2. Herramientas Computacionales indexadas: ${tools.length}/6`)
+console.log(`\n2. Herramientas Computacionales indexadas: ${tools.length}/10`)
 const requiredToolHashes = [
     '/tools#simplex',
     '/tools#queueing',
     '/tools#markov',
     '/tools#economics',
     '/tools#dea',
-    '/tools#distributions'
+    '/tools#distributions',
+    '/tools#spc',
+    '/tools#inventory',
+    '/tools#forecasting',
+    '/tools#cpm'
 ]
 const missingToolHashes = requiredToolHashes.filter(h => !tools.some(t => t.href === h))
 if (missingToolHashes.length === 0) {
-    console.log("   ✅ Las 6 herramientas interactivas (/tools#...) están indexadas con sus enlaces y hashes.")
+    console.log("   ✅ Las 10 herramientas interactivas (/tools#...) están indexadas con sus enlaces y hashes.")
 } else {
     console.error("   ❌ Enlaces de herramientas faltantes:", missingToolHashes)
     process.exit(1)
