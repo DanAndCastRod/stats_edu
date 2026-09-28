@@ -59,6 +59,70 @@ $$\begin{aligned}
 
 ---
 
+## 3. Laboratorio Interactivo en Python: Resolución del Modelo CCR con SciPy
+
+Ejecuta el siguiente código en vivo en WebAssembly para evaluar la eficiencia relativa de 5 DMUs industriales (A, B, C, D, E) con 2 insumos ($x_1$: mano de obra, $x_2$: capital) y 1 producto ($y_1$: volumen procesado):
+
+<PyodideRunner
+  title="Laboratorio DEA CCR: Resolución de Frontera Eficiente con SciPy"
+  initialCode={`import numpy as np
+from scipy.optimize import linprog
+
+# Dataset: 5 DMUs industriales
+# Insumos: X (2 insumos x 5 DMUs), Productos: Y (1 producto x 5 DMUs)
+dmus = ['DMU A', 'DMU B', 'DMU C', 'DMU D', 'DMU E']
+X = np.array([
+    [4.0, 7.0, 8.0, 4.0, 2.0],  # Insumo 1: Horas de Mano de Obra
+    [3.0, 3.0, 1.0, 2.0, 4.0]   # Insumo 2: Horas-Máquina
+])
+Y = np.array([
+    [3.0, 6.0, 4.0, 2.0, 1.0]   # Producto: Unidades terminadas
+])
+
+m, n = X.shape
+s = Y.shape[0]
+
+print("=== EVALUACIÓN DE EFICIENCIA TÉCNICA CCR (CRS) ===")
+scores = []
+
+for o in range(n):
+    # Variables de decisión: [theta, lambda_1, ..., lambda_n]
+    # Minimizar theta -> c = [1, 0, ..., 0]
+    c = np.zeros(1 + n)
+    c[0] = 1.0
+    
+    # Restricción 1: sum(lambda_j * x_ij) - theta * x_io <= 0
+    A_ub_1 = np.hstack([-X[:, [o]], X])
+    b_ub_1 = np.zeros(m)
+    
+    # Restricción 2: -sum(lambda_j * y_rj) <= -y_ro
+    A_ub_2 = np.hstack([np.zeros((s, 1)), -Y])
+    b_ub_2 = -Y[:, o]
+    
+    A_ub = np.vstack([A_ub_1, A_ub_2])
+    b_ub = np.concatenate([b_ub_1, b_ub_2])
+    
+    # Cotas: theta >= 0, lambda_j >= 0
+    bounds = [(0, None)] + [(0, None) for _ in range(n)]
+    
+    res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method='highs')
+    
+    theta_opt = res.x[0]
+    lambdas = res.x[1:]
+    scores.append(theta_opt)
+    
+    peers = [dmus[j] for j in range(n) if lambdas[j] > 1e-4]
+    estado = "100% EFICIENTE (Frontera)" if theta_opt >= 0.9999 else f"INEFICIENTE ({theta_opt*100:.1f}%)"
+    print(f"{dmus[o]}: Theta* = {theta_opt:.4f} | {estado} | Peers: {peers}")
+
+print("\\nPara análisis gráfico y cálculo de Slacks, explora la herramienta interactiva en /tools#dea")
+`}
+/>
+
+> Para experimentar con conjuntos de datos personalizados, matriz de multiplicadores y rendimientos variables a escala (BCC), utiliza la herramienta computacional dedicada: [Eficiencia Técnica DEA (CCR Insumo-Orientado)](/tools#dea).
+
+---
+
 # Autoevaluación Formativa
 
 <Quiz

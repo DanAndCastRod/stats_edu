@@ -65,6 +65,78 @@ $$\begin{aligned}
 
 ---
 
+## 4. Laboratorio Interactivo en Python: Optimización Lineal de CVaR con SciPy
+
+Ejecuta el siguiente código en vivo en WebAssembly para optimizar una cartera de 3 activos financieros minimizando el $CVaR_{95\%}$ sobre 100 escenarios generados por Monte Carlo:
+
+<PyodideRunner
+  title="Laboratorio de Optimización de CVaR (Rockafellar & Uryasev)"
+  initialCode={`import numpy as np
+from scipy.optimize import linprog
+
+# Semilla determinística para reproducibilidad
+np.random.seed(42)
+
+# Parámetros: 3 activos, 100 escenarios estocásticos, confianza alpha = 0.95
+n_assets = 3
+S = 100
+alpha = 0.95
+
+# Generación de retornos estocásticos r_s ~ Normal(mu, Sigma)
+mu = np.array([0.12, 0.08, 0.05])  # Retornos esperados anuales
+vol = np.array([0.20, 0.12, 0.04]) # Volatilidades
+corr = np.array([
+    [1.0, 0.3, -0.1],
+    [0.3, 1.0, 0.1],
+    [-0.1, 0.1, 1.0]
+])
+cov = np.outer(vol, vol) * corr
+R_scenarios = np.random.multivariate_normal(mu, cov, size=S)
+
+# Variables de decisión: [w_1, w_2, w_3, gamma, u_1, ..., u_S]
+# Dimensión total: n_assets + 1 + S = 3 + 1 + 100 = 104 variables
+# Minimizar: gamma + 1 / ((1 - alpha) * S) * sum(u_s)
+c = np.zeros(n_assets + 1 + S)
+c[n_assets] = 1.0
+c[n_assets + 1:] = 1.0 / ((1.0 - alpha) * S)
+
+# Restricción 1: u_s >= -w^T r_s - gamma <=> -w^T r_s - gamma - u_s <= 0
+A_ub = np.zeros((S, len(c)))
+for s in range(S):
+    A_ub[s, :n_assets] = -R_scenarios[s]
+    A_ub[s, n_assets] = -1.0
+    A_ub[s, n_assets + 1 + s] = -1.0
+b_ub = np.zeros(S)
+
+# Restricciones de igualdad: sum(w_i) = 1
+A_eq = np.zeros((1, len(c)))
+A_eq[0, :n_assets] = 1.0
+b_eq = np.array([1.0])
+
+# Cotas: w_i >= 0, gamma libre (None, None), u_s >= 0
+bounds = [(0, 1) for _ in range(n_assets)] + [(None, None)] + [(0, None) for _ in range(S)]
+
+res = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
+
+w_opt = res.x[:n_assets]
+gamma_opt = res.x[n_assets]
+cvar_opt = res.fun
+
+print("=== PORTAFOLIO DE MÍNIMO CVaR (95%) ===")
+print(f"Pesos Óptimos de Inversión:")
+for i, w in enumerate(w_opt):
+    print(f"  Activo {i+1} (Retorno {mu[i]*100:.1f}%, Vol {vol[i]*100:.1f}%): {w*100:.2f}%")
+
+ret_esperado = np.dot(w_opt, mu)
+print(f"\\nRetorno Esperado del Portafolio: {ret_esperado*100:.2f}%")
+print(f"VaR (95%) estimado (gamma*):       {gamma_opt*100:.2f}%")
+print(f"CVaR (95%) óptimo (Expected Shortfall): {cvar_opt*100:.2f}%")
+print("\\nObservación: El modelo penaliza drásticamente las colas y favorece la diversificación coherente.")
+`}
+/>
+
+---
+
 # Autoevaluación Formativa
 
 <Quiz
