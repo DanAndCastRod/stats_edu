@@ -1,0 +1,63 @@
+---
+title: "Modelos DEA en Redes Multietapa (Network DEA)"
+order: 2
+description: "Apertura de la 'caja negra' de las DMUs, variables intermedias de enlace, eficiencia en serie de producción y comercialización, y formulación computacional."
+bloomLevel: "CREATE"
+estimatedMinutes: 80
+quiz:
+  - question: "En un modelo Network DEA en serie de dos etapas (ej. Etapa 1: Fabricación, Etapa 2: Ventas), ¿cuál es la propiedad multiplicativa de la eficiencia global theta_global demostrada por Kao y Hwang?"
+    options:
+      - "La eficiencia global de la DMU es exactamente el producto de las eficiencias técnicas de sus subetapas internas: theta_global = theta_etapa1 * theta_etapa2."
+      - "La eficiencia global es la suma de las eficiencias."
+      - "La eficiencia global siempre es mayor a 1.0."
+      - "Las eficiencias internas son independientes y no tienen relación con la global."
+    answer: 0
+    explanation: "Kao y Hwang (2008) demostraron que al abrir la caja negra de la DMU y vincular las salidas de la etapa 1 como entradas de la etapa 2 (variables intermedias z), la eficiencia total del sistema se descompone de forma multiplicativa: theta_sistema = theta_1 * theta_2."
+---
+
+# Modelos DEA en Redes Multietapa (Network DEA)
+
+> El DEA clásico trata a cada DMU como una **caja negra** (*black box*), ignorando los procesos internos y subdepartamentos. El **Network DEA** (desarrollado por Färe, Grosskopf, Kao y Tone) abre la caja negra modelando redes en serie, en paralelo y con retroalimentación.
+
+---
+
+## 1. Estructura en Serie de Dos Etapas
+
+Consideremos un proceso industrial de dos etapas:
+1. **Etapa 1 (Producción/Manufactura):** Consume insumos externos $\mathbf{x} \in \mathbb{R}^m$ y genera productos intermedios $\mathbf{z} \in \mathbb{R}^p$.
+2. **Etapa 2 (Comercialización/Ventas):** Consume los productos intermedios $\mathbf{z}$ y genera salidas finales $\mathbf{y} \in \mathbb{R}^s$.
+
+Las variables $\mathbf{z}$ son **bienes de enlace** (*linking variables*): simultáneamente son salidas de la etapa 1 e insumos de la etapa 2.
+
+---
+
+## 2. Formulación Multiplicativa (Kao & Hwang, 2008)
+
+Sean $\mathbf{w}$ el vector de multiplicadores de las variables intermedias:
+$$\text{Eficiencia Etapa 1: } E_o^1 = \frac{\mathbf{w}^\top \mathbf{z}_o}{\mathbf{v}^\top \mathbf{x}_o}, \qquad \text{Eficiencia Etapa 2: } E_o^2 = \frac{\mathbf{u}^\top \mathbf{y}_o}{\mathbf{w}^\top \mathbf{z}_o}$$
+
+La **Eficiencia Global del Sistema** se factoriza exactamente como:
+$$E_o = \frac{\mathbf{u}^\top \mathbf{y}_o}{\mathbf{v}^\top \mathbf{x}_o} = \left( \frac{\mathbf{w}^\top \mathbf{z}_o}{\mathbf{v}^\top \mathbf{x}_o} \right) \times \left( \frac{\mathbf{u}^\top \mathbf{y}_o}{\mathbf{w}^\top \mathbf{z}_o} \right) = E_o^1 \times E_o^2$$
+
+<Callout type="info">
+**Diagnóstico Causal Profundo:** Una DMU puede tener una baja eficiencia global del $60\%$ ($E_o = 0.60$). El DEA tradicional no sabe dónde intervenir. El Network DEA revela si la falla está en manufactura ($E_o^1 = 0.62, E_o^2 = 0.97$) o en ventas ($E_o^1 = 0.98, E_o^2 = 0.61$), orientando con precisión la inversión de capital de mejora.
+</Callout>
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Network DEA"
+  questions={[
+    {
+      id: "q_network_dea_advantage",
+      text: "¿Cuál es la principal ventaja gerencial de implementar Network DEA frente al DEA tradicional de caja negra en una corporación multinacional?",
+      options: [
+        { id: "a", text: "Identifica con precisión qué departamento o subproceso específico de la cadena de valor es responsable de la ineficiencia global observada", isCorrect: true, explanation: "Correcto: Al conectar los flujos intermedios internos, el Network DEA aísla los cuellos de botella organizacionales específicos, evitando culpar erróneamente a toda la organización por ineficiencias localizadas en una subunidad." },
+        { id: "b", text: "Elimina la necesidad de computar restricciones lineales", isCorrect: false, explanation: "El modelo sigue requiriendo optimización lineal." },
+        { id: "c", text: "Garantiza que todas las plantas sean eficientes por definición", isCorrect: false, explanation: "El modelo sigue evaluando objetivamente la frontera empírica." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,180 @@
+---
+title: "Multicolinealidad y Diagnósticos del Modelo"
+order: 2
+description: "Detección de multicolinealidad con VIF, evaluación de supuestos mediante análisis de residuos y distancia de Cook."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué indica un Factor de Inflación de la Varianza (VIF) superior a 10 en un predictor de regresión?"
+    options:
+      - "Grave problema de multicolinealidad que infla artificialmente la varianza del coeficiente estimado"
+      - "Que la variable es completamente independiente de todas las demás en el modelo"
+      - "Que el modelo tiene un coeficiente de determinación R² superior al 99%"
+      - "Que los residuos del modelo violan el supuesto de normalidad"
+    answer: 0
+    explanation: "Un VIF > 10 indica que más del 90% de la varianza del predictor está explicada linealmente por los otros predictores (R_j^2 > 0.90), ocasionando estimaciones inestables y errores estándar inflados."
+  - question: "¿Qué supuesto de Gauss-Markov evalúa primordialmente el estadístico de Durbin-Watson?"
+    options:
+      - "Independencia (ausencia de autocorrelación de primer orden en los residuos)"
+      - "Homocedasticidad de la varianza del error"
+      - "Normalidad univariada de la variable dependiente"
+      - "Linealidad de los parámetros estructurales"
+    answer: 0
+    explanation: "El test de Durbin-Watson contrasta la hipótesis nula de ausencia de autocorrelación serial de primer orden en los residuos; valores cercanos a 2 indican independencia."
+---
+
+# Introducción
+
+> Un modelo de regresión puede tener un $R^2$ elevado del 95% y sin embargo ser inútil para la toma de decisiones si sus predictores están altamente correlacionados entre sí. En este escenario, los coeficientes oscilan erráticamente y los signos pueden contradecir las leyes de la física o la ingeniería.
+
+La multicolinealidad ocurre cuando dos o más variables independientes comparten información redundante. El diagnóstico integral implica revisar multicolinealidad, normalidad de residuos, homocedasticidad y puntos influyentes.
+
+<Callout type="warning">
+**Alerta Industrial:** Si ajustas un modelo con temperatura en °C y temperatura en °F simultáneamente, la matriz $X^T X$ será singular. La colinealidad no perfecta pero alta (e.g. correlación $r = 0.98$ entre velocidad de husillo y temperatura de corte) destruye la precisión inferencial.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular e interpretar el Factor de Inflación de la Varianza ($VIF$) para cada regresor.
+- Validar los cuatro supuestos fundamentales de los residuos: Linealidad, Homocedasticidad, Normalidad e Independencia.
+- Identificar observaciones atípicas e influyentes mediante la Distancia de Cook y los valores de apalancamiento (leverage).
+
+---
+
+# Fundamentos Teóricos
+
+### Factor de Inflación de la Varianza (VIF)
+
+Para cada predictor $X_j$, se ajusta una regresión auxiliar de $X_j$ contra los restantes $k-1$ predictores, obteniendo su coeficiente de determinación $R_j^2$:
+
+$$VIF_j = \frac{1}{1 - R_j^2} = \frac{1}{\text{Tolerancia}_j}$$
+
+- $VIF_j = 1$: Independencia completa respecto a los demás predictores.
+- $1 < VIF_j < 5$: Colinealidad moderada, generalmente aceptable.
+- $VIF_j > 10$: Multicolinealidad severa. La varianza del estimador $\hat{\beta}_j$ está multiplicada por 10 o más.
+
+### Coeficiente de Determinación Ajustado ($R^2_{\text{adj}}$)
+
+El $R^2$ ordinario siempre crece al añadir variables, incluso si son ruido aleatorio. El $R^2$ ajustado penaliza por cada variable agregada:
+
+$$R^2 = 1 - \frac{SSE}{SST}$$
+
+$$R^2_{\text{adj}} = 1 - \left( \frac{SSE / (n - k - 1)}{SST / (n - 1)} \right) = 1 - (1 - R^2)\frac{n - 1}{n - k - 1}$$
+
+### Diagnóstico de Residuos
+
+1. **Homocedasticidad:** Varianza de residuos constante $\text{Var}(\epsilon_i) = \sigma^2$. Se evalúa con la prueba de Breusch-Pagan y el gráfico de residuos estandarizados vs. valores predichos $\hat{Y}$.
+2. **Normalidad:** Residuos distribuidos normalmente $\epsilon \sim \mathcal{N}(0, \sigma^2 I)$. Se evalúa con el test de Shapiro-Wilk y gráficos Q-Q normal.
+3. **Independencia:** Ausencia de autocorrelación serial, evaluada con el estadístico de Durbin-Watson:
+   $$DW = \frac{\sum_{t=2}^n (e_t - e_{t-1})^2}{\sum_{t=1}^n e_t^2} \approx 2(1 - r_1)$$
+   Valores cercanos a 2 indican ausencia de autocorrelación.
+
+### Distancia de Cook ($D_i$)
+
+Mide la influencia global de la observación $i$ sobre todos los coeficientes del modelo si fuera omitida:
+
+$$D_i = \frac{\sum_{j=1}^n (\hat{Y}_j - \hat{Y}_{j(i)})^2}{(k + 1) MSE} = \frac{r_i^2}{k + 1} \left( \frac{h_{ii}}{1 - h_{ii}} \right)$$
+
+Donde $r_i$ es el residuo estudentizado y $h_{ii}$ es el leverage diagonal de la matriz sombrero $H$. Valores $D_i > 1$ o $D_i > 4/n$ señalan observaciones críticas influyentes.
+
+---
+
+# Laboratorio en Python: Diagnóstico de Proceso de Extrusión
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# Datos de proceso de extrusión de tubería plástica (n=12 lotes)
+np.random.seed(42)
+temp_horno = np.array([180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235])
+presion_bar = 0.8 * temp_horno + np.random.normal(0, 1.5, size=12)  # Alta colinealidad con temp
+velocidad_tornillo = np.array([45, 48, 50, 52, 55, 58, 60, 62, 65, 68, 70, 72])
+# Variable de respuesta: Rugosidad superficial (micrones)
+rugosidad = 120 - 0.25*temp_horno - 0.15*presion_bar + 0.4*velocidad_tornillo + np.random.normal(0, 0.8, size=12)
+
+df = pd.DataFrame({
+    'Temp': temp_horno,
+    'Presion': presion_bar,
+    'Velocidad': velocidad_tornillo,
+    'Rugosidad': rugosidad
+})
+
+# Matriz de predictores (con intercepto)
+X = np.column_stack([np.ones(len(df)), df[['Temp', 'Presion', 'Velocidad']].values])
+Y = df['Rugosidad'].values
+n, p = X.shape
+
+# Estimación MCO
+beta = np.linalg.inv(X.T @ X) @ (X.T @ Y)
+Y_hat = X @ beta
+residuos = Y - Y_hat
+SSE = np.sum(residuos**2)
+SST = np.sum((Y - np.mean(Y))**2)
+R2 = 1 - SSE / SST
+R2_adj = 1 - (1 - R2) * (n - 1) / (n - p)
+
+# Cálculo de VIF para cada variable independiente
+predictores = ['Temp', 'Presion', 'Velocidad']
+vifs = []
+for i, col in enumerate(predictores):
+    otras = [c for c in predictores if c != col]
+    X_aux = np.column_stack([np.ones(n), df[otras].values])
+    Y_aux = df[col].values
+    beta_aux = np.linalg.inv(X_aux.T @ X_aux) @ (X_aux.T @ Y_aux)
+    r2_aux = 1 - np.sum((Y_aux - X_aux @ beta_aux)**2) / np.sum((Y_aux - np.mean(Y_aux))**2)
+    vif = 1 / (1 - r2_aux) if r2_aux < 0.9999 else 999
+    vifs.append(vif)
+
+# Matriz sombrero y Distancia de Cook
+H = X @ np.linalg.inv(X.T @ X) @ X.T
+leverage = np.diag(H)
+MSE = SSE / (n - p)
+s_residuos = residuos / np.sqrt(MSE * (1 - leverage))
+cooks_d = (s_residuos**2 / p) * (leverage / (1 - leverage))
+
+# Prueba de Shapiro-Wilk para normalidad de residuos
+shapiro_stat, shapiro_p = stats.shapiro(residuos)
+
+# Estadístico Durbin-Watson
+dw_stat = np.sum(np.diff(residuos)**2) / SSE
+
+print("=== DIAGNÓSTICO DEL MODELO DE REGRESIÓN ===")
+print(f"R²: {R2:.4f} | R² Ajustado: {R2_adj:.4f}")
+print("\nFactores de Inflación de la Varianza (VIF):")
+for col, v in zip(predictores, vifs):
+    estado = "ALERTA (Colineal)" if v > 10 else "Aceptable"
+    print(f"  {col}: VIF = {v:.2f} [{estado}]")
+
+print(f"\nPrueba de Normalidad de Residuos (Shapiro-Wilk): p-valor = {shapiro_p:.4f}")
+print(f"Estadístico Durbin-Watson: {dw_stat:.4f} (Ideal cercano a 2)")
+print(f"Observaciones con Cook's D > 4/n ({4/n:.3f}): {np.where(cooks_d > 4/n)[0]}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Multicolinealidad y Diagnósticos"
+  questions={[
+    {
+      id: "q_diag_1",
+      text: "Si el VIF entre dos variables de temperatura y presión es de 18.5, ¿cuál es la mejor recomendación para el ingeniero?",
+      options: [
+        { id: "a", text: "Eliminar una de las variables redundantes o combinarlas en un índice adimensional compuesto (e.g. mediante PCA o análisis físico)", isCorrect: true, explanation: "Eliminar una de las variables altamente correlacionadas o aplicar reducción de dimensionalidad estabiliza los coeficientes sin perder capacidad explicativa." },
+        { id: "b", text: "Duplicar el tamaño de muestra sin modificar los predictores", isCorrect: false, explanation: "Aumentar la muestra no resuelve la colinealidad estructural entre las dos variables." },
+        { id: "c", text: "Forzar el intercepto beta_0 a cero", isCorrect: false, explanation: "Eliminar el intercepto introduce sesgo grave y distorsiona el cálculo del R^2." }
+      ]
+    },
+    {
+      id: "q_diag_2",
+      text: "¿Por qué el R² ajustado puede disminuir cuando se añade una nueva variable predictora al modelo?",
+      options: [
+        { id: "a", text: "Porque el incremento en varianza explicada no compensa la pérdida de un grado de libertad en el denominador del error", isCorrect: true, explanation: "R^2_adj penaliza la inclusión de variables que no aportan reducción estadísticamente significativa de la suma de cuadrados de error SSE." },
+        { id: "b", text: "Porque la suma total de cuadrados SST se incrementa", isCorrect: false, explanation: "SST depende únicamente de Y y permanece fija ante cualquier cambio en los predictores." },
+        { id: "c", text: "Porque el error estándar de los residuos se reduce automáticamente a cero", isCorrect: false, explanation: "Si el error estándar fuera cero, el ajuste sería perfecto y el R^2 sería 1." }
+      ]
+    }
+  ]}
+/>

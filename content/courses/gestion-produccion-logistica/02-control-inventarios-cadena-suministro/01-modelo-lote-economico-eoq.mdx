@@ -1,0 +1,170 @@
+---
+title: "Modelo de Lote Económico de Pedido (EOQ) y Extensiones"
+order: 1
+description: "Deducción matemática del EOQ clásico de Ford Whitman Harris, costo total anual, sensibilidad de la curva y extensiones con descuentos por volumen."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es la expresión cerrada para el tamaño de lote óptimo en el modelo clásico EOQ (Economic Order Quantity)?"
+    options:
+      - "Q* = sqrt( (2 * D * S) / H )"
+      - "Q* = (D * S) / (2 * H)"
+      - "Q* = sqrt( (D * H) / (2 * S) )"
+      - "Q* = 2 * D * S * H"
+    answer: 0
+    explanation: "Derivando la función de costo total anual TC(Q) = (D/Q)*S + (Q/2)*H con respecto a Q e igualando a cero: -D*S / Q^2 + H/2 = 0, se despeja Q* = sqrt(2*D*S / H)."
+  - question: "En el punto óptimo EOQ, ¿qué relación geométrica fundamental se cumple entre los costos anuales de ordenar y los costos anuales de mantener inventario?"
+    options:
+      - "El costo anual de ordenar es exactamente igual al costo anual de mantener inventario (las dos curvas se intersecan en el mínimo)"
+      - "El costo de mantener inventario es el doble del costo de ordenar"
+      - "El costo de ordenar es cero"
+      - "Ambos costos alcanzan su valor máximo"
+    answer: 0
+    explanation: "En Q*, (D/Q*)*S = (Q*/2)*H. El trade-off entre costos de pedido y de almacenamiento se equilibra perfectamente en el punto de costo total mínimo."
+---
+
+# Introducción
+
+> El inventario es un arma de doble filo: insuficiente inventario paraliza la planta por falta de materias primas o deja a los clientes sin producto terminado; excesivo inventario devora el flujo de caja, ocupa bodegas costosas y genera riesgo de obsolescencia.
+
+Formulado por Ford Whitman Harris en 1913, el **Modelo de Cantidad Económica de Pedido (EOQ)** es el modelo cuantitativo fundamental de la gestión de operaciones para responder a la pregunta: *¿Cuánto pedir cada vez?*
+
+<Callout type="info">
+**Robustez del EOQ:** La curva de costo total del EOQ es notablemente plana alrededor del punto óptimo. Desviarse un 10% del tamaño de lote óptimo $Q^*$ solo incrementa el costo total anual en menos del 1%.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Deducir rigurosamente la ecuación del EOQ a partir de la función de costos anuales.
+- Calcular el número óptimo de pedidos al año ($N^*$) y el tiempo entre pedidos ($T^*$).
+- Analizar la sensibilidad del costo total ante variaciones en la estimación de costos.
+- Resolver problemas de EOQ con descuentos por volumen y lote de producción (EPQ) en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Supuestos Clásicos del EOQ
+
+1. Tasa de demanda $D$ constante, continua y conocida (unidades/año).
+2. Tiempo de reposición (*Lead Time* $L$) determinístico y constante.
+3. El lote completo $Q$ se entrega instantáneamente en un solo envío.
+4. No se permiten quiebres de inventario (*no stockouts*).
+5. Estructura de costos fija:
+   - $S$: Costo fijo de emisión y preparación por pedido (USD/orden).
+   - $H = i \cdot C$: Costo de mantener una unidad en inventario por año (USD/unidad/año).
+
+### Función de Costo Total Anual
+
+$$\text{Costo Anual de Ordenar} = \left( \frac{D}{Q} \right) S$$
+
+$$\text{Costo Anual de Almacenamiento} = \left( \frac{Q}{2} \right) H$$
+
+$$TC(Q) = \frac{D}{Q} S + \frac{Q}{2} H$$
+
+Derivando respecto a $Q$:
+
+$$\frac{d TC(Q)}{dQ} = -\frac{D S}{Q^2} + \frac{H}{2} = 0 \implies Q^* = \sqrt{\frac{2 D S}{H}}$$
+
+El Costo Total Anual Óptimo es:
+
+$$TC(Q^*) = \sqrt{2 D S H}$$
+
+---
+
+# Laboratorio en Python: EOQ y Evaluación de Descuentos por Cantidad
+
+```python
+import numpy as np
+import pandas as pd
+
+# Parámetros del caso industrial:
+# Demanda anual de rodamientos: D = 12,000 unidades/año
+# Costo de emitir una orden de compra: S = $100 USD/orden
+# Tasa de costo de posesión de inventario: i = 20% anual sobre el valor del artículo
+# Precio base unitario sin descuento: C = $50 USD -> H = 0.20 * 50 = $10 USD/unidad/año
+
+D = 12_000.0
+S = 100.0
+tasa_i = 0.20
+C_base = 50.0
+H_base = tasa_i * C_base
+
+# 1. EOQ Clásico
+Q_opt = np.sqrt((2.0 * D * S) / H_base)
+N_pedidos = D / Q_opt
+dias_entre_pedidos = (Q_opt / D) * 365.0
+costo_ordenar = (D / Q_opt) * S
+costo_mantener = (Q_opt / 2.0) * H_base
+costo_gestion_total = costo_ordenar + costo_mantener
+
+# 2. Descuentos por Volumen del Proveedor:
+# Tramo 1: 1 a 499 unidades -> Precio $50.00
+# Tramo 2: 500 a 999 unidades -> Precio $48.50
+# Tramo 3: 1000+ unidades -> Precio $47.00
+tramos = [
+    {'Rango': '1 - 499', 'Precio': 50.00, 'Q_min': 1},
+    {'Rango': '500 - 999', 'Precio': 48.50, 'Q_min': 500},
+    {'Rango': '1000+', 'Precio': 47.00, 'Q_min': 1000}
+]
+
+evaluacion_descuentos = []
+for t in tramos:
+    p = t['Precio']
+    h = tasa_i * p
+    q_calc = np.sqrt((2.0 * D * S) / h)
+    # Ajustar al rango si es menor al mínimo para obtener el descuento
+    q_viable = max(q_calc, t['Q_min'])
+    
+    costo_compras = D * p
+    costo_ord = (D / q_viable) * S
+    costo_alm = (q_viable / 2.0) * h
+    costo_global = costo_compras + costo_ord + costo_alm
+    
+    evaluacion_descuentos.append({
+        'Tramo': t['Rango'],
+        'Precio_Unitario': p,
+        'Q_Recomendado': int(np.round(q_viable)),
+        'Costo_Compras': costo_compras,
+        'Costo_Gestion': costo_ord + costo_alm,
+        'Costo_Global_Total': costo_global
+    })
+
+df_desc = pd.DataFrame(evaluacion_descuentos)
+
+print(f"EOQ ÓPTIMO CLÁSICO: Q* = {Q_opt:.1f} unidades")
+print(f"Frecuencia: {N_pedidos:.1f} órdenes/año (cada {dias_entre_pedidos:.1f} días)")
+print(f"Costo de Gestión Óptimo: USD {costo_gestion_total:,.2f} anuales\n")
+print("EVALUACIÓN DE DESCUENTOS POR VOLUMEN:")
+print(df_desc.to_string(index=False))
+mejor_tramo = df_desc.loc[df_desc['Costo_Global_Total'].idxmin()]
+print(f"\n--> ESTRATEGIA ÓPTIMA GLOBAL: Comprar en lotes de {mejor_tramo['Q_Recomendado']} unidades")
+print(f"--> Ahorro Neto Anual: USD {df_desc.loc[0, 'Costo_Global_Total'] - mejor_tramo['Costo_Global_Total']:,.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Lote Económico de Pedido (EOQ)"
+  questions={[
+    {
+      id: "q_eoq_1",
+      text: "Si la demanda anual D de una materia prima se cuadruplica (se multiplica por 4) mientras los costos S y H se mantienen constantes, ¿qué sucede con el tamaño óptimo de lote EOQ?",
+      options: [
+        { id: "a", text: "El tamaño del lote Q* se duplica exactamente (aumenta en un factor sqrt(4) = 2)", isCorrect: true, explanation: "Q* es proporcional a la raíz cuadrada de la demanda: sqrt(4 D) = 2 * sqrt(D). La economía de escala en inventarios crece con la raíz cuadrada." },
+        { id: "b", text: "El lote se cuadruplica (se multiplica por 4)", isCorrect: false, explanation: "La relación no es lineal, es sublineal según la raíz cuadrada." },
+        { id: "c", text: "Permanece exactamente igual", isCorrect: false, explanation: "El tamaño del lote responde directamente a la demanda." }
+      ]
+    },
+    {
+      id: "q_eoq_2",
+      text: "Si una empresa decide por política pedir un lote que es el doble del EOQ (Q = 2 Q*), ¿cuál es el impacto en el costo anual de gestión?",
+      options: [
+        { id: "a", text: "El costo se incrementa en un 25% (TC = 1.25 TC*)", isCorrect: true, explanation: "El factor relativo es 0.5 * (Q/Q* + Q*/Q) = 0.5 * (2 + 1/2) = 1.25. Esto demuestra la notable robustez del EOQ ante desvíos operativos moderados." },
+        { id: "b", text: "El costo se duplica (se incrementa 100%)", isCorrect: false, explanation: "El ahorro en costo de ordenar compensa parcialmente el aumento del costo de almacenamiento." },
+        { id: "c", text: "El costo disminuye a la mitad", isCorrect: false, explanation: "Desviarse del óptimo siempre incrementa el costo total." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,116 @@
+---
+title: "Optimización Estocástica de Carteras con Restricciones de Apalancamiento"
+order: 2
+description: "Programación lineal con múltiples escenarios estocásticos de rendimiento, límites de venta en corto y límites de exposición por sector en Python."
+bloomLevel: "CREATE"
+estimatedMinutes: 80
+quiz:
+  - question: "En la optimización estocástica de carteras, ¿cómo se modela rigurosamente una restricción regulatoria de apalancamiento bruto (gross leverage) con cota L_max?"
+    options:
+      - "sum |w_i| <= L_max, linealizable mediante variables auxiliares w_i = w_i^+ - w_i^- con sum (w_i^+ + w_i^-) <= L_max"
+      - "sum w_i^2 = L_max"
+      - "w_i * w_j = L_max"
+      - "det(W) <= L_max"
+    answer: 0
+    explanation: "El apalancamiento bruto es la suma de posiciones largas (w_i^+) y cortas (|w_i^-|). Se descompone la variable libre en w_i = w_i^+ - w_i^- con w_i^+, w_i^- >= 0, formulando la restricción de apalancamiento como sum (w_i^+ + w_i^-) <= L_max."
+---
+
+# Optimización Estocástica de Carteras con Restricciones Reales
+
+> En la gestión cuantitativa institucional (hedge funds, fondos de pensiones), los modelos deben incorporar restricciones operativas del mundo real: **apalancamiento máximo**, **costos de transacción**, **límites de concentración sectorial** y **condiciones estocásticas de liquidez**.
+
+---
+
+## 1. Formulación Estocástica Multiescenario
+
+Supongamos $S$ escenarios discretos de retorno $\mathbf{r}_s \in \mathbb{R}^n$, cada uno con probabilidad $\pi_s$.
+Buscamos la cartera que minimiza el riesgo de cola (CVaR) sujeta a una rentabilidad esperada mínima $\bar{\mu}$ y restricciones de apalancamiento:
+
+$$\begin{aligned}
+\min_{\mathbf{w}, \gamma, \mathbf{u}} \quad & \gamma + \frac{1}{1-\alpha} \sum_{s=1}^S \pi_s u_s \\
+\text{s.a.} \quad & u_s \ge -\mathbf{w}^\top \mathbf{r}_s - \gamma, \quad \forall s=1,\dots,S \\
+& u_s \ge 0, \quad \forall s=1,\dots,S \\
+& \sum_{s=1}^S \pi_s (\mathbf{w}^\top \mathbf{r}_s) \ge \bar{\mu} \\
+& \sum_{i=1}^n w_i = 1 \\
+& \sum_{i=1}^n |w_i| \le L_{\max} \quad (\text{Límite de Apalancamiento})
+\end{aligned}$$
+
+---
+
+## 2. Implementación Completa en Python con CVXPY
+
+```python
+import cvxpy as cp
+import numpy as np
+
+# Simulación de 500 escenarios estocásticos de 5 activos financieros
+np.random.seed(42)
+S = 500
+n_assets = 5
+
+mu_anual = np.array([0.14, 0.10, 0.06, 0.08, 0.12]) / 252 # Rendimiento diario
+vol_diaria = np.array([0.025, 0.018, 0.008, 0.012, 0.022])
+corr = np.array([
+    [1.0, 0.4, 0.1, 0.2, 0.5],
+    [0.4, 1.0, 0.2, 0.3, 0.4],
+    [0.1, 0.2, 1.0, 0.1, 0.0],
+    [0.2, 0.3, 0.1, 1.0, 0.3],
+    [0.5, 0.4, 0.0, 0.3, 1.0]
+])
+cov = np.outer(vol_diaria, vol_diaria) * corr
+
+# Matriz de retornos por escenario (S x n)
+R_scenarios = np.random.multivariate_normal(mu_anual, cov, size=S)
+
+# Parámetros del problema
+alpha = 0.95
+mu_target = 0.0004 # Retorno diario objetivo
+L_max = 1.3        # Máximo 130% de apalancamiento bruto (permite 30% cortos)
+
+# Variables CVXPY
+w = cp.Variable(n_assets)
+gamma = cp.Variable()
+u = cp.Variable(S, nonneg=True)
+
+# Pérdida en cada escenario: L_s = -R_s @ w
+losses = -R_scenarios @ w
+cvar = gamma + (1.0 / ((1.0 - alpha) * S)) * cp.sum(u)
+
+objective = cp.Minimize(cvar)
+constraints = [
+    u >= losses - gamma,
+    cp.sum(w) == 1.0,
+    cp.norm1(w) <= L_max,
+    (1.0 / S) * cp.sum(R_scenarios @ w) >= mu_target,
+    w <= 0.40 # Límite de concentración por activo (máx 40%)
+]
+
+prob = cp.Problem(objective, constraints)
+prob.solve()
+
+print("--- CARTERA ESTOCÁSTICA CVaR ÓPTIMA ---")
+print(f"Estado:                     {prob.status}")
+print(f"Ponderaciones w*:           {np.round(w.value, 4)}")
+print(f"Apalancamiento bruto ||w||: {np.sum(np.abs(w.value)):.3f}")
+print(f"CVaR 95% diario estimado:   {prob.value*100:.2f}%")
+print(f"VaR 95% diario (gamma*):    {gamma.value*100:.2f}%")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Optimización Estocástica"
+  questions={[
+    {
+      id: "q_stoch_norm1",
+      text: "¿Por qué el operador cp.norm1(w) <= L_max es computacionalmente preferido frente a variables binarias para restringir el apalancamiento?",
+      options: [
+        { id: "a", text: "Porque norm1 es una función convexa disciplinada (DCP) que preserva la formulación como un programa lineal continuo sin explosión combinatoria", isCorrect: true, explanation: "Correcto: La norma L1 es puramente lineal a trozos y convexa, resoluble en milisegundos mediante cualquier solver LP, a diferencia de restricciones enteras que inducen complejidad NP-hard." },
+        { id: "b", text: "Porque la norma 1 obliga a que todos los pesos sean números enteros", isCorrect: false, explanation: "La norma 1 aplica sobre números reales continuos." },
+        { id: "c", text: "Porque anula los costos de transacción", isCorrect: false, explanation: "Los costos de transacción pueden modelarse conjuntamente." }
+      ]
+    }
+  ]}
+/>

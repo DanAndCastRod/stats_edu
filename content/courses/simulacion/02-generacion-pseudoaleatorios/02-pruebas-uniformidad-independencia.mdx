@@ -1,0 +1,153 @@
+---
+title: "Pruebas Estadísticas de Uniformidad e Independencia"
+order: 2
+description: "Validación de generadores pseudoaleatorios: Pruebas de Chi-cuadrado y Kolmogorov-Smirnov para uniformidad, pruebas de Poker y Rachas para independencia."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué hipótesis estadística nula se contrasta formalmente en la prueba de bondad de ajuste de Chi-cuadrado para uniformidad de números pseudoaleatorios?"
+    options:
+      - "H0: Los números generados provienen de una distribución uniforme continua U(0, 1)"
+      - "H0: Los números generados son estrictamente independientes"
+      - "H0: La media muestral es exactamente 0.5 y la varianza es 1.0"
+      - "H0: El generador tiene periodo infinito"
+    answer: 0
+    explanation: "La prueba de Chi-cuadrado particiona el intervalo [0, 1) en k subintervalos y compara las frecuencias observadas con las esperadas bajo el supuesto de distribución uniforme U(0,1)."
+  - question: "¿Cuál es el objetivo principal de la prueba de rachas (Runs Test) arriba y abajo de la media?"
+    options:
+      - "Evaluar la hipótesis de independencia serial (ausencia de patrones o tendencias en la secuencia temporal)"
+      - "Determinar el valor de la semilla óptima"
+      - "Verificar que no haya números repetidos en la muestra"
+      - "Calcular el tiempo de ejecución en microsegundos"
+    answer: 0
+    explanation: "La prueba de rachas detecta autocorrelación temporal; secuencias con excesivas o muy escasas rachas de valores crecientes/decrecientes o respecto a la media evidencian dependencia serial."
+---
+
+# Introducción
+
+> Antes de confiar millones de dólares en la simulación de una nueva cadena de frío farmacéutica, el ingeniero debe certificar rigurosamente su generador pseudoaleatorio. Un generador defectuoso puede sesgar las probabilidades de quiebre de stock sin emitir ningún mensaje de error en la consola.
+
+Para validar que una secuencia $\{R_i\}$ es apta para simulación, debe superar dos pruebas no negociables:
+1. **Uniformidad:** Los números deben distribuirse de manera homogénea en $[0, 1)$.
+2. **Independencia:** El valor de $R_{i+1}$ no puede ser predicho a partir de $R_i$.
+
+<Callout type="info">
+**Riesgo de Aceptación:** Si el $p$-valor de la prueba estadística es menor a $\alpha = 0.05$, se rechaza la hipótesis de que los números son uniformes o independientes, descartando el generador.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Aplicar la prueba de Chi-cuadrado de bondad de ajuste para uniformidad con frecuencias observadas vs esperadas.
+- Aplicar la prueba de Kolmogorov-Smirnov (K-S) para muestras continuas reducidas.
+- Evaluar la independencia serial mediante la Prueba de Rachas respecto a la mediana.
+- Implementar la suite completa de contrastes en Python con SciPy.
+
+---
+
+# Fundamentos Teóricos
+
+### Prueba de Chi-Cuadrado de Uniformidad
+
+Se divide el intervalo $[0, 1)$ en $k$ clases de igual longitud $1/k$. Para $n$ números observados, la frecuencia esperada bajo uniformidad es:
+
+$$E_j = \frac{n}{k}, \quad j = 1, \dots, k$$
+
+El estadístico de prueba es:
+
+$$\chi_0^2 = \sum_{j=1}^k \frac{(O_j - E_j)^2}{E_j} \sim \chi_{k - 1}^2$$
+
+Si $\chi_0^2 < \chi_{\alpha, k-1}^2$ (o $p$-valor $> \alpha$), no se rechaza la hipótesis de uniformidad.
+
+### Prueba de Kolmogorov-Smirnov (K-S)
+
+Compara la función de distribución empírica $F_n(x)$ con la teórica $F(x) = x$ para $x \in [0, 1]$:
+
+$$D = \max_{1 \le i \le n} \left( \max\left( \left| \frac{i}{n} - R_{(i)} \right|, \left| R_{(i)} - \frac{i - 1}{n} \right| \right) \right)$$
+
+Donde $R_{(1)} \le R_{(2)} \le \dots \le R_{(n)}$ son los valores ordenados.
+
+### Prueba de Rachas Arriba y Abajo de la Mediana
+
+Se asigna un signo '+' si $R_i > 0.5$ y '-' si $R_i \le 0.5$. Se cuenta el número de rachas observadas $B$.
+Para $n_1$ signos '+' y $n_2$ signos '-':
+
+$$\mu_B = \frac{2 n_1 n_2}{n_1 + n_2} + 1$$
+
+$$\sigma_B^2 = \frac{2 n_1 n_2 (2 n_1 n_2 - n_1 - n_2)}{(n_1 + n_2)^2 (n_1 + n_2 - 1)}$$
+
+$$Z_0 = \frac{B - \mu_B}{\sigma_B} \sim \mathcal{N}(0, 1)$$
+
+---
+
+# Laboratorio en Python: Auditoría Estadística de Números Pseudoaleatorios
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+np.random.seed(42)
+n = 500  # Muestra de números a auditar
+datos_u = np.random.uniform(0.0, 1.0, size=n)
+
+# 1. Prueba de Uniformidad: Chi-Cuadrado
+k = 10  # 10 clases: [0.0, 0.1), [0.1, 0.2), ..., [0.9, 1.0)
+frec_obs, bordes = np.histogram(datos_u, bins=k, range=(0.0, 1.0))
+frec_esp = np.full(k, n / k)
+
+chi2_stat = np.sum((frec_obs - frec_esp)**2 / frec_esp)
+chi2_p = 1.0 - stats.chi2.cdf(chi2_stat, df=k - 1)
+
+# 2. Prueba de Uniformidad: Kolmogorov-Smirnov (K-S)
+ks_stat, ks_p = stats.kstest(datos_u, 'uniform')
+
+# 3. Prueba de Independencia: Rachas sobre la mediana (0.5)
+signos = (datos_u > 0.5).astype(int)
+n1 = np.sum(signos == 1)
+n2 = np.sum(signos == 0)
+
+# Contar número de rachas
+cambios = np.diff(signos) != 0
+rachas = 1 + np.sum(cambios)
+
+mu_rachas = (2.0 * n1 * n2) / (n1 + n2) + 1.0
+var_rachas = (2.0 * n1 * n2 * (2.0 * n1 * n2 - n1 - n2)) / (((n1 + n2)**2) * (n1 + n2 - 1.0))
+z_rachas = (rachas - mu_rachas) / np.sqrt(var_rachas)
+p_rachas = 2.0 * (1.0 - stats.norm.cdf(np.abs(z_rachas)))
+
+df_auditoria = pd.DataFrame([
+    {'Prueba': 'Chi-Cuadrado (Uniformidad)', 'Estadistico': chi2_stat, 'p-valor': chi2_p, 'Conclusion (alfa=0.05)': 'Aprobado (Uniforme)' if chi2_p > 0.05 else 'Rechazado'},
+    {'Prueba': 'Kolmogorov-Smirnov (Uniformidad)', 'Estadistico': ks_stat, 'p-valor': ks_p, 'Conclusion (alfa=0.05)': 'Aprobado (Uniforme)' if ks_p > 0.05 else 'Rechazado'},
+    {'Prueba': 'Rachas vs Mediana (Independencia)', 'Estadistico': z_rachas, 'p-valor': p_rachas, 'Conclusion (alfa=0.05)': 'Aprobado (Independiente)' if p_rachas > 0.05 else 'Rechazado'}
+])
+
+print("REPORTE DE AUDITORÍA ESTADÍSTICA DE NÚMEROS PSEUDOALEATORIOS:")
+print(df_auditoria.round(4).to_string(index=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Pruebas de Uniformidad e Independencia"
+  questions={[
+    {
+      id: "q_test_1",
+      text: "Si al aplicar la prueba de Kolmogorov-Smirnov a un conjunto de números pseudoaleatorios se obtiene un p-valor = 0.002, ¿cuál es la decisión correcta?",
+      options: [
+        { id: "a", text: "Rechazar la hipótesis de uniformidad con un nivel de significancia del 5% (el generador no es uniforme)", isCorrect: true, explanation: "Dado que p-valor = 0.002 < 0.05, existe evidencia estadística concluyente para rechazar que la muestra provenga de una distribución U(0,1)." },
+        { id: "b", text: "Aceptar que el generador es perfectamente uniforme", isCorrect: false, explanation: "Un p-valor pequeño es la señal formal de discrepancia con la hipótesis nula." },
+        { id: "c", text: "Concluir que los números son independientes", isCorrect: false, explanation: "K-S no evalúa independencia serial temporal." }
+      ]
+    },
+    {
+      id: "q_test_2",
+      text: "¿Qué anomalía temporal revela un número de rachas significativamente inferior al esperado (Z muy negativo en la prueba de rachas)?",
+      options: [
+        { id: "a", text: "Inercia o autocorrelación positiva (los valores altos tienden a ser seguidos por valores altos y viceversa)", isCorrect: true, explanation: "Muy pocas rachas implican que el generador se queda 'estancado' por periodos prolongados por encima o por debajo de la media." },
+        { id: "b", text: "Oscilación excesiva y rápida entre extremos", isCorrect: false, explanation: "Oscilaciones rápidas generan un exceso de rachas (Z muy positivo)." },
+        { id: "c", text: "Que todos los números generados son iguales a cero", isCorrect: false, explanation: "No necesariamente cero, refleja persistencia de signo." }
+      ]
+    }
+  ]}
+/>

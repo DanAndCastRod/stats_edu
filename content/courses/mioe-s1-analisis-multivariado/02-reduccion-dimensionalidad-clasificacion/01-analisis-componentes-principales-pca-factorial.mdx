@@ -1,0 +1,71 @@
+---
+title: "Análisis de Componentes Principales (PCA) y Factorial Exploratorio"
+order: 1
+description: "Descomposición espectral de la matriz de covarianza, varianza explicada acumulada, scree plot, rotación Varimax y cargas factoriales."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 70
+quiz:
+  - question: "En el Análisis de Componentes Principales (PCA), ¿cuál es la propiedad matemática de los valores propios lambda_i de la matriz de covarianza Sigma respecto a la varianza explicada?"
+    options:
+      - "lambda_i es exactamente la varianza de la i-ésima componente principal Y_i = v_i^T X, y la suma total de valores propios equivale a la varianza total de las variables originales."
+      - "lambda_i representa el sesgo asintótico del estimador."
+      - "Todos los valores propios son estrictamente números imaginarios puros."
+      - "Los valores propios siempre suman 1 sin importar las dimensiones."
+    answer: 0
+    explanation: "Por el teorema de descomposición espectral, Var(Y_i) = v_i^T Sigma v_i = lambda_i. Además, sum lambda_i = tr(Sigma), por lo que la proporción de varianza explicada por la componente i es lambda_i / sum lambda_k."
+---
+
+# Análisis de Componentes Principales (PCA) y Análisis Factorial
+
+> La alta dimensionalidad ($p$ grande) introduce redundancia por colinealidad y la "maldición de la dimensionalidad". El **PCA** y el **Análisis Factorial Exploratorio (EFA)** permiten reducir el espacio preservando la estructura latente esencial.
+
+---
+
+## 1. Derivación Variacional del PCA
+
+Buscamos una combinación lineal $Y_1 = \mathbf{a}_1^\top \mathbf{X}$ tal que su varianza sea máxima sujeta a que $\mathbf{a}_1$ sea un vector unitario:
+$$\max_{\mathbf{a}_1} \operatorname{Var}(\mathbf{a}_1^\top \mathbf{X}) = \mathbf{a}_1^\top \boldsymbol{\Sigma} \mathbf{a}_1 \quad \text{s.a.} \quad \mathbf{a}_1^\top \mathbf{a}_1 = 1$$
+
+Formulando el Lagrangiano:
+$$\mathcal{L}(\mathbf{a}_1, \lambda_1) = \mathbf{a}_1^\top \boldsymbol{\Sigma} \mathbf{a}_1 - \lambda_1 (\mathbf{a}_1^\top \mathbf{a}_1 - 1)$$
+Derivando e igualando a cero:
+$$\frac{\partial \mathcal{L}}{\partial \mathbf{a}_1} = 2\boldsymbol{\Sigma}\mathbf{a}_1 - 2\lambda_1 \mathbf{a}_1 = \mathbf{0} \implies \boldsymbol{\Sigma}\mathbf{a}_1 = \lambda_1 \mathbf{a}_1$$
+
+Esto demuestra que $\mathbf{a}_1$ es el **vector propio** correspondiente al **mayor valor propio** $\lambda_1 = \lambda_{\max}(\boldsymbol{\Sigma})$.
+
+---
+
+## 2. Modelo de Análisis Factorial Exploratorio (EFA)
+
+A diferencia de PCA (que es una transformación ortogonal de datos), el Análisis Factorial postula un **modelo generativo probabilístico**:
+$$\mathbf{X} - \boldsymbol{\mu} = \mathbf{L}\mathbf{F} + \boldsymbol{\epsilon}$$
+donde:
+- $\mathbf{F} \sim \mathcal{N}_m(\mathbf{0}, \mathbf{I})$ es el vector de $m < p$ factores comunes latentes no observables.
+- $\mathbf{L} \in \mathbb{R}^{p \times m}$ es la matriz de **cargas factoriales** (*factor loadings*).
+- $\boldsymbol{\epsilon} \sim \mathcal{N}_p(\mathbf{0}, \boldsymbol{\Psi})$ es el vector de factores específicos (errores únicos), con $\boldsymbol{\Psi} = \operatorname{diag}(\psi_1, \dots, \psi_p)$.
+
+La covarianza de $\mathbf{X}$ se descompone exactamente como:
+$$\boldsymbol{\Sigma} = \mathbf{L}\mathbf{L}^\top + \boldsymbol{\Psi}$$
+
+### Rotación Ortogonal Varimax
+Para facilitar la interpretación de los factores, se aplica una matriz de rotación ortogonal $\mathbf{T}$ (con $\mathbf{T}\mathbf{T}^\top = \mathbf{I}$) que maximiza la varianza de los cuadrados de las cargas dentro de cada columna (criterio de Kaiser):
+$$V = \sum_{j=1}^m \left[ \frac{1}{p} \sum_{i=1}^p \left( \frac{l_{ij}^2}{h_i^2} \right)^2 - \left( \frac{1}{p} \sum_{i=1}^p \frac{l_{ij}^2}{h_i^2} \right)^2 \right]$$
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: PCA y Factorial"
+  questions={[
+    {
+      id: "q_pca_standardize",
+      text: "¿Por qué es crucial estandarizar los datos (usar la matriz de correlación R en lugar de covarianza Sigma) antes de aplicar PCA cuando las variables tienen escalas físicas dispares?",
+      options: [
+        { id: "a", text: "Para evitar que variables con escalas numéricas arbitrariamente grandes (ej. ingresos en millones) dominen artificialmente los primeros componentes", isCorrect: true, explanation: "Correcto: Si no se estandariza a varianza unitaria, la variable con mayor varianza numérica absoluta monopolizará el primer vector propio sin reflejar la correlación real." },
+        { id: "b", text: "Porque el determinante de Sigma siempre es negativo si no se estandariza", isCorrect: false, explanation: "Sigma es definida semipositiva, su determinante nunca es negativo." },
+        { id: "c", text: "Para reducir el número de observaciones n", isCorrect: false, explanation: "La estandarización transforma columnas, no elimina filas." }
+      ]
+    }
+  ]}
+/>

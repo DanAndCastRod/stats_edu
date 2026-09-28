@@ -1,0 +1,175 @@
+---
+title: "Arquitectura y Estructura de Entidades en Simulación"
+order: 2
+description: "Modelado orientado a objetos para DES: Entidades dinámicas, recursos estáticos, atributos, variables globales y acumuladores estadísticos."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "En la arquitectura conceptual de simulación, ¿cuál es la diferencia entre una 'Entidad' y un 'Recurso'?"
+    options:
+      - "Las entidades son elementos dinámicos transitorios que fluyen por el modelo (ej. piezas, clientes); los recursos son elementos estáticos que proveen servicio (ej. máquinas, operadores)"
+      - "Las entidades siempre son virtuales y los recursos son físicos"
+      - "Los recursos se destruyen al finalizar su ciclo y las entidades permanecen infinitamente"
+      - "No existe ninguna diferencia conceptual"
+    answer: 0
+    explanation: "Las entidades se crean, adquieren recursos, experimentan demoras estocásticas y finalmente son destruidas/despachadas del sistema. Los recursos tienen capacidad fija y son capturados y liberados por las entidades."
+  - question: "¿Por qué es crucial asociar 'atributos' individuales a cada entidad en lugar de usar variables globales del sistema?"
+    options:
+      - "Porque cada entidad posee características únicas (tiempo de arribo, tipo de pieza, ruta de maquinado, prioridad) que determinan su tratamiento personalizado"
+      - "Porque las variables globales consumen demasiada memoria RAM"
+      - "Porque los atributos impiden que ocurran eventos de parada"
+      - "Para evitar tener que compilar el código de simulación"
+    answer: 0
+    explanation: "Los atributos viajan con la entidad individual a través de toda la red de colas y recursos, permitiendo calcular métricas individuales como el tiempo de ciclo (Lead Time) exacto de cada lote."
+---
+
+# Introducción
+
+> Construir una simulación para una línea de producción de 20 estaciones no consiste en escribir un script gigante y enredado. Requiere una **arquitectura de software limpia y desacoplada** basada en programación orientada a objetos (POO), donde cada componente del sistema físico tiene su gemelo digital exacto.
+
+Un simulador industrial robusto se compone de tres capas: capa de entidades y recursos, capa de control de eventos y reloj, y capa de análisis estadístico.
+
+<Callout type="info">
+**Ciclo de Vida de una Entidad:**
+1. *Create:* Nace en el sistema con atributos iniciales (timestamp de creación).
+2. *Queue:* Espera en una o varias colas lógicas.
+3. *Seize:* Captura una o más unidades de un recurso.
+4. *Delay:* Permanece un tiempo estocástico de procesamiento.
+5. *Release:* Libera el recurso para la siguiente entidad en cola.
+6. *Dispose:* Sale del sistema registrando estadísticas históricas.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Modelar un sistema mediante la taxonomía: Entidades, Atributos, Recursos, Estados y Variables Globales.
+- Implementar el patrón arquitectónico *Seize-Delay-Release* estándar en simulación industrial.
+- Gestionar colas con disciplinas de prioridad (FIFO, LIFO, SPT - *Shortest Processing Time*).
+- Programar un gemelo digital escalable con Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Taxonomía de Modelado DES
+
+| Componente | Definición | Ejemplo en Manufactura |
+| :--- | :--- | :--- |
+| **Entidad** | Objeto dinámico que se desplaza por el modelo | Chasis de automóvil, orden de compra |
+| **Atributo** | Propiedad intrínseca local que viaja con la entidad | `tiempo_creacion`, `prioridad`, `tipo_modelo` |
+| **Recurso** | Objeto estático con capacidad $C$ que atiende entidades | Robot soldador ($C=1$), cuadrilla de ensamble ($C=4$) |
+| **Estado del Sistema** | Vector instantáneo de variables | $S(t) = [Q_1(t), B_1(t), Q_2(t), B_2(t)]$ |
+| **Variable Global** | Variable visible para todas las rutinas del modelo | `costo_acumulado`, `meta_produccion_diaria` |
+| **Acumulador Estadístico** | Registro para calcular medias y varianzas de salida | `suma_tiempos_flujo`, `conteo_piezas_buenas` |
+
+---
+
+# Laboratorio en Python: Gemelo Digital de Taller Metalmecánico con Prioridades
+
+```python
+import heapq
+import numpy as np
+import pandas as pd
+
+class EntidadLote:
+    def __init__(self, id_lote, t_llegada, tipo_prioridad, tiempo_proceso):
+        self.id = id_lote
+        self.t_llegada = t_llegada
+        self.prioridad = tipo_prioridad  # 1: Alta (Express), 2: Normal
+        self.tiempo_proceso = tiempo_proceso
+        self.t_inicio_servicio = None
+        self.t_salida = None
+
+    # Ordenamiento en cola: menor número de prioridad se atiende primero (Min-Priority)
+    def __lt__(self, other):
+        if self.prioridad == other.prioridad:
+            return self.t_llegada < other.t_llegada  # FIFO para misma prioridad
+        return self.prioridad < other.prioridad
+
+class SimuladorTaller:
+    def __init__(self, n_lotes=50):
+        self.T_now = 0.0
+        self.fel = []
+        self.cola_espera = []  # Priority queue de EntidadLote
+        self.servidor_libre = True
+        self.historial_completados = []
+        
+        # Generar arribos de lotes
+        t = 0.0
+        for i in range(1, n_lotes + 1):
+            t += np.random.exponential(15.0)  # Arribo cada 15 min en promedio
+            prio = 1 if np.random.rand() < 0.25 else 2  # 25% son urgentes
+            tiempo_proc = np.random.uniform(8.0, 18.0)
+            lote = EntidadLote(i, t, prio, tiempo_proc)
+            heapq.heappush(self.fel, (t, "LLEGADA", lote))
+
+    def simular(self):
+        while self.fel:
+            t_evento, tipo, lote = heapq.heappop(self.fel)
+            self.T_now = t_evento
+            
+            if tipo == "LLEGADA":
+                if self.servidor_libre:
+                    self.iniciar_servicio(lote)
+                else:
+                    heapq.heappush(self.cola_espera, lote)
+                    
+            elif tipo == "FIN_SERVICIO":
+                lote.t_salida = self.T_now
+                self.historial_completados.append(lote)
+                
+                if self.cola_espera:
+                    siguiente_lote = heapq.heappop(self.cola_espera)
+                    self.iniciar_servicio(siguiente_lote)
+                else:
+                    self.servidor_libre = True
+
+    def iniciar_servicio(self, lote):
+        self.servidor_libre = False
+        lote.t_inicio_servicio = self.T_now
+        t_fin = self.T_now + lote.tiempo_proceso
+        heapq.heappush(self.fel, (t_fin, "FIN_SERVICIO", lote))
+
+np.random.seed(101)
+taller = SimuladorTaller(n_lotes=40)
+taller.simular()
+
+df_lotes = pd.DataFrame([{
+    'ID': e.id,
+    'Prioridad': 'Express' if e.prioridad == 1 else 'Normal',
+    'Llegada_min': e.t_llegada,
+    'Espera_Cola_min': e.t_inicio_servicio - e.t_llegada,
+    'Tiempo_Proceso_min': e.tiempo_proceso,
+    'Tiempo_Ciclo_min': e.t_salida - e.t_llegada
+} for e in taller.historial_completados])
+
+print("RESUMEN DE TIEMPOS DE CICLO POR TIPO DE PRIORIDAD:")
+resumen = df_lotes.groupby('Prioridad')[['Espera_Cola_min', 'Tiempo_Ciclo_min']].mean()
+print(resumen.round(2))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Arquitectura y Modelado por Entidades"
+  questions={[
+    {
+      id: "q_arq_1",
+      text: "¿Cuál es la consecuencia de implementar la regla SPT (Shortest Processing Time) en lugar de FIFO en la cola de un recurso?",
+      options: [
+        { id: "a", text: "Minimiza el tiempo promedio de flujo (tiempo de permanencia) global de las piezas en el taller", isCorrect: true, explanation: "El teorema de Smith demuestra que ordenar por tiempo de procesamiento más corto minimiza el tiempo medio de permanencia, aunque puede penalizar a los trabajos largos." },
+        { id: "b", text: "Duplica la capacidad del servidor de forma física", isCorrect: false, explanation: "La regla de secuenciación no modifica la velocidad nominal de corte o proceso de la máquina." },
+        { id: "c", text: "Elimina la necesidad de registrar eventos de fin de servicio", isCorrect: false, explanation: "Los eventos de fin de servicio continúan ocurriendo con normalidad." }
+      ]
+    },
+    {
+      id: "q_arq_2",
+      text: "¿Qué información fundamental debe registrar el timestamp de creación de una entidad?",
+      options: [
+        { id: "a", text: "El instante exacto T_now en que la entidad ingresó al sistema para permitir calcular su Lead Time total al salir (T_salida - T_creacion)", isCorrect: true, explanation: "El atributo tiempo_arribo es indispensable para evaluar el tiempo de ciclo, retrasos y niveles de servicio al cliente." },
+        { id: "b", text: "La hora del reloj del sistema operativo de la computadora", isCorrect: false, explanation: "La simulación corre en su propio tiempo virtual T_now, independiente del tiempo real de CPU." },
+        { id: "c", text: "El número de líneas de código del programa", isCorrect: false, explanation: "Métrica irrelevante para el gemelo digital." }
+      ]
+    }
+  ]}
+/>

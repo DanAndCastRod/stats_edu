@@ -1,0 +1,10 @@
+{
+  "title": "Procesos Estocásticos",
+  "slug": "procesos-estocasticos",
+  "code": "II713",
+  "description": "Cadenas de Markov en tiempo discreto y continuo, procesos de Poisson, teoría de colas y líneas de espera, y confiabilidad de sistemas industriales.",
+  "credits": 3,
+  "ects": 6,
+  "semester": 7,
+  "isMock": false
+}

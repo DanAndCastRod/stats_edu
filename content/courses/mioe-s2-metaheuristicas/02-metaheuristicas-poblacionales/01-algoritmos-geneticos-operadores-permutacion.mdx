@@ -1,0 +1,96 @@
+---
+title: "Algoritmos Genéticos y Operadores de Cruce OX y PMX"
+order: 1
+description: "Selección por torneo y ruleta, cruces especializados para permutaciones (Order Crossover OX, Partially Mapped Crossover PMX) aplicados al TSP."
+bloomLevel: "CREATE"
+estimatedMinutes: 80
+quiz:
+  - question: "¿Por qué los operadores de cruce estándar (como el cruce en un punto de 1-point crossover) NO pueden aplicarse directamente a problemas de permutación como el TSP o Flow Shop?"
+    options:
+      - "Porque generarían individuos infactibles con ciudades duplicadas y ciudades ausentes, violando la biyección de la permutación."
+      - "Porque reducen la tasa de mutación a cero."
+      - "Porque requieren que todos los genes sean números flotantes continuos."
+      - "Porque invierten la dirección del tiempo evolutivo."
+    answer: 0
+    explanation: "En problemas de ordenamiento, cada elemento debe aparecer exactamente una vez. Un cruce estándar en un punto cortaría los cromosomas e intercambiaría colas, duplicando inevitablemente genes presentes en la cabeza y omitiendo otros, destruyendo la condición de permutación factible."
+---
+
+# Algoritmos Genéticos y Operadores de Cruce OX y PMX
+
+> Los **Algoritmos Genéticos (AG)** emulan los principios de la evolución biológica neodarwiniana: selección natural, recombinación genética (cruce) y mutación sobre una población de cromosomas.
+
+---
+
+## 1. Operadores de Cruce para Permutaciones
+
+En problemas combinatorios de rutas y secuencias, un individuo es una permutación de $\{1, 2, \dots, n\}$. Se requieren operadores que preserven la integridad:
+
+### A. Cruce de Orden (Order Crossover - OX)
+1. Se seleccionan dos puntos de corte aleatorios y se copia el segmento intermedio del Padre 1 directamente al Hijo.
+2. Los genes restantes se toman del Padre 2 comenzando desde el segundo punto de corte, preservando el orden relativo y omitiendo aquellos genes que ya fueron insertados desde el Padre 1.
+
+### B. Cruce Mapeado Parcialmente (Partially Mapped Crossover - PMX)
+1. Se copia el segmento intermedio del Padre 1 al Hijo.
+2. Para cada posición fuera del segmento, se buscan los genes equivalentes mediante una serie de mapeos biyectivos definidos por los pares de genes alineados en el segmento cruzado de ambos padres.
+
+---
+
+## 2. Operador de Mutación por Inversión (2-Opt)
+
+La mutación introduce variabilidad genética evitando la convergencia prematura. En permutaciones, la **mutación por inversión** selecciona dos posiciones y revierte el orden de la subsecuencia:
+$$[1, 2, \mathbf{3, 4, 5}, 6] \to [1, 2, \mathbf{5, 4, 3}, 6]$$
+
+---
+
+## 3. Implementación del Cruce OX en Python
+
+```python
+import numpy as np
+
+def order_crossover_ox(p1, p2):
+    n = len(p1)
+    # Puntos de corte
+    cx1, cx2 = np.sort(np.random.choice(n, size=2, replace=False))
+    
+    hijo = np.full(n, -1)
+    # Copia del segmento central del Padre 1
+    hijo[cx1:cx2+1] = p1[cx1:cx2+1]
+    
+    # Llenado desde Padre 2 en orden circular
+    current_pos = (cx2 + 1) % n
+    for gene in np.concatenate([p2[cx2+1:], p2[:cx2+1]]):
+        if gene not in hijo:
+            hijo[current_pos] = gene
+            current_pos = (current_pos + 1) % n
+            
+    return hijo
+
+padre_A = np.array([1, 2, 3, 4, 5, 6, 7, 8])
+padre_B = np.array([8, 7, 6, 5, 4, 3, 2, 1])
+
+hijo_descendiente = order_crossover_ox(padre_A, padre_B)
+print(f"Padre 1:  {padre_A}")
+print(f"Padre 2:  {padre_B}")
+print(f"Hijo OX:  {hijo_descendiente}")
+assert len(set(hijo_descendiente)) == len(padre_A), "¡Fallo de permutación!"
+print("¡Permutación biyectiva válida garantizada!")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Algoritmos Genéticos"
+  questions={[
+    {
+      id: "q_ga_elitism",
+      text: "¿Por qué la estrategia de 'Elitismo' (preservar intacto al mejor individuo de la generación k en la generación k+1) es una práctica universalmente recomendada?",
+      options: [
+        { id: "a", text: "Garantiza que la aptitud del mejor individuo de la población sea monótona no decreciente a lo largo de las generaciones, evitando perder la mejor solución hallada por cruzamientos destructivos", isCorrect: true, explanation: "Correcto: Sin elitismo, los operadores estocásticos de cruce y mutación pueden destruir accidentalmente el mejor genoma descubierto en generaciones intermedias." },
+        { id: "b", text: "Aumenta la tasa de recombinación al 100%", isCorrect: false, explanation: "El elitismo preserva 1 o pocos individuos, no altera la tasa general." },
+        { id: "c", text: "Convierte al algoritmo en una red neuronal profunda", isCorrect: false, explanation: "Sigue siendo un algoritmo evolutivo poblacional." }
+      ]
+    }
+  ]}
+/>

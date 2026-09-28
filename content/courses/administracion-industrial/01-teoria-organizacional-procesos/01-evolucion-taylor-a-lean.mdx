@@ -1,0 +1,138 @@
+---
+title: "Evolución de la Administración Industrial: De Taylor a Lean Manufacturing"
+order: 1
+description: "Estudio de tiempos y movimientos de Taylor, principios de Fayol, Sistema de Producción Toyota (TPS) y eliminación de los 7 desperdicios (Muda)."
+bloomLevel: "UNDERSTAND"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es el postulado central que distingue al Sistema de Producción Toyota (Lean Manufacturing) de la producción en masa tradicional fordista?"
+    options:
+      - "La producción mediante flujo continuo 'Pull' activado por la demanda real del cliente (Just-in-Time), eliminando la acumulación masiva de inventarios y los 7 desperdicios (Muda)"
+      - "Producir a la máxima capacidad posible sin importar la demanda para reducir el costo unitario por economías de escala"
+      - "Sustituir a todos los operarios humanos por robots automáticos"
+      - "Eliminar por completo las inspecciones de calidad de los proveedores"
+    answer: 0
+    explanation: "Mientras el fordismo opera en lógica 'Push' generando enormes inventarios en proceso (WIP) para diluir costos fijos, el TPS opera en lógica 'Pull' mediante Kanban y flujo pieza a pieza, reconociendo el inventario como uno de los principales desperdicios."
+  - question: "¿Cuál de los siguientes NO forma parte de los 7 desperdicios clásicos (Muda) identificados por Taiichi Ohno en Toyota?"
+    options:
+      - "Inversión en investigación y desarrollo de software"
+      - "Sobreproducción (fabricar más o antes de lo necesario)"
+      - "Transporte innecesario de materiales"
+      - "Esperas de operarios o maquinaria"
+    answer: 0
+    explanation: "Los 7 desperdicios de Ohno son: Sobreproducción, Espera, Transporte, Sobreprocesamiento, Inventario, Movimiento innecesario y Defectos. La inversión en I+D es una actividad estratégica generadora de valor a largo plazo."
+---
+
+# Introducción
+
+> La administración moderna no nació en despachos de abogados ni en escuelas de negocios teóricas; nació en los talleres mecánicos, en las fundiciones de acero y en las líneas de ensamble automotriz. Los ingenieros industriales crearon la ciencia de la gestión para transformar el esfuerzo humano desordenado en operaciones coordinadas, eficientes y seguras.
+
+Desde los cronómetros de Frederick Winslow Taylor hasta los tableros visuales *Andon* de Toyota, la disciplina ha evolucionado desde el control coercitivo hacia el empoderamiento técnico y la mejora continua (*Kaizen*).
+
+<Callout type="info">
+**La Regla de Oro de Lean:** En cualquier proceso industrial, sólo entre el 5% y el 10% de las actividades agregan valor real desde la perspectiva del cliente final (por las que el cliente está dispuesto a pagar). El 90% restante es desperdicio (*Muda*) que debe ser eliminado o minimizado sistemáticamente.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comparar los paradigmas de la Administración Científica (Taylor, Gilbreth), la Teoría Clásica (Fayol) y la Teoría de Sistemas.
+- Identificar los fundamentos del Sistema de Producción Toyota (TPS) y sus dos pilares: *Just-In-Time* (JIT) y *Jidoka* (autonomización).
+- Cuantificar el Tiempo Takt, Tiempo de Ciclo y Eficiencia del Ciclo del Proceso (PCE).
+- Implementar un analizador de valor agregado y flujo de valor en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Los Dos Pilares del Sistema Toyota (TPS)
+
+1. **Just-In-Time (JIT):** Fabricar únicamente lo que se necesita, en el momento exacto en que se necesita y en la cantidad precisa requerida por la estación siguiente. Se rige por:
+   - **Tiempo Takt ($T_T$):** El ritmo de compra del cliente:
+     $$T_T = \frac{\text{Tiempo Neto Disponible de Producción por Turno}}{\text{Demanda Requerida por el Cliente en el Turno}}$$
+   - **Flujo Continuo:** Lote unitario (*One-Piece Flow*).
+   - **Sistema Pull:** Regulación del flujo mediante tarjetas o señales Kanban.
+
+2. **Jidoka (Calidad en la Fuente / Autonomización):**
+   Dotar a las máquinas y a los operarios de la capacidad de detectar anomalías y detener la línea de inmediato (*Andon*) para no transferir defectos a la siguiente estación. Incorpora mecanismos a prueba de errores (*Poka-Yoke*).
+
+### Métrica de Eficiencia del Ciclo de Proceso (PCE)
+
+La **Eficiencia del Ciclo del Proceso** (*Process Cycle Efficiency*) mide el porcentaje del tiempo total que una pieza pasa recibiendo transformación que agrega valor:
+
+$$\text{PCE} = \frac{\text{Tiempo Total de Valor Agregado (VA)}}{\text{Tiempo Total de Entrega (Lead Time o PLT)}} \times 100\%$$
+
+En operaciones manufactureras tradicionales no optimizadas, el PCE suele ser inferior al $5\%$. Un proceso Lean de clase mundial aspira a un PCE superior al $25\%$.
+
+---
+
+# Laboratorio en Python: Balanceo Takt Time y Análisis de Valor Agregado
+
+```python
+import numpy as np
+import pandas as pd
+
+# Datos de una línea de ensamble de electrodomésticos:
+# Turno de 8 horas = 480 minutos.
+# Almuerzo y descansos programados = 50 minutos.
+# Tiempo neto disponible = 430 minutos = 25,800 segundos.
+# Demanda diaria del cliente = 600 unidades.
+
+tiempo_neto_segundos = (480 - 50) * 60
+demanda_diaria = 600
+
+# 1. Cálculo del Takt Time
+takt_time = tiempo_neto_segundos / demanda_diaria
+
+# 2. Análisis de Actividades de una pieza (Mapeo de Flujo de Valor - VSM)
+actividades = pd.DataFrame([
+    {'Etapa': 'Corte Lámina CNC', 'Tiempo_s': 35.0, 'Tipo': 'VA'},
+    {'Etapa': 'Espera en canastilla de transporte', 'Tiempo_s': 420.0, 'Tipo': 'NVA (Muda Espera)'},
+    {'Etapa': 'Doblado y Estampado', 'Tiempo_s': 28.0, 'Tipo': 'VA'},
+    {'Etapa': 'Transporte en montacargas a pintura', 'Tiempo_s': 180.0, 'Tipo': 'NVA (Muda Transporte)'},
+    {'Etapa': 'Espera en cola de horno de pintura', 'Tiempo_s': 600.0, 'Tipo': 'NVA (Muda Inventario)'},
+    {'Etapa': 'Pintura Electrostática', 'Tiempo_s': 40.0, 'Tipo': 'VA'},
+    {'Etapa': 'Ensamble de componentes', 'Tiempo_s': 38.0, 'Tipo': 'VA'},
+    {'Etapa': 'Inspección final de empaque', 'Tiempo_s': 15.0, 'Tipo': 'VA'}
+])
+
+# 3. Métricas de Flujo
+tiempo_va = actividades[actividades['Tipo'] == 'VA']['Tiempo_s'].sum()
+tiempo_lead_time = actividades['Tiempo_s'].sum()
+pce = (tiempo_va / tiempo_lead_time) * 100.0
+
+# 4. Cálculo de Operarios Teóricos Mínimos requeridos para cumplir el Takt Time
+operarios_minimos = tiempo_va / takt_time
+
+print(f"TIEMPO TAKT DE LA PLANTA: {takt_time:.2f} segundos por unidad")
+print(f"Tiempo Total de Valor Agregado (VA): {tiempo_va:.1f} s")
+print(f"Tiempo Total de Entrega (Process Lead Time): {tiempo_lead_time:.1f} s ({tiempo_lead_time/60:.2f} min)")
+print(f"Eficiencia del Ciclo del Proceso (PCE): {pce:.2f}%")
+print(f"Número teórico de estaciones/operarios necesarios: {operarios_minimos:.2f} -> Requiere {int(np.ceil(operarios_minimos))} operarios")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: De Taylor a Lean Manufacturing"
+  questions={[
+    {
+      id: "q_lean_1",
+      text: "Si el tiempo neto disponible de una fábrica es 24,000 segundos por día y la demanda del cliente es 400 unidades/día, ¿cuál es el Takt Time?",
+      options: [
+        { id: "a", text: "60 segundos/unidad (Takt Time = 24000 / 400 = 60 s)", isCorrect: true, explanation: "El Takt Time establece que debe salir una unidad terminada de la línea cada 60 segundos para satisfacer exactamente la demanda sin incurrir en sobreproducción." },
+        { id: "b", text: "16.6 segundos/unidad", isCorrect: false, explanation: "Resultado de dividir 400 entre 24000 en lugar de tiempo entre demanda." },
+        { id: "c", text: "120 segundos/unidad", isCorrect: false, explanation: "Doble del valor real." }
+      ]
+    },
+    {
+      id: "q_lean_2",
+      text: "¿Por qué Taiichi Ohno consideraba la Sobreproducción como el peor de todos los desperdicios (el 'Padre de los Desperdicios')?",
+      options: [
+        { id: "a", text: "Porque oculta los demás problemas operativos (averías, mala calidad, desbalance) y genera automáticamente todos los demás desperdicios (inventario, transporte, manipulación, espacio)", isCorrect: true, explanation: "La sobreproducción inunda la fábrica de inventario, creando una falsa sensación de seguridad que disfraza los cuellos de botella y defectos crónicos." },
+        { id: "b", text: "Porque obliga a contratar más personal administrativo", isCorrect: false, explanation: "El impacto primario es sobre el capital de trabajo y la visibilidad de los problemas en el gemba." },
+        { id: "c", text: "Porque la ley prohíbe producir más de lo vendido", isCorrect: false, explanation: "Es un principio de eficiencia productiva, no un delito legal." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,65 @@
+---
+title: "Arquetipos Sistémicos y Complejidad Dinámica"
+order: 2
+description: "Estructuras clásicas: límites al crecimiento, desplazamiento de la carga, tragedia de los comunes y erosión de metas en ingeniería."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 65
+quiz:
+  - question: "En el arquetipo sistémico 'Desplazamiento de la Carga' (Shifting the Burden), ¿cuál es la consecuencia estructural de aplicar repetidamente soluciones sintomáticas de corto plazo?"
+    options:
+      - "Alivian temporalmente el síntoma del problema pero atrofian la capacidad interna para aplicar la solución fundamental de largo plazo, generando adicción al parche."
+      - "Eliminan la necesidad de volver a invertir en mantenimiento."
+      - "Transforman el sistema en una cadena de Markov ergódica."
+      - "Aumentan la capacidad fundamental automáticamente por sinergia."
+    answer: 0
+    explanation: "El arquetipo describe cómo una solución sintomática rápida disminuye la presión percibida para abordar la causa raíz, degradando la capacidad fundamental y creando un efecto secundario que intensifica la dependencia de la intervención sintomática."
+---
+
+# Arquetipos Sistémicos y Complejidad Dinámica
+
+> Los **Arquetipos Sistémicos** (popularizados por Peter Senge en *La Quinta Disciplina*) son patrones genéricos de estructura y comportamiento que se repiten transversalmente en plantas industriales, cadenas logísticas y ecosistemas económicos.
+
+---
+
+## 1. Arquetipos Clásicos en Ingeniería Industrial
+
+### A. Límites al Crecimiento (*Limits to Growth*)
+- **Estructura:** Un bucle reforzador ($R$) impulsa un crecimiento inicial rápido, hasta que el nivel del sistema topa con una restricción física o de mercado que activa un bucle balanceador ($B$).
+- **Ejemplo Industrial:** Crecimiento explosivo de una startup de manufactura que satura la capacidad del departamento de calidad, disparando devoluciones de clientes.
+- **Punto de Apalancamiento:** No presionar más el bucle de crecimiento; remover o expandir proactivamente la capacidad limitante antes de colisionar contra ella.
+
+### B. Tragedia de los Bienes Comunes (*Tragedy of the Commons*)
+- **Estructura:** Múltiples agentes persiguen beneficios individuales aprovechando un recurso común compartido no exclusivo, hasta que la sobreexplotación colectiva colapsa el recurso para todos.
+- **Ejemplo Industrial:** Varias líneas de producción compitiendo agresivamente por el mismo equipo central de mantenimiento o la misma red de aire comprimido.
+
+### C. Erosión de Metas (*Drifting Goals*)
+- **Estructura:** Cuando surge una brecha entre el desempeño real y la meta institucional, en lugar de intensificar la acción correctiva, la organización relaja o degrada los estándares de calidad para "cumplir" artificialmente.
+
+---
+
+## 2. Puntos de Apalancamiento (*Leverage Points*)
+
+Donella Meadows clasificó los lugares para intervenir en un sistema complejo según su efectividad:
+1. **Parámetros numéricos (Bajo apalancamiento):** Cambiar subsidios, multas o tamaños de lote.
+2. **Estructura de flujos e inventarios:** Alterar la topología de la red de suministro.
+3. **Reglas del sistema y bucles de información:** Modificar incentivos y acceso a métricas en tiempo real.
+4. **Metas y paradigmas mentales (Máximo apalancamiento):** Rediseñar el propósito del sistema.
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Arquetipos Sistémicos"
+  questions={[
+    {
+      id: "q_archetype_escalation",
+      text: "En el arquetipo de 'Escalamiento' (guerra de precios o competencia industrial desmedida), ¿cuál es la intervención estratégica recomendada?",
+      options: [
+        { id: "a", text: "Negociar acuerdos multilaterales que cambien la meta a una victoria conjunta o diversificar hacia mercados no disputados", isCorrect: true, explanation: "Correcto: Si cada parte solo reacciona agresivamente al avance del competidor, los bucles de balance acoplados actúan como un gran bucle reforzador destructivo que consume los márgenes de ambos." },
+        { id: "b", text: "Duplicar la inversión bélica hasta la quiebra total del rival", isCorrect: false, explanation: "Eso acelera la destrucción de valor de toda la industria." },
+        { id: "c", text: "Ignorar las acciones de la competencia sin medir ventas", isCorrect: false, explanation: "La inacción absoluta no resuelve la presión competitiva." }
+      ]
+    }
+  ]}
+/>

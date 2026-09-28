@@ -1,0 +1,168 @@
+---
+title: "ANOVA de un Factor y Bloques Completos al Azar (DBCA)"
+order: 1
+description: "Partición de sumas de cuadrados, prueba F de Fisher-Snedecor, pruebas post-hoc de Tukey HSD y control de fuentes de variabilidad externa con DBCA."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es la hipótesis nula fundamental en un análisis de varianza (ANOVA) de un factor con k tratamientos?"
+    options:
+      - "H0: mu_1 = mu_2 = ... = mu_k (todas las medias poblacionales de los tratamientos son iguales)"
+      - "H0: Todas las varianzas muestrales son idénticas a cero"
+      - "H0: Al menos un par de medias difiere significativamente"
+      - "H0: La correlación entre tratamientos es igual a 1"
+    answer: 0
+    explanation: "La hipótesis nula postula que los k tratamientos no tienen efecto diferencial sobre la media de la variable de respuesta: H0: mu_1 = mu_2 = ... = mu_k."
+  - question: "¿Cuál es el propósito primordial de utilizar un Diseño de Bloques Completos al Azar (DBCA) en lugar de un Diseño Completamente al Azar (DCA)?"
+    options:
+      - "Aislar y controlar una fuente conocida de variabilidad extraña o ruido (bloque) para reducir la varianza del error experimental"
+      - "Aumentar artificialmente los grados de libertad del error"
+      - "Evitar realizar pruebas de comparaciones múltiples de Tukey"
+      - "Garantizar que todos los tratamientos tengan media cero"
+    answer: 0
+    explanation: "El bloqueo extrae la variabilidad atribuible a un factor perturbador conocido (e.g. operador, turno, lote de materia prima) del error experimental, aumentando la potencia de la prueba F para detectar diferencias reales entre tratamientos."
+---
+
+# Introducción
+
+> ¿Es una nueva fórmula química superior a las tres existentes en el mercado? Para responder rigurosamente sin inflar la tasa de error Tipo I mediante múltiples pruebas $t$ de Student por parejas, la estadística industrial recurre al **Análisis de Varianza (ANOVA)**.
+
+Desarrollado inicialmente por Ronald A. Fisher, el ANOVA descompone la variabilidad total observada en componentes atribuibles a tratamientos específicos y a perturbaciones aleatorias.
+
+<Callout type="info">
+**Principio de Fisher:** Cuando sospechamos que un factor externo incontrolable (como el lote del proveedor o el operador) afectará los resultados, agrupamos las unidades experimentales en **bloques homogéneos** (DBCA).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Descomponer la Suma Total de Cuadrados ($SST$) en Suma de Cuadrados de Tratamientos ($SSTr$) y Suma de Cuadrados del Error ($SSE$).
+- Construir e interpretar la tabla ANOVA clásica y contrastar la prueba $F$.
+- Ejecutar la prueba post-hoc de Tukey de Diferencia Honestamente Significativa (HSD).
+- Formular el modelo lineal de Bloques Completos al Azar (DBCA) e implementarlo en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Modelo Lineal de un Factor (Efectos Fijos)
+
+$$Y_{ij} = \mu + \tau_i + \epsilon_{ij}, \quad i = 1, \dots, k; \quad j = 1, \dots, n$$
+
+Donde $\mu$ es la media global, $\tau_i$ es el efecto del tratamiento $i$ (con restricción $\sum \tau_i = 0$), y $\epsilon_{ij} \sim \mathcal{N}(0, \sigma^2)$ son errores aleatorios independientes.
+
+### Partición Fundamental de la Variabilidad
+
+$$SST = SSTr + SSE$$
+
+$$\sum_{i=1}^k \sum_{j=1}^n (Y_{ij} - \bar{Y}_{\cdot\cdot})^2 = n \sum_{i=1}^k (\bar{Y}_{i\cdot} - \bar{Y}_{\cdot\cdot})^2 + \sum_{i=1}^k \sum_{j=1}^n (Y_{ij} - \bar{Y}_{i\cdot})^2$$
+
+Grados de libertad:
+- Tratamientos: $df_{Tr} = k - 1$
+- Error: $df_E = N - k = k(n - 1)$
+- Total: $df_T = N - 1$
+
+El estadístico de prueba es el cociente de cuadrados medios:
+
+$$F_0 = \frac{MSTr}{MSE} = \frac{SSTr / (k - 1)}{SSE / (N - k)} \sim \mathcal{F}_{k-1, N-k}$$
+
+Si $F_0 > F_{\alpha, k-1, N-k}$ (o el $p$-valor $< \alpha$), se rechaza $H_0$ y se concluye que al menos un tratamiento genera una media diferente.
+
+### Diseño de Bloques Completos al Azar (DBCA)
+
+Cuando existe un factor de bloqueo con $b$ niveles (e.g. 4 máquinas distintas):
+
+$$Y_{ij} = \mu + \tau_i + \beta_j + \epsilon_{ij}$$
+
+$$SST = SSTr + SSBloques + SSE$$
+
+$$F_{Tr} = \frac{MSTr}{MSE} = \frac{SSTr / (k - 1)}{SSE / ((k - 1)(b - 1))}$$
+
+---
+
+# Laboratorio en Python: Resistencia a la Tensión por Aleación y Turno
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# Experimento DBCA: 3 tipos de aleación (Tratamientos) probadas en 4 turnos (Bloques)
+data = {
+    'Aleacion': ['A1', 'A1', 'A1', 'A1', 'A2', 'A2', 'A2', 'A2', 'A3', 'A3', 'A3', 'A3'],
+    'Turno': ['T1', 'T2', 'T3', 'T4', 'T1', 'T2', 'T3', 'T4', 'T1', 'T2', 'T3', 'T4'],
+    'Tension_MPa': [420, 425, 418, 430, 445, 452, 440, 458, 410, 415, 408, 422]
+}
+df = pd.DataFrame(data)
+
+k = df['Aleacion'].nunique()  # 3 tratamientos
+b = df['Turno'].nunique()     # 4 bloques
+N = len(df)                  # 12 observaciones
+
+media_global = df['Tension_MPa'].mean()
+SST = np.sum((df['Tension_MPa'] - media_global)**2)
+
+# Suma de cuadrados de Tratamientos (Aleación)
+medias_trat = df.groupby('Aleacion')['Tension_MPa'].mean()
+SSTr = b * np.sum((medias_trat - media_global)**2)
+
+# Suma de cuadrados de Bloques (Turno)
+medias_bloq = df.groupby('Turno')['Tension_MPa'].mean()
+SSBloq = k * np.sum((medias_bloq - media_global)**2)
+
+# Error residual
+SSE = SST - SSTr - SSBloq
+
+# Grados de libertad
+df_Tr = k - 1
+df_Bloq = b - 1
+df_Error = (k - 1) * (b - 1)
+
+MSTr = SSTr / df_Tr
+MSBloq = SSBloq / df_Bloq
+MSE = SSE / df_Error
+
+F_trat = MSTr / MSE
+p_trat = 1 - stats.f.cdf(F_trat, df_Tr, df_Error)
+
+F_bloq = MSBloq / MSE
+p_bloq = 1 - stats.f.cdf(F_bloq, df_Bloq, df_Error)
+
+tabla_anova = pd.DataFrame({
+    'Fuente de Variacion': ['Tratamientos (Aleacion)', 'Bloques (Turno)', 'Error Experimental', 'Total'],
+    'Suma de Cuadrados (SS)': [SSTr, SSBloq, SSE, SST],
+    'Grados de Libertad (df)': [df_Tr, df_Bloq, df_Error, N - 1],
+    'Cuadrado Medio (MS)': [MSTr, MSBloq, MSE, np.nan],
+    'Estadistico F': [F_trat, F_bloq, np.nan, np.nan],
+    'p-valor': [p_trat, p_bloq, np.nan, np.nan]
+})
+
+print("TABLA ANOVA DE BLOQUES COMPLETOS AL AZAR (DBCA):")
+print(tabla_anova.to_string(index=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: ANOVA y Bloques Completos al Azar"
+  questions={[
+    {
+      id: "q_anova_1",
+      text: "Si se comparan 4 tipos de resina sintética con 5 réplicas por tratamiento en un DCA, ¿cuántos grados de libertad tiene el error experimental?",
+      options: [
+        { id: "a", text: "16 grados de libertad: k(n - 1) = 4 * (5 - 1) = 16", isCorrect: true, explanation: "Con k=4 y n=5, N=20. Los grados de libertad del error son N - k = 20 - 4 = 16." },
+        { id: "b", text: "3 grados de libertad: k - 1 = 3", isCorrect: false, explanation: "3 son los grados de libertad de tratamientos, no del error." },
+        { id: "c", text: "19 grados de libertad: N - 1 = 19", isCorrect: false, explanation: "19 es el número total de grados de libertad." }
+      ]
+    },
+    {
+      id: "q_anova_2",
+      text: "¿Por qué no se debe utilizar múltiples pruebas t de Student independientes en lugar de un ANOVA para comparar 5 medias?",
+      options: [
+        { id: "a", text: "Porque se infla drásticamente la tasa de error global Tipo I (alfa global = 1 - (1 - alfa)^c)", isCorrect: true, explanation: "Para 5 grupos hay 10 comparaciones por parejas. Si alfa = 0.05, el riesgo acumulado de falso positivo asciende a 1 - (0.95)^10 = 40.1%." },
+        { id: "b", text: "Porque la distribución t no puede calcularse en muestras con más de 20 datos", isCorrect: false, explanation: "La distribución t es perfectamente válida con cualquier tamaño muestral." },
+        { id: "c", text: "Porque la prueba t exige que las medias sean estrictamente negativas", isCorrect: false, explanation: "No existe ninguna restricción de signo para aplicar pruebas t." }
+      ]
+    }
+  ]}
+/>

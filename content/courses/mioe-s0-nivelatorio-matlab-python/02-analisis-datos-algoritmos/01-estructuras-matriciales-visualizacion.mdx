@@ -1,0 +1,87 @@
+---
+title: "Estructuras de Datos Matriciales y Visualización Científica"
+order: 1
+description: "Manipulación de matrices esparsas, mapas de calor, superficies 3D y visualización científica de tensores."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+quiz:
+  - question: "¿Por qué el formato Compressed Sparse Row (CSR) es preferido frente a matrices densas en la resolución de problemas de flujo en redes y programación lineal a gran escala?"
+    options:
+      - "Almacena únicamente las entradas no nulas reduciendo la complejidad de almacenamiento de O(n^2) a O(nnz) y optimiza productos matriz-vector."
+      - "Permite invertir la matriz directamente en tiempo constante O(1)."
+      - "Elimina la necesidad de calcular gradientes en optimización no lineal."
+      - "Convierte problemas no convexos en formulaciones de transporte lineal."
+    answer: 0
+    explanation: "En sistemas con millones de variables donde la densidad de entradas no nulas es menor al 1%, el formato CSR almacena solo los valores no nulos y sus índices, acelerando drásticamente el producto matriz-vector en O(nnz)."
+---
+
+# Estructuras de Datos Matriciales y Visualización Científica
+
+> En problemas de Investigación de Operaciones a escala industrial (ruteo, planificación de cadenas de suministro, despacho eléctrico), la matriz de restricciones $\mathbf{A}$ puede tener dimensiones de $10^5 \times 10^5$, pero con más del $99.8\%$ de sus coeficientes iguales a cero. El uso de estructuras esparsas (*sparse matrices*) es mandatorio.
+
+---
+
+## 1. Formatos de Matrices Esparsas
+
+### A. Coordinate Format (COO)
+Almacena tres vectores de longitud $\text{nnz}$ (número de no ceros): `(row, col, data)`. Es el formato ideal para ensamblar y construir matrices de restricciones de forma incremental.
+
+### B. Compressed Sparse Row (CSR)
+Almacena tres vectores:
+- `data`: elementos no nulos leídos fila por fila.
+- `indices`: índices de columna correspondientes a cada elemento.
+- `indptr`: punteros que indican el inicio de cada fila en `data`.
+Es óptimo para slicing de filas y operaciones de producto matriz-vector $\mathbf{y} = \mathbf{A}\mathbf{x}$.
+
+### C. Compressed Sparse Column (CSC)
+Análogo a CSR pero por columnas. Es el formato estándar consumido por solvers de Simplex de alto rendimiento (como HiGHS y OSQP) para operaciones de pivoteo columnar.
+
+---
+
+## 2. Manipulación y Visualización Científica en Python
+
+```python
+import numpy as np
+import scipy.sparse as sp
+import matplotlib.pyplot as plt
+
+# 1. Construcción de una matriz esparsa tridiagonal de gran escala
+n = 10000
+diagonals = [np.ones(n - 1) * -1, np.ones(n) * 2, np.ones(n - 1) * -1]
+A_sparse = sp.diags(diagonals, [-1, 0, 1], shape=(n, n), format="csr")
+
+mem_dense = (n * n * 8) / (1024 ** 2)  # MB si fuera densa
+mem_sparse = (A_sparse.data.nbytes + A_sparse.indices.nbytes + A_sparse.indptr.nbytes) / (1024 ** 2)
+
+print(f"Dimensión: {n} x {n}")
+print(f"Memoria requerida formato denso:  {mem_dense:.2f} MB")
+print(f"Memoria requerida formato CSR:    {mem_sparse:.4f} MB")
+print(f"Ahorro de memoria:                {(1 - mem_sparse/mem_dense)*100:.2f}%")
+
+# 2. Visualización científica del patrón de dispersión (Sparsity Pattern)
+plt.figure(figsize=(6, 6))
+plt.spy(A_sparse[:100, :100], markersize=2, color='navy')
+plt.title(f"Patrón de dispersión (primeras 100 filas) - nnz={A_sparse.nnz}")
+plt.xlabel("Columnas")
+plt.ylabel("Filas")
+plt.grid(True, linestyle="--", alpha=0.5)
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Matrices Esparsas y Formatos Computacionales"
+  questions={[
+    {
+      id: "q_sparse_csc",
+      text: "¿Cuál es la principal ventaja operativa de la estructura CSC frente a CSR en el algoritmo Simplex?",
+      options: [
+        { id: "a", text: "Permite acceder y extraer eficientemente columnas enteras A_{.j} para calcular costos reducidos y vectores pivote", isCorrect: true, explanation: "Correcto: En el método Simplex se trabaja directamente sobre columnas entrantes A_{.j}, por lo que CSC minimiza el tiempo de acceso de memoria." },
+        { id: "b", text: "Duplica la precisión de cálculo a 128 bits automáticamente", isCorrect: false, explanation: "El formato de almacenamiento no altera el tipo de dato de punto flotante." },
+        { id: "c", text: "Evita que el determinante sea nulo", isCorrect: false, explanation: "La invertibilidad depende de la independencia lineal, no de la estructura de datos." }
+      ]
+    }
+  ]}
+/>

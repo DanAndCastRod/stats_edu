@@ -1,0 +1,156 @@
+---
+title: "Gráficos de Control por Variables y Atributos"
+order: 1
+description: "Cartas de control de Shewhart para variables continuas (X-barra, R) y atributos (p, c, u), causas comunes vs especiales y reglas de Western Electric."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es la distinción fundamental entre 'causas comunes' y 'causas especiales' de variación según Walter Shewhart?"
+    options:
+      - "Las causas comunes son inherentes y estables del proceso (ruido blanco); las causas especiales son perturbaciones externas identificables y eliminables"
+      - "Las causas comunes siempre generan productos no conformes; las especiales mejoran la productividad"
+      - "Las causas comunes se eliminan despidiendo al operador; las especiales modificando la máquina"
+      - "Las causas comunes solo ocurren en variables continuas; las especiales en atributos"
+    answer: 0
+    explanation: "Las causas comunes forman parte estable del sistema técnico y ambiental (variación natural). Las causas especiales son eventos anómalos (herramienta rota, lote defectuoso) que deben detectarse y corregirse rápidamente."
+  - question: "¿Qué tipo de gráfico de control por atributos se utiliza cuando el tamaño del subgrupo n varía y se cuenta la fracción o proporción de artículos no conformes?"
+    options:
+      - "Gráfico p con límites de control variables"
+      - "Gráfico c de defectos totales"
+      - "Gráfico X-barra de medias continuas"
+      - "Gráfico R de rangos muestrales"
+    answer: 0
+    explanation: "El gráfico p monitorea la proporción p = d/n de unidades defectuosas. Si n varía entre lotes, los límites de control 3-sigma se recalculan para cada subgrupo."
+---
+
+# Introducción
+
+> "En Dios confiamos; todos los demás deben traer datos". La frase icónica de W. Edwards Deming resume el espíritu del **Control Estadístico de Procesos (SPC)**. La intervención reactiva basada en corazonadas produce el fenómeno de "sobreajuste" (tampering), aumentando la variabilidad en lugar de reducirla.
+
+Las cartas de control creadas por Walter Shewhart en los laboratorios Bell en 1924 distinguen objetivamente si una fluctuación es variación natural del proceso o señal de una perturbación imputable.
+
+<Callout type="info">
+**Límites 3-Sigma:** Los límites de control superior e inferior ($UCL$ y $LCL$) se ubican a $\pm 3\sigma$ de la línea central. Si el proceso está bajo control estadístico y se distribuye normalmente, el 99.73% de los puntos caerán dentro de los límites por puro azar.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Distinguir entre causas comunes y especiales de variabilidad industrial.
+- Diseñar e interpretar cartas de control por variables: $\bar{X}$ (media) y $R$ (rango).
+- Construir cartas de control por atributos: gráfico $p$ (fracción defectuosa), $c$ (defectos por lote constante) y $u$ (defectos por unidad variable).
+- Aplicar las reglas de decisión de Western Electric para detección temprana de patrones no aleatorios.
+
+---
+
+# Fundamentos Teóricos
+
+### Gráficos por Variables: $\bar{X}$ y $R$
+
+Se toman $m$ subgrupos racionales, cada uno de tamaño $n$ (típicamente $n = 4$ o $5$). Para cada subgrupo $i$:
+
+$$\bar{X}_i = \frac{1}{n} \sum_{j=1}^n X_{ij}, \quad R_i = \max(X_i) - \min(X_i)$$
+
+Línea central y límites para el gráfico $R$:
+
+$$CL_R = \bar{R} = \frac{1}{m} \sum_{i=1}^m R_i$$
+
+$$UCL_R = D_4 \bar{R}, \quad LCL_R = D_3 \bar{R}$$
+
+Línea central y límites para el gráfico $\bar{X}$ (utilizando los factores tabulados $A_2$ de ASTM):
+
+$$CL_X = \bar{\bar{X}} = \frac{1}{m} \sum_{i=1}^m \bar{X}_i$$
+
+$$UCL_X = \bar{\bar{X}} + A_2 \bar{R}, \quad LCL_X = \bar{\bar{X}} - A_2 \bar{R}$$
+
+### Gráficos por Atributos: Gráfico $p$
+
+Si se inspeccionan $n_i$ piezas y se encuentran $d_i$ defectuosas, la fracción no conforme es $\hat{p}_i = d_i / n_i$:
+
+$$\bar{p} = \frac{\sum d_i}{\sum n_i}$$
+
+$$UCL = \bar{p} + 3 \sqrt{\frac{\bar{p}(1 - \bar{p})}{n_i}}, \quad LCL = \max\left(0, \bar{p} - 3 \sqrt{\frac{\bar{p}(1 - \bar{p})}{n_i}}\right)$$
+
+---
+
+# Laboratorio en Python: Monitoreo de Diámetro de Pistón ($ar{X}-R$)
+
+```python
+import numpy as np
+import pandas as pd
+
+# Datos de 10 subgrupos racionales (n=5 pistones por subgrupo en mm)
+np.random.seed(101)
+datos_piston = np.array([
+    [75.02, 75.01, 74.98, 75.04, 75.00],
+    [74.99, 75.03, 75.02, 75.01, 74.97],
+    [75.05, 75.00, 75.01, 75.02, 75.03],
+    [74.97, 74.98, 75.00, 75.01, 74.99],
+    [75.01, 75.04, 75.03, 75.02, 75.00],
+    [75.03, 75.01, 74.99, 75.02, 75.05],
+    [74.98, 75.00, 75.01, 75.02, 74.99],
+    [75.06, 75.04, 75.05, 75.03, 75.07],  # Alerta: posible corrimiento
+    [75.04, 75.05, 75.03, 75.06, 75.04],
+    [75.02, 75.01, 75.00, 75.03, 75.02]
+])
+
+m, n = datos_piston.shape
+medias_subgrupo = np.mean(datos_piston, axis=1)
+rangos_subgrupo = np.ptp(datos_piston, axis=1)
+
+# Factores ASTM para n = 5
+A2 = 0.577
+D3 = 0.000
+D4 = 2.114
+
+# Parámetros Carta R
+R_barra = np.mean(rangos_subgrupo)
+UCL_R = D4 * R_barra
+LCL_R = D3 * R_barra
+
+# Parámetros Carta X-barra
+X_doble_barra = np.mean(medias_subgrupo)
+UCL_X = X_doble_barra + A2 * R_barra
+LCL_X = X_doble_barra - A2 * R_barra
+
+df_control = pd.DataFrame({
+    'Subgrupo': range(1, m + 1),
+    'Media': medias_subgrupo,
+    'Rango': rangos_subgrupo,
+    'LCL_X': LCL_X,
+    'CL_X': X_doble_barra,
+    'UCL_X': UCL_X,
+    'Fuera_X': (medias_subgrupo > UCL_X) | (medias_subgrupo < LCL_X)
+})
+
+print(f"LÍMITES CARTA R: LCL={LCL_R:.4f}, CL={R_barra:.4f}, UCL={UCL_R:.4f}")
+print(f"LÍMITES CARTA X-BARRA: LCL={LCL_X:.4f}, CL={X_doble_barra:.4f}, UCL={UCL_X:.4f}")
+print("\nEvaluación de Subgrupos:")
+print(df_control[['Subgrupo', 'Media', 'CL_X', 'UCL_X', 'Fuera_X']])
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Gráficos de Control Shewhart"
+  questions={[
+    {
+      id: "q_spc_1",
+      text: "¿Por qué en un análisis de cartas X-barra y R siempre se debe verificar primero la estabilidad de la carta R antes de interpretar la carta X-barra?",
+      options: [
+        { id: "a", text: "Porque los límites de la carta X-barra dependen directamente de R-barra; si la dispersión es inestable, los límites de la media carecen de sentido estadístico", isCorrect: true, explanation: "La estimación de sigma proviene de R-barra/d2. Si el proceso tiene causas especiales de variabilidad en amplitud (R fuera de control), el cálculo de límites para X-barra es inválido." },
+        { id: "b", text: "Porque el rango siempre se calcula con fórmulas más sencillas que la media", isCorrect: false, explanation: "La simplicidad de cálculo no es la justificación estadística de la precedencia analítica." },
+        { id: "c", text: "Porque la carta R solo se aplica cuando el tamaño de muestra n es superior a 100", isCorrect: false, explanation: "Para n > 10 se recomienda la carta S (desviación estándar), no R." }
+      ]
+    },
+    {
+      id: "q_spc_2",
+      text: "La Regla 2 de Western Electric alerta de una anomalía en el proceso cuando ocurren:",
+      options: [
+        { id: "a", text: "9 (u 8) puntos consecutivos del mismo lado de la línea central", isCorrect: true, explanation: "La probabilidad de 9 puntos consecutivos en un mismo lado bajo puro azar es (0.5)^9 = 0.00195 (muy improbable), indicando un sesgo o desplazamiento sistemático de la media." },
+        { id: "b", text: "1 punto dentro de 1 sigma de la media", isCorrect: false, explanation: "Esto es comportamiento completamente normal y esperado." },
+        { id: "c", text: "Oscilaciones periódicas constantes", isCorrect: false, explanation: "El patrón de 8-9 puntos consecutivos en un lado detecta corrimiento del centrado." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,108 @@
+---
+title: "Frontera Eficiente Media-Varianza y Portafolio de Mínima Varianza"
+order: 1
+description: "Formulación cuadrática matricial de Markowitz, cálculo analítico con multiplicadores de Lagrange y resolución con CVXPY."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 75
+quiz:
+  - question: "En el modelo clásico de Markowitz para n activos con vector de rendimientos mu y matriz de covarianza Sigma, ¿cuál es la ecuación analítica del portafolio de Mínima Varianza Global (GMVP) con venta en corto permitida?"
+    options:
+      - "w_GMVP = (Sigma^(-1) * 1) / (1^T * Sigma^(-1) * 1)"
+      - "w_GMVP = (1/n) * 1"
+      - "w_GMVP = Sigma * mu"
+      - "w_GMVP = det(Sigma) * 1"
+    answer: 0
+    explanation: "Al minimizar (1/2) w^T Sigma w sujeto únicamente a que la suma de ponderaciones sea 1 (1^T w = 1), el Lagrangiano arroja la solución exacta w* = (Sigma^(-1) 1) / (1^T Sigma^(-1) 1), minimizando el riesgo diversificable sin fijar una rentabilidad objetivo."
+---
+
+# Teoría Clásica de Portafolios de Markowitz
+
+> En 1952, Harry Markowitz formalizó el principio de que los inversores racionales buscan **maximizar el rendimiento esperado para un nivel dado de riesgo** o **minimizar el riesgo para un rendimiento objetivo**.
+
+---
+
+## 1. Formulación Cuadrática de Markowitz
+
+Dado un universo de $n$ activos financieros:
+- Vector de rendimientos esperados: $\boldsymbol{\mu} \in \mathbb{R}^n$
+- Matriz de covarianzas: $\boldsymbol{\Sigma} \in \mathbb{R}^{n \times n}$ (con $\boldsymbol{\Sigma} \succ 0$)
+- Vector de ponderaciones de cartera: $\mathbf{w} = [w_1, \dots, w_n]^\top$
+
+El problema de optimización cuadrática para una rentabilidad objetivo $\mu_0$:
+$$\begin{aligned}
+\min_{\mathbf{w}} \quad & \frac{1}{2} \mathbf{w}^\top \boldsymbol{\Sigma} \mathbf{w} \\
+\text{s.a.} \quad & \mathbf{w}^\top \boldsymbol{\mu} = \mu_0 \\
+& \mathbf{w}^\top \mathbf{1} = 1
+\end{aligned}$$
+
+---
+
+## 2. Deducción Matricial con Multiplicadores de Lagrange
+
+Planteamos el Lagrangiano:
+$$\mathcal{L}(\mathbf{w}, \lambda_1, \lambda_2) = \frac{1}{2}\mathbf{w}^\top \boldsymbol{\Sigma} \mathbf{w} - \lambda_1 (\mathbf{w}^\top \boldsymbol{\mu} - \mu_0) - \lambda_2 (\mathbf{w}^\top \mathbf{1} - 1)$$
+
+Derivando respecto a $\mathbf{w}$:
+$$\nabla_\mathbf{w} \mathcal{L} = \boldsymbol{\Sigma} \mathbf{w} - \lambda_1 \boldsymbol{\mu} - \lambda_2 \mathbf{1} = \mathbf{0} \implies \mathbf{w} = \boldsymbol{\Sigma}^{-1}(\lambda_1 \boldsymbol{\mu} + \lambda_2 \mathbf{1})$$
+
+Definiendo las constantes fundamentales de Markowitz:
+$$A = \mathbf{1}^\top \boldsymbol{\Sigma}^{-1} \boldsymbol{\mu}, \quad B = \boldsymbol{\mu}^\top \boldsymbol{\Sigma}^{-1} \boldsymbol{\mu}, \quad C = \mathbf{1}^\top \boldsymbol{\Sigma}^{-1} \mathbf{1}, \quad D = BC - A^2 > 0$$
+
+La varianza mínima en función de la rentabilidad esperada $\mu_0$ describe la **hipérbola en el plano $(\sigma, \mu)$**:
+$$\sigma^2(\mu_0) = \frac{C \mu_0^2 - 2A \mu_0 + B}{D}$$
+
+---
+
+## 3. Implementación con CVXPY
+
+```python
+import cvxpy as cp
+import numpy as np
+
+# Datos sintéticos de 4 activos (Acciones USA, Bonos, Commodities, Emergentes)
+mu = np.array([0.12, 0.04, 0.08, 0.15])
+Sigma = np.array([
+    [0.040, 0.005, 0.010, 0.020],
+    [0.005, 0.010, 0.002, 0.004],
+    [0.010, 0.002, 0.030, 0.015],
+    [0.020, 0.004, 0.015, 0.060]
+])
+
+# CVXPY: Min Varianza sujeto a no venta en corto (w >= 0) y mu_target = 10%
+w = cp.Variable(4, nonneg=True)
+mu_target = 0.10
+
+objective = cp.Minimize(cp.quad_form(w, Sigma))
+constraints = [
+    cp.sum(w) == 1,
+    mu @ w >= mu_target
+]
+
+prob = cp.Problem(objective, constraints)
+prob.solve()
+
+print("--- PORTAFOLIO EFICIENTE DE MARKOWITZ ---")
+print(f"Estado del solver:       {prob.status}")
+print(f"Ponderaciones óptimas w*: {np.round(w.value, 4)}")
+print(f"Rendimiento esperado:     {np.dot(mu, w.value)*100:.2f}%")
+print(f"Volatilidad (sigma_p):    {np.sqrt(prob.value)*100:.2f}%")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Frontera de Markowitz"
+  questions={[
+    {
+      id: "q_markowitz_short",
+      text: "¿Qué impacto geométrico tiene prohibir las ventas en corto (imponer la restricción w_i >= 0) sobre la frontera eficiente?",
+      options: [
+        { id: "a", text: "La frontera se vuelve una curva convexa por tramos contenida estrictamente en el interior o sobre el límite de la hipérbola sin restricciones", isCorrect: true, explanation: "Correcto: Al añadir restricciones de no negatividad w >= 0 se contrae la región factible, por lo que el riesgo de la cartera para un retorno dado será siempre igual o superior al caso no restringido." },
+        { id: "b", text: "La frontera se vuelve una línea recta horizontal", isCorrect: false, explanation: "La frontera sigue siendo convexa y curvada." },
+        { id: "c", text: "La volatilidad de todos los activos se anula a cero", isCorrect: false, explanation: "El riesgo de los activos individuales no depende de las restricciones de asignación." }
+      ]
+    }
+  ]}
+/>

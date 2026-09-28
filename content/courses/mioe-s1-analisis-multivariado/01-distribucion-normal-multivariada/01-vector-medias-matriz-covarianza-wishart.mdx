@@ -1,0 +1,75 @@
+---
+title: "Vector de Medias, Matriz de Covarianzas y Distribución de Wishart"
+order: 1
+description: "Densidad normal p-dimensional, distancia de Mahalanobis, elipsoides de confianza y distribución matricial de Wishart."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 65
+quiz:
+  - question: "En la distribución Normal Multivariada N_p(mu, Sigma), ¿qué representa geométricamente la forma cuadrática (x - mu)^T Sigma^(-1) (x - mu) = c^2?"
+    options:
+      - "Un elipsoide centrado en mu cuyos ejes principales están alineados con los vectores propios de Sigma y longitudes proporcionales a las raíces cuadradas de los valores propios."
+      - "Un hiperplano infinito ortogonal al vector de medias."
+      - "Una parábola degenerada sin curvatura."
+      - "Una esfera perfecta unitaria independientemente de las covarianzas."
+    answer: 0
+    explanation: "La distancia cuadrática de Mahalanobis genera superficies de contorno de densidad constante con forma elipsoidal, donde la descomposición espectral de Sigma define las direcciones y magnitudes de la dispersión de los datos."
+---
+
+# La Distribución Normal Multivariada y la Distribución de Wishart
+
+> La inferencia estadística sobre múltiples variables correlacionadas requiere generalizar el cálculo escalar a vectores aleatorios $\mathbf{X} \in \mathbb{R}^p$ y matrices aleatorias de dispersión.
+
+---
+
+## 1. Función de Densidad Normal Multivariante
+
+Un vector aleatorio $\mathbf{X} = [X_1, \dots, X_p]^\top$ sigue una distribución **Normal Multivariante** $\mathcal{N}_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ si su función de densidad de probabilidad conjunta es:
+$$f(\mathbf{x}) = \frac{1}{(2\pi)^{p/2} |\boldsymbol{\Sigma}|^{1/2}} \exp\left( -\frac{1}{2} (\mathbf{x} - \boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu}) \right)$$
+
+donde:
+- $\boldsymbol{\mu} = \mathbb{E}[\mathbf{X}] \in \mathbb{R}^p$ es el vector de medias poblacionales.
+- $\boldsymbol{\Sigma} = \mathbb{E}[(\mathbf{X}-\boldsymbol{\mu})(\mathbf{X}-\boldsymbol{\mu})^\top] \in \mathbb{R}^{p \times p}$ es la matriz de covarianzas, simétrica y estrictamente definida positiva ($\boldsymbol{\Sigma} \succ 0$).
+
+---
+
+## 2. Distancia de Mahalanobis y Contornos de Densidad
+
+La **distancia estadística de Mahalanobis** entre una observación $\mathbf{x}$ y el centroide $\boldsymbol{\mu}$ es:
+$$D_M^2(\mathbf{x}, \boldsymbol{\mu}) = (\mathbf{x} - \boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu})$$
+
+<Callout type="info">
+**Propiedad de Distribución:** Si $\mathbf{X} \sim \mathcal{N}_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, la distancia cuadrática de Mahalanobis sigue exactamente una distribución Chi-cuadrado con $p$ grados de libertad:
+$$D_M^2(\mathbf{X}, \boldsymbol{\mu}) \sim \chi_p^2$$
+Por tanto, el elipsoide $\{ \mathbf{x} : (\mathbf{x}-\boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1} (\mathbf{x}-\boldsymbol{\mu}) \le \chi_{p}^2(1-\alpha) \}$ contiene exactamente el $(1-\alpha)100\%$ de la masa de probabilidad.
+</Callout>
+
+---
+
+## 3. La Distribución Matricial de Wishart
+
+En estadística univariada, la suma de cuadrados $\sum (X_i - \bar{X})^2 / \sigma^2 \sim \chi_{n-1}^2$. Su contraparte multivariada es la **Distribución de Wishart**.
+
+Dadas $n$ observaciones independientes e idénticamente distribuidas $\mathbf{X}_1, \dots, \mathbf{X}_n \sim \mathcal{N}_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, la matriz de dispersión muestral:
+$$\mathbf{A} = (n-1) \mathbf{S} = \sum_{i=1}^n (\mathbf{X}_i - \bar{\mathbf{X}})(\mathbf{X}_i - \bar{\mathbf{X}})^\top$$
+sigue una distribución de Wishart con $n-1$ grados de libertad:
+$$\mathbf{A} \sim \mathcal{W}_p(n-1, \boldsymbol{\Sigma})$$
+La distribución de Wishart es fundamental para derivar las distribuciones de los estadísticos multivariados de Hotelling, Wilks, Roy y Pillai.
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Geometría de la Normal Multivariada"
+  questions={[
+    {
+      id: "q_cov_ortho",
+      text: "Si dos componentes X_1 y X_2 de un vector normal multivariado tienen covarianza Cov(X_1, X_2) = 0, ¿qué se puede afirmar sobre su independencia estocástica?",
+      options: [
+        { id: "a", text: "Son estrictamente independientes (propiedad exclusiva de la distribución Normal)", isCorrect: true, explanation: "Correcto: Para la Normal multivariada, la incorrelación lineal (covarianza cero) es condición necesaria y suficiente para la independencia estadística mutua." },
+        { id: "b", text: "No son independientes, solo ortogonales en media", isCorrect: false, explanation: "En distribuciones generales esto es cierto, pero en la Normal covarianza nula implica independencia estricta." },
+        { id: "c", text: "Tienen varianzas idénticas", isCorrect: false, explanation: "La covarianza nula no restringe las varianzas individuales." }
+      ]
+    }
+  ]}
+/>

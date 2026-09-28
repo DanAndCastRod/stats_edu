@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { LogOut, User as UserIcon, BookOpen, LayoutDashboard, Settings, Bell, Search } from "lucide-react"
+import { LogOut, User as UserIcon, BookOpen, LayoutDashboard, Settings, Bell, Search, Calculator } from "lucide-react"
 
 interface AuthUser {
     name?: string | null
@@ -29,6 +29,9 @@ export default function Navbar({ user }: { user?: AuthUser }) {
                     <nav className="hidden lg:flex items-center gap-1">
                         <Link href="/dashboard" className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-brand-blue hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-all flex items-center gap-2">
                             <LayoutDashboard className="h-4 w-4" /> Dashboard
+                        </Link>
+                        <Link href="/tools" className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-brand-blue hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-all flex items-center gap-2">
+                            <Calculator className="h-4 w-4" /> Herramientas
                         </Link>
                     </nav>
                 </div>

@@ -1,0 +1,77 @@
+---
+title: "Diseños Central Compuesto (CCD) y Box-Behnken"
+order: 1
+description: "Modelos polinomiales de segundo orden, puntos axiales alfa, rotatabilidad, esfericidad y análisis de puntos de silla y óptimos."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 75
+quiz:
+  - question: "En un Diseño Central Compuesto (CCD) para k factores, ¿cuál es el valor exacto de la distancia axial alfa para garantizar la propiedad de Rotatabilidad?"
+    options:
+      - "alpha = (2^k)^(1/4) = (F)^(1/4)"
+      - "alpha = k^2 / 2"
+      - "alpha = sqrt(k)"
+      - "alpha = 1 siempre"
+    answer: 0
+    explanation: "Un diseño es rotatable si la varianza de la respuesta predicha Var(y_hat) es constante en todos los puntos equidistantes del centro del diseño. Para lograr esto en un CCD con F puntos factoriales, se requiere alpha = (F)^(1/4)."
+---
+
+# Metodología de Superficie de Respuesta (RSM): CCD y Box-Behnken
+
+> Cuando un proceso industrial se encuentra en la vecindad del óptimo, la relación entre las variables de control y la respuesta deja de ser lineal y exhibe curvatura cuadrática. La **Metodología de Superficie de Respuesta (RSM)** ajusta modelos polinomiales de segundo orden.
+
+---
+
+## 1. El Modelo Polinomial Cuadrático
+
+$$\hat{y} = \beta_0 + \sum_{i=1}^k \beta_i x_i + \sum_{i=1}^k \beta_{ii} x_i^2 + \sum_{i < j} \beta_{ij} x_i x_j$$
+
+En notación matricial compacta:
+$$\hat{y} = \beta_0 + \mathbf{x}^\top \mathbf{b} + \mathbf{x}^\top \mathbf{B} \mathbf{x}$$
+donde $\mathbf{B}$ es la matriz hessiana simétrica de coeficientes cuadráticos e interacciones:
+$$\mathbf{B} = \begin{bmatrix} \beta_{11} & \frac{1}{2}\beta_{12} & \cdots \\ \frac{1}{2}\beta_{12} & \beta_{22} & \cdots \\ \vdots & \vdots & \ddots \end{bmatrix}$$
+
+---
+
+## 2. Tipos de Diseños de Segundo Orden
+
+### A. Diseño Central Compuesto (CCD)
+Compuesto por tres bloques geométricos:
+1. $2^k$ puntos de un factorial completo o fraccionado de Resolución V.
+2. $2k$ puntos axiales o estrella localizados en $(\pm \alpha, 0, \dots, 0)$, $(0, \pm \alpha, \dots, 0)$, etc.
+3. $n_c$ puntos centrales replicados en el origen $(0, 0, \dots, 0)$ para estimar el error puro y la varianza central.
+
+- **Rotatabilidad:** Se cumple si $\alpha = (2^k)^{1/4}$. Para $k=2$, $\alpha = (4)^{1/4} = \sqrt{2} \approx 1.414$.
+
+### B. Diseño Box-Behnken
+Evita combinaciones extremas donde todos los factores estén simultáneamente en sus niveles altos o bajos. Los puntos experimentales se ubican en los puntos medios de las aristas del hipercubo de factores más puntos centrales. Es altamente valorado en procesos químicos donde los extremos provocan descomposición del producto.
+
+---
+
+## 3. Análisis Canónico del Punto Estacionario
+
+El punto estacionario $\mathbf{x}_0$ se obtiene igualando el vector gradiente a cero:
+$$\nabla \hat{y} = \mathbf{b} + 2\mathbf{B}\mathbf{x} = \mathbf{0} \implies \mathbf{x}_0 = -\frac{1}{2} \mathbf{B}^{-1} \mathbf{b}$$
+
+La naturaleza de la superficie se determina mediante los **valores propios** $\lambda_i$ de la matriz $\mathbf{B}$:
+- Si todos $\lambda_i < 0$: El punto $\mathbf{x}_0$ es un **Máximo Global**.
+- Si todos $\lambda_i > 0$: El punto $\mathbf{x}_0$ es un **Mínimo Global**.
+- Si los $\lambda_i$ tienen signos mixtos: $\mathbf{x}_0$ es un **Punto de Silla** (*Saddle Point*), requiriendo exploración en la dirección del autovector asociado al gradiente de mejora.
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Superficie de Respuesta"
+  questions={[
+    {
+      id: "q_rsm_center_pts",
+      text: "¿Cuál es la función crítica de incluir múltiples réplicas en el punto central (0, 0, ..., 0) en un diseño CCD?",
+      options: [
+        { id: "a", text: "Proporcionar una estimación pura del error experimental independiente del modelo y controlar la precisión de predicción en el centro", isCorrect: true, explanation: "Correcto: Las réplicas idénticas en el centro permiten calcular la suma de cuadrados de error puro (SSPE) para contrastar la falta de ajuste (Lack of Fit) del modelo cuadrático." },
+        { id: "b", text: "Reducir el número de factores k", isCorrect: false, explanation: "No altera la cantidad de variables independientes." },
+        { id: "c", text: "Garantizar que todos los valores propios sean cero", isCorrect: false, explanation: "Si los autovalores fueran cero no existiría curvatura." }
+      ]
+    }
+  ]}
+/>

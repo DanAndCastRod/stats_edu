@@ -1,0 +1,72 @@
+---
+title: "Condiciones de Optimalidad Karush-Kuhn-Tucker (KKT)"
+order: 1
+description: "Condiciones de optimalidad Karush-Kuhn-Tucker KKT, multiplicadores de Lagrange, métodos de penalización y barrera."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 80
+quiz:
+  - question: "En un problema de minimización con restricciones de desigualdad g_i(x) <= 0, ¿cuál es el signo obligatorio de los multiplicadores de Lagrange mu_i en las condiciones de optimalidad KKT?"
+    options:
+      - "mu_i >= 0 (no negativos), garantizando que el gradiente de la función objetivo sea una combinación cónica opuesta a los gradientes de las restricciones activas."
+      - "mu_i <= 0 siempre."
+      - "mu_i puede tomar cualquier valor real libre sin restricción."
+      - "mu_i debe ser estrictamente un número imaginario."
+    answer: 0
+    explanation: "En minimización, mu_i >= 0 es la condición de factibilidad dual. Si mu_i fuera negativo, sería posible desplazarse hacia el interior de la región factible disminuyendo aún más el valor de la función objetivo, contradiciendo la optimalidad."
+---
+
+# Condiciones de Optimalidad de Karush-Kuhn-Tucker (KKT)
+
+> Las condiciones de KKT (derivadas independientemente por Karush en 1939 y Kuhn-Tucker en 1951) constituyen la piedra angular analítica de la optimización con restricciones no lineales.
+
+---
+
+## 1. Planteamiento General del Problema
+
+$$\begin{aligned}
+\min_{\mathbf{x} \in \mathbb{R}^n} \quad & f(\mathbf{x}) \\
+\text{s.a.} \quad & g_i(\mathbf{x}) \le 0, \quad i=1,\dots,m \\
+& h_j(\mathbf{x}) = 0, \quad j=1,\dots,p
+\end{aligned}$$
+
+La función **Lagrangiana** se define como:
+$$\mathcal{L}(\mathbf{x}, \boldsymbol{\mu}, \boldsymbol{\lambda}) = f(\mathbf{x}) + \sum_{i=1}^m \mu_i g_i(\mathbf{x}) + \sum_{j=1}^p \lambda_j h_j(\mathbf{x})$$
+
+---
+
+## 2. El Teorema KKT de Primer Orden
+
+Si $\mathbf{x}^*$ es un mínimo local y satisface una condición de regularidad o **Cualificación de Restricciones** (como LICQ: los gradientes de las restricciones activas son linealmente independientes), entonces existen multiplicadores únicos $\boldsymbol{\mu}^*$ y $\boldsymbol{\lambda}^*$ tales que:
+
+1. **Estacionariedad:**
+   $$\nabla_\mathbf{x} \mathcal{L}(\mathbf{x}^*, \boldsymbol{\mu}^*, \boldsymbol{\lambda}^*) = \nabla f(\mathbf{x}^*) + \sum_{i=1}^m \mu_i^* \nabla g_i(\mathbf{x}^*) + \sum_{j=1}^p \lambda_j^* \nabla h_j(\mathbf{x}^*) = \mathbf{0}$$
+2. **Factibilidad Primal:**
+   $$g_i(\mathbf{x}^*) \le 0, \quad \forall i=1,\dots,m$$
+   $$h_j(\mathbf{x}^*) = 0, \quad \forall j=1,\dots,p$$
+3. **Factibilidad Dual:**
+   $$\mu_i^* \ge 0, \quad \forall i=1,\dots,m$$
+4. **Holgura Complementaria:**
+   $$\mu_i^* g_i(\mathbf{x}^*) = 0, \quad \forall i=1,\dots,m$$
+
+<Callout type="info">
+**Suficiencia en Problemas Convexos:** Si la función objetivo $f(\mathbf{x})$ es convexa, las funciones de desigualdad $g_i(\mathbf{x})$ son convexas y las de igualdad $h_j(\mathbf{x})$ son afines (lineales), entonces las condiciones KKT son **necesarias y suficientes** para la optimalidad global.
+</Callout>
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Condiciones KKT"
+  questions={[
+    {
+      id: "q_licq_importance",
+      text: "¿Por qué es indispensable que se cumpla la Cualificación de Restricciones (ej. LICQ) para garantizar la existencia de multiplicadores KKT en un mínimo local?",
+      options: [
+        { id: "a", text: "Para evitar que el cono de direcciones factibles esté restringido geométricamente de modo que los gradientes de las restricciones se anulen o se vuelvan coplanares espurios", isCorrect: true, explanation: "Correcto: Si LICQ o MFCQ fallan (ej. cúspides o restricciones redundantes tangentes en el óptimo), pueden existir mínimos locales donde ningún vector de multiplicadores finitos KKT satisfaga la ecuación de estacionariedad." },
+        { id: "b", text: "Para que el problema sea automáticamente lineal", isCorrect: false, explanation: "LICQ aplica a problemas generales no lineales." },
+        { id: "c", text: "Para eliminar los multiplicadores lambda_j", isCorrect: false, explanation: "Los multiplicadores de igualdad siguen existiendo." }
+      ]
+    }
+  ]}
+/>

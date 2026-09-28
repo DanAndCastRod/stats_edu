@@ -1,0 +1,150 @@
+---
+title: "Series de Tiempo y Suavizamiento Exponencial Simple"
+order: 1
+description: "Componentes de demanda (tendencia, estacionalidad, aleatoriedad), promedio móvil y Suavizamiento Exponencial Simple (SES) con constante alfa."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué efecto produce seleccionar una constante de suavizamiento alfa cercana a 1.0 en el modelo de Suavizamiento Exponencial Simple (SES)?"
+    options:
+      - "El pronóstico reacciona de forma inmediata y agresiva a las fluctuaciones recientes de la demanda real, otorgando poco peso al historial antiguo"
+      - "El pronóstico se convierte en una línea horizontal perfectamente plana"
+      - "Elimina por completo la necesidad de medir errores de pronóstico"
+      - "Invalida la ecuación de actualización"
+    answer: 0
+    explanation: "En la ecuación F_{t+1} = alfa * Y_t + (1 - alfa) * F_t, si alfa tiende a 1, F_{t+1} aprox Y_t (modelo ingenuo o reactivo). Un alfa pequeño (ej. 0.1) produce un pronóstico muy estable que filtra el ruido aleatorio."
+  - question: "¿Cuáles son los cuatro componentes clásicos en los que se descompone una serie temporal de demanda industrial?"
+    options:
+      - "Tendencia secular (T), Estacionalidad (S), Ciclicidad (C) y Variación Aleatoria o Ruido (I)"
+      - "Compras, Producción, Almacén y Ventas"
+      - "Media, Mediana, Moda y Varianza"
+      - "Costos Fijos, Costos Variables, Impuestos y Utilidad"
+    answer: 0
+    explanation: "El modelo clásico de descomposición desagrega la serie en Tendencia de largo plazo, patrones Estacionales periódicos fijos, Ciclos económicos macro y perturbaciones Irregulares/aleatorias."
+---
+
+# Introducción
+
+> Toda la cadena de suministro se mueve impulsada por una estimación del futuro. Desde la compra de bobinas de acero con 3 meses de anticipación hasta la contratación de personal temporal para la temporada navideña, los errores en los pronósticos generan dos catástrofes simétricas: quiebres de inventario que pierden clientes o exceso de stock que pudre el capital de trabajo de la fábrica.
+
+El **Pronóstico de Demanda** no busca adivinar con una bola de cristal, sino aplicar modelos matemáticos rigurosos para filtrar el ruido aleatorio y proyectar la señal genuina de las series de tiempo.
+
+<Callout type="info">
+**Primera Ley del Pronóstico:** Los pronósticos siempre están equivocados; el objetivo de la ingeniería industrial no es la perfección absoluta imposible, sino **minimizar la varianza del error y garantizar la ausencia de sesgo sistemático (Tracking Signal cercano a cero)**.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Descomponer una serie de demanda en sus cuatro componentes estructurales.
+- Implementar el modelo de Promedios Móviles Simples (SMA) y Ponderados (WMA).
+- Deducir y aplicar el Suavizamiento Exponencial Simple (SES): $F_{t+1} = \alpha Y_t + (1 - \alpha) F_t$.
+- Optimizar el hiperparámetro de atenuación $\alpha$ mediante minimización del MSE en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Promedio Móvil Simple ($SMA_k$)
+
+Para una ventana de tamaño $k$:
+
+$$F_{t+1} = \frac{1}{k} \sum_{i=0}^{k-1} Y_{t - i}$$
+
+### Suavizamiento Exponencial Simple (SES)
+
+Cuando la serie no presenta tendencia pronunciada ni estacionalidad marcada:
+
+$$F_{t+1} = \alpha Y_t + (1 - \alpha) F_t = F_t + \alpha (Y_t - F_t)$$
+
+Donde:
+- $Y_t$: Demanda real observada en el periodo $t$.
+- $F_t$: Pronóstico que se había realizado para el periodo $t$.
+- $(Y_t - F_t) = e_t$: Error de pronóstico del periodo actual.
+- $\alpha \in (0, 1)$: Constante de suavizamiento exponencial.
+
+Expandiendo recursivamente la ecuación:
+
+$$F_{t+1} = \alpha \sum_{j=0}^{t-1} (1 - \alpha)^j Y_{t-j} + (1 - \alpha)^t F_1$$
+
+Los pesos asignados a las demandas pasadas decrecen geométricamente a una tasa $(1 - \alpha)^j$.
+
+---
+
+# Laboratorio en Python: Ajuste y Optimización de SES
+
+```python
+import numpy as np
+import pandas as pd
+from scipy.optimize import minimize_scalar
+
+# Demanda mensual real de motores eléctricos durante 12 meses
+meses = range(1, 13)
+demanda_real = np.array([210, 225, 218, 235, 240, 230, 245, 252, 248, 260, 255, 268])
+
+def simular_ses(alfa, datos):
+    n = len(datos)
+    F = np.zeros(n)
+    F[0] = datos[0]  # Inicialización con el primer dato real
+    for t in range(1, n):
+        F[t] = alfa * datos[t - 1] + (1.0 - alfa) * F[t - 1]
+    errores = datos[1:] - F[1:]
+    mse = np.mean(errores**2)
+    mad = np.mean(np.abs(errores))
+    return F, mse, mad
+
+# Optimización matemática de alfa para minimizar el Error Cuadrático Medio (MSE)
+def objetivo_mse(alfa):
+    _, mse, _ = simular_ses(alfa, demanda_real)
+    return mse
+
+res_opt = minimize_scalar(objetivo_mse, bounds=(0.01, 0.99), method='bounded')
+alfa_optimo = res_opt.x
+
+F_opt, mse_opt, mad_opt = simular_ses(alfa_optimo, demanda_real)
+F_reactivo, mse_reac, _ = simular_ses(0.80, demanda_real)
+F_suave, mse_suav, _ = simular_ses(0.20, demanda_real)
+
+df_pronostico = pd.DataFrame({
+    'Mes': meses,
+    'Demanda_Real': demanda_real,
+    'Pronostico_Alfa_Opt': F_opt,
+    'Pronostico_Alfa_0.20': F_suave,
+    'Pronostico_Alfa_0.80': F_reactivo
+})
+
+# Pronóstico para el próximo periodo t = 13
+pronostico_mes_13 = alfa_optimo * demanda_real[-1] + (1.0 - alfa_optimo) * F_opt[-1]
+
+print("COMPARATIVA DE PRONÓSTICOS DE DEMANDA:")
+print(df_pronostico.round(1).to_string(index=False))
+print(f"\n--> ALFA ÓPTIMO ENCONTRADO: alfa = {alfa_optimo:.4f}")
+print(f"--> MSE Mínimo: {mse_opt:.2f} | Desviación Absoluta Media (MAD): {mad_opt:.2f} unidades")
+print(f"--> PRONÓSTICO PARA EL MES 13: {pronostico_mes_13:.1f} motores")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Series de Tiempo y Suavizamiento Simple"
+  questions={[
+    {
+      id: "q_ses_1",
+      text: "Si el pronóstico para el mes de mayo fue F_mayo = 120 unidades, la demanda real resultó ser Y_mayo = 150 unidades y la constante es alfa = 0.30, ¿cuál es el pronóstico para junio F_junio?",
+      options: [
+        { id: "a", text: "129 unidades (F_junio = 0.30 * 150 + 0.70 * 120 = 45 + 84 = 129)", isCorrect: true, explanation: "F_{t+1} = alfa * Y_t + (1 - alfa) * F_t = 0.30(150) + 0.70(120) = 45 + 84 = 129 unidades." },
+        { id: "b", text: "150 unidades", isCorrect: false, explanation: "150 sería si alfa fuera 1.0." },
+        { id: "c", text: "135 unidades", isCorrect: false, explanation: "135 sería el promedio simple aritmético (alfa = 0.50)." }
+      ]
+    },
+    {
+      id: "q_ses_2",
+      text: "¿Por qué el Suavizamiento Exponencial Simple (SES) NO debe utilizarse cuando la demanda presenta una tendencia alcista constante y clara?",
+      options: [
+        { id: "a", text: "Porque el SES siempre sufrirá un rezago sistemático (lag), pronosticando sistemáticamente por debajo de la demanda real", isCorrect: true, explanation: "El SES asume una media plana local. Ante una tendencia creciente, F_t siempre irá por detrás de Y_t, acumulando un sesgo de error positivo continuo (requiere el modelo de Holt)." },
+        { id: "b", text: "Porque el algoritmo de optimización diverge a infinito", isCorrect: false, explanation: "El algoritmo numérico no diverge; el defecto es estructural del modelo matemático." },
+        { id: "c", text: "Porque alfa no puede ser mayor a 0", isCorrect: false, explanation: "alfa está en el intervalo (0, 1)." }
+      ]
+    }
+  ]}
+/>

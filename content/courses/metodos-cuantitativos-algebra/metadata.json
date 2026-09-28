@@ -1,0 +1,10 @@
+{
+  "title": "Métodos Cuantitativos y Álgebra Matricial",
+  "slug": "metodos-cuantitativos-algebra",
+  "code": "CB213",
+  "description": "Álgebra matricial aplicada, resolución de sistemas lineales Ax = b, factorización LU y Cholesky, autovalores, autovectores, gradientes y matrices hessianas en optimización convexa.",
+  "credits": 3,
+  "ects": 6,
+  "semester": 2,
+  "isMock": false
+}

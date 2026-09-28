@@ -1,0 +1,88 @@
+---
+title: "Métodos de Penalización Exterior y Barrera Logarítmica Interior"
+order: 2
+description: "Método SUMT (Sequential Unconstrained Minimization Technique), funciones de pérdida cuadrática, barrera logarítmica y métodos de punto interior."
+bloomLevel: "CREATE"
+estimatedMinutes: 75
+quiz:
+  - question: "En el método de Barrera Logarítmica Interior de Frisch para problemas con restricciones g_i(x) <= 0, ¿qué ocurre si un punto de prueba x intenta cruzar la frontera de factibilidad hacia el exterior?"
+    options:
+      - "El término de barrera -mu * sum ln(-g_i(x)) tiende asintóticamente a +infinito, forzando a los algoritmos de optimización a permanecer estrictamente en el interior factible."
+      - "La función objetivo se convierte en un polinomio de Chebyshev."
+      - "El gradiente cambia de signo hacia cero de forma discontinua."
+      - "El punto es proyectado sobre el origen automáticamente."
+    answer: 0
+    explanation: "Cuando g_i(x) -> 0^- (la frontera), -g_i(x) -> 0^+ y ln(-g_i(x)) -> -infinito, por lo que el término de penalización interior -mu * ln(-g_i(x)) -> +infinito, erigiendo una barrera infranqueable que confina las iteraciones a la región estrictamente factible."
+---
+
+# Métodos de Penalización y Barrera Logarítmica (SUMT)
+
+> Las Técnicas de Minimización No Restringida Secuencial (**SUMT**) transforman un problema complejo con restricciones en una sucesión de problemas no restringidos resolubles mediante BFGS o Newton.
+
+---
+
+## 1. Método de Penalización Exterior Cuadrática
+
+Para el problema $\min f(\mathbf{x})$ s.a. $g_i(\mathbf{x}) \le 0$:
+$$P(\mathbf{x}; \rho_k) = f(\mathbf{x}) + \frac{\rho_k}{2} \sum_{i=1}^m [\max(0, g_i(\mathbf{x}))]^2$$
+- Las iteraciones $\mathbf{x}(\rho_k)$ se aproximan al óptimo desde el **exterior** (violando levemente las restricciones).
+- A medida que el parámetro de penalización crece ($\rho_k \to \infty$), la solución no restringida $\mathbf{x}^*(\rho_k)$ converge formalmente a la solución óptima del problema original $\mathbf{x}^*$.
+- **Inconveniente Numérico:** Cuando $\rho_k \to \infty$, la matriz Hessiana $\nabla^2 P$ se vuelve extremadamente mal condicionada ($\kappa \to \infty$), exigiendo métodos cuasi-Newton robustos.
+
+---
+
+## 2. Método de Barrera Logarítmica Interior (Frisch, 1955)
+
+Para optimizar estrictamente en el interior factible $\{ \mathbf{x} : g_i(\mathbf{x}) < 0 \}$:
+$$B(\mathbf{x}; \mu_k) = f(\mathbf{x}) - \mu_k \sum_{i=1}^m \ln(-g_i(\mathbf{x}))$$
+- El parámetro de barrera se reduce progresivamente: $\mu_k \to 0$.
+- La trayectoria suave $\mathbf{x}^*(\mu_k)$ parametrizada por $\mu > 0$ se denomina la **Trayectoria Central** (*Central Path*).
+- Constituye el fundamento matemático de los **Métodos de Puntos Interiores Modernos** (Karmarkar, Nesterov, Nemirovski).
+
+---
+
+## 3. Implementación en Python
+
+```python
+import numpy as np
+from scipy.optimize import minimize
+
+# Minimizar f(x) = (x1 - 2)^2 + (x2 - 1)^2 sujeto a g(x) = x1 + x2 - 2 <= 0
+f = lambda x: (x[0] - 2.0)**2 + (x[1] - 1.0)**2
+g = lambda x: x[0] + x[1] - 2.0
+
+def penalizacion_exterior(rho, x_init):
+    # Función no restringida penalizada
+    P = lambda x: f(x) + 0.5 * rho * (max(0.0, g(x)))**2
+    res = minimize(P, x_init, method="BFGS")
+    return res.x
+
+x_k = np.array([0.0, 0.0])
+print(f"{'rho':<10} | {'x1':<10} | {'x2':<10} | {'g(x)':<10} | {'f(x)':<10}")
+print("-" * 55)
+
+for rho in [1, 10, 100, 1000, 10000]:
+    x_k = penalizacion_exterior(rho, x_k)
+    print(f"{rho:<10} | {x_k[0]:<10.4f} | {x_k[1]:<10.4f} | {g(x_k):<10.4f} | {f(x_k):<10.4f}")
+
+# La solución teórica KKT exacta es x* = [1.5, 0.5] con f(x*) = 0.5000
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Penalización y Barrera"
+  questions={[
+    {
+      id: "q_barrier_multiplier",
+      text: "¿Cuál es la relación matemática entre el parámetro de barrera mu y los multiplicadores de Lagrange KKT mu_i a lo largo de la trayectoria central?",
+      options: [
+        { id: "a", text: "mu_i(mu) = -mu / g_i(x*(mu)), el cual converge exactamente al multiplicador dual óptimo KKT mu_i* cuando mu tiende a cero", isCorrect: true, explanation: "Correcto: Al igualar el gradiente de la función de barrera a cero: grad(f) + sum (-mu / g_i) grad(g_i) = 0. Definiendo mu_i = -mu / g_i, se recupera la condición de estacionariedad KKT exacta." },
+        { id: "b", text: "mu_i es el inverso del logaritmo natural de mu", isCorrect: false, explanation: "La relación proviene de la derivada del logaritmo d/dx ln(-g) = -grad(g)/(-g)." },
+        { id: "c", text: "mu_i no guarda ninguna relación con mu", isCorrect: false, explanation: "Los métodos de barrera son métodos primal-duales que actualizan ambas variables simultáneamente." }
+      ]
+    }
+  ]}
+/>

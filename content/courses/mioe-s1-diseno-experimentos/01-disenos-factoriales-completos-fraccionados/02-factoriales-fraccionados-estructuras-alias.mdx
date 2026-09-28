@@ -1,0 +1,71 @@
+---
+title: "Factoriales Fraccionados 2^(k-p), Generadores y Resolución"
+order: 2
+description: "Reducción de corridas experimentales, relaciones definidoras, estructuras de confusión de alias y diseños de resolución III, IV y V."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 70
+quiz:
+  - question: "En un diseño factorial fraccionado de Resolución IV (Res IV), ¿cuál es la estructura de confusión (alias) garantizada?"
+    options:
+      - "Ningún efecto principal está confundido con interacciones dobles, pero las interacciones dobles están confundidas entre sí."
+      - "Los efectos principales están confundidos con interacciones dobles."
+      - "Todos los efectos están libres de cualquier confusión hasta interacciones de orden cuatro."
+      - "El diseño requiere el doble de corridas que el factorial completo."
+    answer: 0
+    explanation: "En Resolución IV, la longitud de la palabra más corta en la relación definidora es 4 (ej. I = ABCD). Por tanto, los efectos principales se confunden con triples (A = BCD, despreciables), pero las interacciones dobles se confunden por pares (AB = CD)."
+---
+
+# Factoriales Fraccionados 2^(k-p) y Estructuras de Alias
+
+> Cuando el número de factores $k$ crece, ejecutar $2^k$ corridas resulta económicamente prohibitivo ($2^7 = 128$ experimentos). El **Principio de Esparsidad de Efectos** establece que la mayor parte de la respuesta es explicada por efectos principales e interacciones dobles. Los factoriales fraccionados $2^{k-p}$ aprovechan esta propiedad.
+
+---
+
+## 1. Construcción mediante Generadores y Relación Definidora
+
+Para diseñar un factorial fraccionado $2^{4-1}$ (mitad de fracción, 8 corridas en lugar de 16):
+1. Se seleccionan los primeros $k-p = 3$ factores básicos: $A, B, C$.
+2. Se asigna el cuarto factor $D$ al producto de los básicos (**Generador de diseño**):
+   $$D = A \cdot B \cdot C$$
+3. Multiplicando ambos lados por $D$ (sabiendo que $D^2 = I$, la columna de unos):
+   $$I = A B C D \quad (\text{Relación Definidora})$$
+
+---
+
+## 2. Estructura de Alias (Confusión)
+
+Multiplicando cualquier término por la relación definidora $I = ABCD$, obtenemos sus cadenas de alias:
+- $A \cdot I = A(ABCD) = A^2 BCD \implies \mathbf{[A] = A + BCD}$
+- $B \cdot I = B(ABCD) = A B^2 CD \implies \mathbf{[B] = B + ACD}$
+- $AB \cdot I = AB(ABCD) = A^2 B^2 CD \implies \mathbf{[AB] = AB + CD}$
+
+El analista no estima el efecto puro de $A$, sino la suma lineal $\beta_A + \beta_{BCD}$.
+
+---
+
+## 3. Clasificación de Resolución Experimental
+
+<Callout type="info">
+- **Resolución III:** Los efectos principales no están confundidos entre sí, pero sí están confundidos con interacciones dobles ($[A] = A + BC$). Adecuados para tamizaje inicial (*screening*).
+- **Resolución IV:** Los efectos principales están limpios de interacciones dobles ($[A] = A + BCD$), pero las interacciones dobles están confundidas entre sí ($[AB] = AB + CD$).
+- **Resolución V:** Los efectos principales están limpios de dobles y triples, y las interacciones dobles están limpias de otras interacciones dobles ($[AB] = AB + CDE$). Excelente para modelado riguroso.
+</Callout>
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Factoriales Fraccionados"
+  questions={[
+    {
+      id: "q_alias_plackett",
+      text: "Si en un diseño factorial fraccionado 2^(3-1) con I = ABC se observa un efecto significativo en el contraste de [A], ¿a qué se puede atribuir formalmente si el proceso tiene interacciones fuertes?",
+      options: [
+        { id: "a", text: "Al efecto principal del factor A, a la interacción BC, o a una combinación de ambos", isCorrect: true, explanation: "Correcto: Dado que [A] = A + BC en Resolución III, la significancia estadística no puede aislar si proviene del factor individual A o de la sinergia entre B y C sin corridas de desconfusión (foldover)." },
+        { id: "b", text: "Exclusivamente al error experimental aleatorio", isCorrect: false, explanation: "Si el efecto supera el umbral crítico, no se debe a mero ruido aleatorio." },
+        { id: "c", text: "A que el modelo es estrictamente parabólico", isCorrect: false, explanation: "Los factoriales de 2 niveles no pueden detectar curvatura cuadrática pura." }
+      ]
+    }
+  ]}
+/>

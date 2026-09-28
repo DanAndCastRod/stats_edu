@@ -1,0 +1,77 @@
+---
+title: "Medición de Eficiencia Técnica Relativa y Modelo CCR (CRS)"
+order: 1
+description: "Conjunto de posibilidades de producción (PPS), rendimientos constantes a escala, formulación fraccional de Charnes-Cooper y dual lineal envolvente."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 70
+quiz:
+  - question: "En el modelo CCR de Charnes, Cooper y Rhodes (1978) con orientación a entradas (input-oriented), ¿qué significa que una DMU obtenga un score de eficiencia theta* = 0.82?"
+    options:
+      - "Que la DMU es ineficiente y podría producir exactamente su mismo nivel de salidas reduciendo proporcionalmente todos sus insumos en un 18%."
+      - "Que la DMU tiene 82 empleados en plantilla."
+      - "Que la DMU genera un 82% de margen de utilidad financiera neta."
+      - "Que el modelo matemático tiene un 18% de error residual."
+    answer: 0
+    explanation: "El score theta* en orientación input mide la contracción radial máxima factible de los insumos preservando la producción de bienes: theta* = 0.82 indica que la DMU requiere solo el 82% de sus insumos actuales para operar sobre la frontera de mejores prácticas."
+---
+
+# Análisis Envolvente de Datos (DEA): Eficiencia y Modelo CCR
+
+> El **Análisis Envolvente de Datos (DEA)** es una técnica no paramétrica fundamentada en programación lineal para evaluar la **eficiencia técnica relativa** de un conjunto de Unidades de Toma de Decisiones (**DMUs** homogéneas: hospitales, sucursales bancarias, plantas industriales) con múltiples insumos y múltiples productos.
+
+---
+
+## 1. El Conjunto de Posibilidades de Producción (PPS)
+
+Dadas $n$ DMUs, cada una consumiendo un vector de insumos $\mathbf{x}_j \in \mathbb{R}^m$ para producir salidas $\mathbf{y}_j \in \mathbb{R}^s$ ($j=1,\dots,n$).
+Bajo los postulados de Charnes, Cooper y Rhodes (1978):
+1. **Factibilidad de las observaciones:** $(\mathbf{x}_j, \mathbf{y}_j) \in PPS$.
+2. **Rendimientos Constantes a Escala (CRS):** Si $(\mathbf{x}, \mathbf{y}) \in PPS \implies (k\mathbf{x}, k\mathbf{y}) \in PPS$ para todo $k > 0$.
+3. **Convexidad y Libre Disposición (*Free Disposability*):**
+
+$$PPS_{CCR} = \left\{ (\mathbf{x}, \mathbf{y}) : \mathbf{x} \ge \sum_{j=1}^n \lambda_j \mathbf{x}_j, \, \mathbf{y} \le \sum_{j=1}^n \lambda_j \mathbf{y}_j, \, \lambda_j \ge 0 \right\}$$
+
+---
+
+## 2. Formulación del Modelo CCR (Orientado a Entradas)
+
+### A. Modelo Fraccional Primal (Charnes-Cooper):
+Para evaluar la DMU objetivo $o$:
+$$\max_{\mathbf{u}, \mathbf{v}} \quad \frac{\mathbf{u}^\top \mathbf{y}_o}{\mathbf{v}^\top \mathbf{x}_o} \quad \text{s.a.} \quad \frac{\mathbf{u}^\top \mathbf{y}_j}{\mathbf{v}^\top \mathbf{x}_j} \le 1, \, \forall j=1,\dots,n, \quad \mathbf{u}, \mathbf{v} \ge \mathbf{0}$$
+
+### B. Transformación a Modelo Multiplicador Lineal:
+Imponiendo $\mathbf{v}^\top \mathbf{x}_o = 1$:
+$$\max_{\mathbf{u}, \mathbf{v}} \quad \mathbf{u}^\top \mathbf{y}_o \quad \text{s.a.} \quad \mathbf{u}^\top \mathbf{y}_j - \mathbf{v}^\top \mathbf{x}_j \le 0, \, \forall j, \quad \mathbf{v}^\top \mathbf{x}_o = 1$$
+
+### C. Modelo Envolvente Dual (Forma Canónica):
+$$\begin{aligned}
+\min_{\theta, \boldsymbol{\lambda}} \quad & \theta \\
+\text{s.a.} \quad & \sum_{j=1}^n \lambda_j \mathbf{x}_j \le \theta \mathbf{x}_o \quad (\text{Insumos}) \\
+& \sum_{j=1}^n \lambda_j \mathbf{y}_j \ge \mathbf{y}_o \quad (\text{Productos}) \\
+& \lambda_j \ge 0, \, \forall j
+\end{aligned}$$
+
+<Callout type="info">
+**Diagnóstico de Eficiencia:**
+- La DMU $o$ es **técnicamente eficiente** si y solo si $\theta^* = 1$ y todas las holguras son nulas ($s^{-*} = \mathbf{0}, s^{+*} = \mathbf{0}$).
+- Si $\theta^* < 1$, la DMU es **ineficiente**, y el vector $\theta^* \mathbf{x}_o$ define su objetivo de reducción radial.
+</Callout>
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Modelo CCR"
+  questions={[
+    {
+      id: "q_dea_frontier_points",
+      text: "¿Qué representan las DMUs con ponderadores lambda_j* > 0 en la solución del modelo envolvente de una DMU ineficiente?",
+      options: [
+        { id: "a", text: "El conjunto de pares de referencia eficientes (Peer Group) que demuestran empíricamente cómo producir más con menos recursos", isCorrect: true, explanation: "Correcto: Las DMUs del peer group son unidades 100% eficientes con mezclas operativas similares a la unidad evaluada, sirviendo como modelo benchmark directo para sus metas de mejora." },
+        { id: "b", text: "Las DMUs que quebraron financieramente", isCorrect: false, explanation: "Al contrario, son las mejores de su clase (best performers)." },
+        { id: "c", text: "Unidades idénticas en todas sus dimensiones", isCorrect: false, explanation: "Pueden tener diferentes tamaños; el modelo proyecta su combinación lineal convexa." }
+      ]
+    }
+  ]}
+/>

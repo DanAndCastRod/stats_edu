@@ -1,0 +1,149 @@
+---
+title: "Valor Presente Neto (VPN) y Tasa Interna de Retorno (TIR)"
+order: 1
+description: "Criterios fundamentales de rentabilidad: Formulación del VPN, cálculo de la TIR, paradoja de tasas múltiples y Tasa Interna de Retorno Modificada (TIRM)."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es el criterio formal de decisión para aceptar un proyecto de inversión independiente utilizando el Valor Presente Neto (VPN) a la tasa de descuento TMAR?"
+    options:
+      - "Aceptar si VPN > 0 (el proyecto rinde más que la TMAR y genera valor económico agregado neto para la empresa)"
+      - "Aceptar si VPN = 0 únicamente"
+      - "Rechazar si el VPN es positivo pero menor a la inversión inicial"
+      - "Aceptar solo si la TIR es menor al 5%"
+    answer: 0
+    explanation: "Un VPN > 0 garantiza que los flujos futuros descontados superan la inversión inicial a la tasa mínima aceptable de rendimiento (TMAR / WACC), incrementando la riqueza neta de los inversionistas."
+  - question: "¿Bajo qué condición matemática puede un proyecto de inversión presentar múltiples Tasas Internas de Retorno (TIR múltiples)?"
+    options:
+      - "Cuando el flujo de caja neto presenta más de un cambio de signo en el tiempo (flujo de fondos no convencional, según la regla de signos de Descartes)"
+      - "Cuando la inversión inicial es mayor a 1 millón de dólares"
+      - "Cuando todos los flujos anuales son exactamente idénticos"
+      - "Cuando la tasa de descuento es cero"
+    answer: 0
+    explanation: "La TIR es la raíz de un polinomio de grado n. Si los flujos cambian de signo varias veces (ej. desembolso inicial negativo, beneficios positivos y posterior costo de desmantelamiento negativo), la regla de signos de Descartes permite la existencia de múltiples raíces reales positivas."
+---
+
+# Introducción
+
+> En una corporación industrial, la gerencia de proyectos recibe cada año decenas de propuestas de inversión: modernizar la línea de envasado, adquirir una flota propia de tractocamiones, o construir un parque fotovoltaico en el techo de la planta. Dado que el capital financiero es escaso, ¿cómo clasificamos y seleccionamos objetivamente los proyectos que maximizan el valor de la empresa?
+
+Los dos criterios cuantitativos más utilizados en las finanzas corporativas mundiales son el **Valor Presente Neto (VPN / Net Present Value)** y la **Tasa Interna de Retorno (TIR / Internal Rate of Return)**.
+
+<Callout type="warning">
+**La Trampa de la TIR:** Para proyectos mutuamente excluyentes con diferente escala de inversión o distinta vida útil, la TIR puede contradecir al VPN y llevar a decisiones erróneas. En caso de discrepancia, **el criterio del VPN siempre prevalece**.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formular matemáticamente la función de Valor Presente Neto $VPN(i)$.
+- Deducir y calcular la Tasa Interna de Retorno (TIR) mediante métodos numéricos iterativos (Newton-Raphson).
+- Identificar las inconsistencias de la TIR: supuesto de reinversión irreal y tasas múltiples en flujos no convencionales.
+- Aplicar la Tasa Interna de Retorno Modificada (TIRM) y construir perfiles de VPN en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Valor Presente Neto (VPN)
+
+Sea $I_0$ la inversión inicial requerida en $t = 0$, $F_t$ el flujo de caja neto del periodo $t$, y $k$ la Tasa Mínima Aceptable de Rendimiento (TMAR / costo de capital WACC):
+
+$$VPN(k) = -I_0 + \sum_{t=1}^n \frac{F_t}{(1 + k)^t}$$
+
+**Regla de Decisión:**
+- $VPN > 0$: El proyecto es rentable y crea valor. **Aceptar.**
+- $VPN = 0$: El proyecto rinde exactamente la TMAR. Indiferente.
+- $VPN < 0$: El proyecto rinde menos que la TMAR y destruye capital. **Rechazar.**
+
+### Tasa Interna de Retorno (TIR)
+
+Es la tasa de descuento intrínseca $i^*$ que anula exactamente el VPN:
+
+$$VPN(TIR) = -I_0 + \sum_{t=1}^n \frac{F_t}{(1 + TIR)^t} = 0$$
+
+**Regla de Decisión (para proyectos de inversión estándar):**
+- Si $TIR > k$ (TMAR): Aceptar.
+- Si $TIR < k$ (TMAR): Rechazar.
+
+### Tasa Interna de Retorno Modificada (TIRM)
+
+Resuelve la debilidad teórica de la TIR (que asume reinversión de flujos a la misma TIR). La TIRM descuenta los egresos a la tasa de financiamiento $f$ y capitaliza los ingresos a la tasa de reinversión $k$:
+
+$$TIRM = \left( \frac{VF(\text{Flujos Positivos al costo } k)}{VP(\text{Flujos Negativos al costo } f)} \right)^{1/n} - 1$$
+
+---
+
+# Laboratorio en Python: Evaluación Financiera y Perfil de VPN
+
+```python
+import numpy as np
+import pandas as pd
+from scipy.optimize import root_scalar
+
+# Comparación de dos proyectos de inversión mutuamente excluyentes:
+# Proyecto A (Línea de Ensamble Automatizada): Alta inversión inicial, flujos estables
+# Proyecto B (Externalización con Maquinaria Semi-manual): Menor inversión inicial
+inversion_A = 100_000.0
+flujos_A = [35_000.0, 35_000.0, 35_000.0, 35_000.0]
+
+inversion_B = 40_000.0
+flujos_B = [16_000.0, 16_000.0, 16_000.0, 16_000.0]
+
+tmar = 0.12  # 12% Tasa Mínima Aceptable de Rendimiento
+
+def calcular_vpn(inversion, flujos, tasa):
+    descuentos = [f / (1.0 + tasa)**t for t, f in enumerate(flujos, 1)]
+    return -inversion + sum(descuentos)
+
+def calcular_tir(inversion, flujos):
+    def ecuacion(tasa):
+        return calcular_vpn(inversion, flujos, tasa)
+    sol = root_scalar(ecuacion, bracket=[-0.5, 2.0], method='brentq')
+    return sol.root
+
+vpn_A = calcular_vpn(inversion_A, flujos_A, tmar)
+tir_A = calcular_tir(inversion_A, flujos_A)
+
+vpn_B = calcular_vpn(inversion_B, flujos_B, tmar)
+tir_B = calcular_tir(inversion_B, flujos_B)
+
+df_comp = pd.DataFrame([
+    {'Proyecto': 'A (Automatización)', 'Inversión': inversion_A, 'VPN (TMAR=12%)': vpn_A, 'TIR_%': tir_A * 100},
+    {'Proyecto': 'B (Semi-manual)', 'Inversión': inversion_B, 'VPN (TMAR=12%)': vpn_B, 'TIR_%': tir_B * 100}
+])
+
+print("EVALUACIÓN FINANCIERA DE PROYECTOS:")
+print(df_comp.round(2).to_string(index=False))
+
+print(f"\nObservación Crítica:")
+print(f"La TIR favorece al Proyecto B ({tir_B*100:.1f}% vs {tir_A*100:.1f}%), pero el VPN demuestra")
+print(f"que el Proyecto A crea más valor absoluto en dólares (USD {vpn_A:,.2f} vs USD {vpn_B:,.2f}).")
+print(f"-> DECISIÓN FINANCIERA RACIONAL: Aceptar Proyecto A.")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: VPN y TIR"
+  questions={[
+    {
+      id: "q_eval_1",
+      text: "Si dos proyectos mutuamente excluyentes presentan conflicto de clasificación (el Proyecto A tiene mayor VPN pero el Proyecto B tiene mayor TIR), ¿cuál es el proyecto que debe seleccionarse?",
+      options: [
+        { id: "a", text: "El Proyecto A con mayor VPN, porque maximiza la riqueza neta monetaria absoluta de la empresa", isCorrect: true, explanation: "El objetivo de la corporación es maximizar el valor absoluto agregado para los accionistas (riqueza en dólares), el cual mide fielmente el VPN. La TIR solo mide eficiencia porcentual sin considerar la escala de la inversión." },
+        { id: "b", text: "El Proyecto B con mayor TIR", isCorrect: false, explanation: "Preferir una TIR más alta sobre un proyecto de menor escala puede destruir valor absoluto de capital." },
+        { id: "c", text: "Cualquiera de los dos indistintamente", isCorrect: false, explanation: "Uno de ellos aporta mayor beneficio neto descontado." }
+      ]
+    },
+    {
+      id: "q_eval_2",
+      text: "¿Cuál es el supuesto implícito de reinversión de flujos intermedios que hace que la TIR ordinaria sea cuestionada frente al VPN?",
+      options: [
+        { id: "a", text: "La TIR asume falsamente que todos los flujos de fondos intermedios se reinvierten a la misma tasa de la TIR (que puede ser irrealmente alta)", isCorrect: true, explanation: "Si un proyecto tiene TIR = 85%, asume que la empresa puede reinvertir los cobros al 85%, lo cual es irreal. El VPN asume reinversión al costo de capital de la empresa (TMAR), un supuesto mucho más realista." },
+        { id: "b", text: "Que no se pagan impuestos sobre los flujos", isCorrect: false, explanation: "El tema impositivo se incorpora en el flujo de caja libre, no en la mecánica de la fórmula de la TIR." },
+        { id: "c", text: "Que los flujos son todos negativos", isCorrect: false, explanation: "Para calcular la TIR se requieren flujos tanto positivos como negativos." }
+      ]
+    }
+  ]}
+/>

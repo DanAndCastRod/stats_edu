@@ -1,0 +1,114 @@
+---
+title: "Álgebra Matricial del Algoritmo Simplex"
+order: 1
+description: "Formulación compacta en base B, costos reducidos relativos, criterio de parada y transición de bases invertibles."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 60
+quiz:
+  - question: "En la formulación matricial del Simplex, ¿cuál es la expresión formal de los costos reducidos r_N para las variables no básicas en un problema de minimización?"
+    options:
+      - "r_N = c_N^T - c_B^T B^(-1) N"
+      - "r_N = c_B^T B^(-1) b"
+      - "r_N = B^(-1) N c_N"
+      - "r_N = det(B) * c_N"
+    answer: 0
+    explanation: "El costo reducido representa la derivada direccional proyectada: c_N^T - c_B^T B^(-1) N. Si r_N >= 0 para minimización, cualquier incremento en variables no básicas aumentaría el costo, demostrando optimalidad."
+---
+
+# Álgebra Matricial del Algoritmo Simplex
+
+> El algoritmo Simplex ideado por George Dantzig (1947) no es un procedimiento de tableros manuales: es una secuencia algebraica rigurosa de transiciones entre bases no singulares $\mathbf{B} \in \mathbb{R}^{m \times m}$ de la matriz de restricciones.
+
+---
+
+## 1. Partición Básica y Soluciones Básicas Factibles
+
+Dada la matriz de restricciones $\mathbf{A} = [\mathbf{B} \mid \mathbf{N}]$ y el vector de variables particionado $\mathbf{x} = [\mathbf{x}_B^\top, \mathbf{x}_N^\top]^\top$:
+$$\mathbf{B}\mathbf{x}_B + \mathbf{N}\mathbf{x}_N = \mathbf{b}$$
+
+Haciendo $\mathbf{x}_N = \mathbf{0}$, la **solución básica** asociada a la base $\mathbf{B}$ es:
+$$\mathbf{x}_B = \mathbf{B}^{-1}\mathbf{b}$$
+
+La solución es **básica factible (SBF)** si satisface además la no negatividad:
+$$\mathbf{x}_B = \mathbf{B}^{-1}\mathbf{b} \ge \mathbf{0}$$
+
+---
+
+## 2. Derivación de los Costos Reducidos
+
+El valor de la función objetivo para cualquier solución factible se expresa como:
+$$Z = \mathbf{c}_B^\top \mathbf{x}_B + \mathbf{c}_N^\top \mathbf{x}_N$$
+Despejando $\mathbf{x}_B = \mathbf{B}^{-1}\mathbf{b} - \mathbf{B}^{-1}\mathbf{N}\mathbf{x}_N$:
+$$Z = \mathbf{c}_B^\top \mathbf{B}^{-1}\mathbf{b} + \left(\mathbf{c}_N^\top - \mathbf{c}_B^\top \mathbf{B}^{-1}\mathbf{N}\right) \mathbf{x}_N$$
+
+El vector de **costos reducidos** $\mathbf{r}_N^\top$ asociado a las variables no básicas es:
+$$\mathbf{r}_N^\top = \mathbf{c}_N^\top - \mathbf{c}_B^\top \mathbf{B}^{-1}\mathbf{N}$$
+
+<Callout type="info">
+**Criterio de Optimalidad:**
+- Para **Minimización:** La base $\mathbf{B}$ es óptima si $\mathbf{r}_N \ge \mathbf{0}$.
+- Para **Maximización:** La base $\mathbf{B}$ es óptima si $\mathbf{r}_N \le \mathbf{0}$.
+</Callout>
+
+---
+
+## 3. Implementación Matricial en NumPy
+
+```python
+import numpy as np
+
+def simplex_matricial_paso(A, b, c, B_idx, N_idx):
+    """Calcula un paso algebraico del Simplex Matricial."""
+    B = A[:, B_idx]
+    N = A[:, N_idx]
+    cB = c[B_idx]
+    cN = c[N_idx]
+    
+    # Inversa de base (o resolución de sistemas B @ xB = b)
+    xB = np.linalg.solve(B, b)
+    
+    # Multiplicador simplex pi^T = cB^T @ B^(-1)
+    pi = np.linalg.solve(B.T, cB)
+    
+    # Costos reducidos: r_N^T = cN^T - pi^T @ N
+    r_N = cN - pi @ N
+    
+    print(f"Variables básicas:    {B_idx}")
+    print(f"Valores x_B:          {np.round(xB, 4)}")
+    print(f"Vector multiplicador: {np.round(pi, 4)}")
+    print(f"Costos reducidos r_N: {np.round(r_N, 4)}")
+    
+    es_optimo = np.all(r_N >= -1e-8)  # Para minimización
+    return es_optimo, xB, pi, r_N
+
+# Ejemplo canónico con holguras
+A = np.array([
+    [1.0, 2.0, 1.0, 0.0],
+    [3.0, 2.0, 0.0, 1.0]
+])
+b = np.array([6.0, 12.0])
+c = np.array([-2.0, -3.0, 0.0, 0.0])  # Minimizar -2x1 - 3x2
+
+# Base inicial trivial: columnas de holgura (idx 2 y 3)
+es_opt, xB, pi, r_N = simplex_matricial_paso(A, b, c, [2, 3], [0, 1])
+print(f"¿Es óptima la base inicial?: {es_opt}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Simplex Matricial"
+  questions={[
+    {
+      id: "q_ratio_test",
+      text: "¿Por qué en la regla del cociente mínimo x_Bi / y_ik solo se consideran denominadores estrictamente positivos y_ik > 0?",
+      options: [
+        { id: "a", text: "Porque si y_ik <= 0, incrementar la variable entrante no disminuye la variable básica correspondiente, no poniendo en riesgo su no negatividad", isCorrect: true, explanation: "Correcto: Si todos los y_ik <= 0, la variable entrante puede crecer hasta infinito sin que ninguna variable básica se vuelva negativa, implicando que el problema es no acotado." },
+        { id: "b", text: "Porque no se puede dividir algebraicamente por cero o negativos en ninguna ecuación", isCorrect: false, explanation: "Algebraicamente la división existe; el motivo es la preservación de la factibilidad x >= 0." },
+        { id: "c", text: "Porque garantiza que el determinante de la base permanezca constante", isCorrect: false, explanation: "El determinante cambia tras cada pivoteo." }
+      ]
+    }
+  ]}
+/>

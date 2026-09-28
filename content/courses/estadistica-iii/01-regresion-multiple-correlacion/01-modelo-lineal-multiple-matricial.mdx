@@ -1,0 +1,179 @@
+---
+title: "Modelo Lineal Múltiple en Notación Matricial"
+order: 1
+description: "Formulación matricial del modelo de regresión lineal múltiple, estimador de MCO, matriz de proyección y propiedades estadísticas."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es la expresión matricial del estimador de Mínimos Cuadrados Ordinarios (MCO) para el vector de coeficientes beta?"
+    options:
+      - "beta_hat = (X^T X)^(-1) X^T Y"
+      - "beta_hat = X^T (X X^T)^(-1) Y"
+      - "beta_hat = (X X^T)^(-1) X Y"
+      - "beta_hat = X^T Y (X^T X)^(-1)"
+    answer: 0
+    explanation: "El estimador de MCO minimiza la suma de cuadrados de errores e^T e = (Y - X beta)^T (Y - X beta). Derivando respecto a beta e igualando a cero obtenemos las ecuaciones normales (X^T X) beta = X^T Y, cuya solución única es beta_hat = (X^T X)^(-1) X^T Y, siempre que X tenga rango de columnas completo."
+  - question: "La matriz sombrero (Hat Matrix) H = X(X^T X)^(-1) X^T posee la propiedad de ser idempotente. ¿Qué significa esto matemáticamente?"
+    options:
+      - "H * H = H"
+      - "H^T = -H"
+      - "det(H) = 0 siempre"
+      - "H^(-1) = H"
+    answer: 0
+    explanation: "Una matriz es idempotente si multiplicada por sí misma resulta en la misma matriz: H^2 = H. Esto refleja que proyectar un vector ya proyectado en el subespacio columna de X no altera el resultado: H(H Y) = H Y = Y_hat."
+---
+
+# Introducción
+
+> En la ingeniería industrial moderna, las variables de respuesta de un proceso (e.g. rendimiento de una caldera, resistencia de un polímero o tiempo de ciclo de una línea) casi nunca dependen de un único factor. El modelo lineal múltiple permite aislar y cuantificar el efecto simultáneo de múltiples variables predictoras.
+
+La notación matricial simplifica de forma notable el cálculo y la deducción teórica del modelo de regresión con $k$ variables explicativas y $n$ observaciones muestrales.
+
+<Callout type="info">
+**Importancia en Ingeniería:** Permite estimar relaciones empíricas complejas a partir de datos experimentales u observacionales de planta, separando la señal del proceso del ruido aleatorio inherente.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Expresar un sistema de regresión lineal múltiple en notación compacta matricial.
+- Deducir algebraicamente el estimador de coeficientes $\hat{\beta}$ por Mínimos Cuadrados Ordinarios (MCO).
+- Comprender el rol de la matriz de proyección ortogonal (Hat matrix) $H$ y el cálculo del vector de residuos.
+- Implementar la estimación matricial completa en Python con NumPy y SciPy.
+
+---
+
+# Fundamentos Teóricos
+
+El modelo lineal general con $k$ predictores para la observación $i$-ésima se define como:
+
+$$Y_i = \beta_0 + \beta_1 X_{i1} + \beta_2 X_{i2} + \dots + \beta_k X_{ik} + \epsilon_i, \quad i = 1, 2, \dots, n$$
+
+En forma matricial compacta:
+
+$$Y = X\beta + \epsilon$$
+
+Donde:
+- $Y \in \mathbb{R}^{n \times 1}$ es el vector de respuestas observadas.
+- $X \in \mathbb{R}^{n \times (k+1)}$ es la matriz de diseño, cuya primera columna contiene unos para el intercepto $\beta_0$.
+- $\beta \in \mathbb{R}^{(k+1) \times 1}$ es el vector de coeficientes desconocidos.
+- $\epsilon \in \mathbb{R}^{n \times 1}$ es el vector de perturbaciones estocásticas, con supuestos de Gauss-Markov:
+  $$\mathbb{E}[\epsilon] = 0, \quad \text{Var}(\epsilon) = \sigma^2 I_n$$
+
+### Deducción del Estimador MCO
+
+El criterio de Mínimos Cuadrados busca minimizar la suma de cuadrados residuales $S(\beta) = e^T e$:
+
+$$S(\beta) = (Y - X\beta)^T (Y - X\beta) = Y^T Y - 2\beta^T X^T Y + \beta^T X^T X \beta$$
+
+Calculando el gradiente con respecto al vector $\beta$ e igualando a cero:
+
+$$\frac{\partial S(\beta)}{\partial \beta} = -2 X^T Y + 2 X^T X \beta = 0$$
+
+$$(X^T X)\hat{\beta} = X^T Y \implies \hat{\beta} = (X^T X)^{-1} X^T Y$$
+
+### Matriz Sombrero (Hat Matrix) y Residuos
+
+Los valores ajustados $\hat{Y}$ se obtienen como una combinación lineal de las observaciones $Y$:
+
+$$\hat{Y} = X\hat{\beta} = X(X^T X)^{-1} X^T Y = H Y$$
+
+La matriz $H = X(X^T X)^{-1} X^T$ es simétrica ($H^T = H$) e idempotente ($H^2 = H$). Los residuos se expresan como:
+
+$$e = Y - \hat{Y} = (I - H)Y$$
+
+La varianza del estimador $\hat{\beta}$ es:
+
+$$\text{Var}(\hat{\beta}) = \sigma^2 (X^T X)^{-1}$$
+
+El estimador insesgado de la varianza residual $\sigma^2$ es el Cuadrado Medio del Error:
+
+$$s^2 = MSE = \frac{e^T e}{n - (k + 1)}$$
+
+---
+
+# Ejemplo Práctico: Resistencia de Concreto en Planta
+
+Un ingeniero industrial supervisa la resistencia a la compresión ($Y$, en MPa) de probetas de concreto en función del contenido de cemento ($X_1$, kg/m³) y la relación agua/cemento ($X_2$). Se cuenta con $n=6$ probetas de prueba.
+
+### Laboratorio en Python
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# 1. Definición de datos experimentales
+# X1: Cemento (kg/m3), X2: Relacion agua/cemento, Y: Resistencia (MPa)
+datos = pd.DataFrame({
+    'Cemento': [300, 320, 350, 380, 400, 420],
+    'Agua_Cemento': [0.55, 0.52, 0.48, 0.45, 0.42, 0.40],
+    'Resistencia_MPa': [25.4, 28.1, 33.6, 38.2, 42.0, 45.8]
+})
+
+n = len(datos)
+k = 2  # Dos predictores
+
+# 2. Construcción de matriz de diseño X y vector Y
+X = np.column_stack([np.ones(n), datos['Cemento'], datos['Agua_Cemento']])
+Y = datos['Resistencia_MPa'].values
+
+# 3. Estimación matricial de beta: (X^T X)^(-1) X^T Y
+XtX = X.T @ X
+XtY = X.T @ Y
+beta_hat = np.linalg.inv(XtX) @ XtY
+
+# 4. Matriz sombrero H, valores predichos y residuos
+H = X @ np.linalg.inv(XtX) @ X.T
+Y_hat = H @ Y
+residuos = Y - Y_hat
+
+# 5. Varianza residual y errores estándar de los coeficientes
+SSE = residuos.T @ residuos
+grados_libertad = n - (k + 1)
+s2 = SSE / grados_libertad
+var_beta = s2 * np.linalg.inv(XtX)
+se_beta = np.sqrt(np.diag(var_beta))
+
+# 6. Estadísticos t y p-valores
+t_stats = beta_hat / se_beta
+p_values = [2 * (1 - stats.t.cdf(np.abs(t), df=grados_libertad)) for t in t_stats]
+
+resultados = pd.DataFrame({
+    'Parametro': ['Intercepto (beta0)', 'Cemento (beta1)', 'Agua/Cemento (beta2)'],
+    'Estimacion': beta_hat,
+    'Error_Estandar': se_beta,
+    'Estadistico_t': t_stats,
+    'p_valor': p_values
+})
+
+print("Resultados de Estimación Matricial MCO:")
+print(resultados.round(4))
+print(f"\nDesviacion estandar residual s: {np.sqrt(s2):.4f} MPa")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Regresión Lineal Múltiple Matricial"
+  questions={[
+    {
+      id: "q_mco_1",
+      text: "¿Cuál es la condición algebraica necesaria para que exista solución única de MCO en beta = (X^T X)^(-1) X^T Y?",
+      options: [
+        { id: "a", text: "La matriz X debe tener rango de columnas completo (rango = k + 1), evitando colinealidad perfecta", isCorrect: true, explanation: "Si existe dependencia lineal exacta entre columnas de X, det(X^T X) = 0 y la matriz no es invertible." },
+        { id: "b", text: "El número de observaciones n debe ser menor que el número de predictores k", isCorrect: false, explanation: "Si n < k + 1 el sistema es subdeterminado y no tiene solución única." },
+        { id: "c", text: "El vector de residuos debe ser idénticamente cero en toda la muestra", isCorrect: false, explanation: "Los residuos son cero sólo en un ajuste perfecto no estocástico." }
+      ]
+    },
+    {
+      id: "q_mco_2",
+      text: "La traza de la matriz sombrero H (suma de su diagonal principal) es matemáticamente igual a:",
+      options: [
+        { id: "a", text: "El número de parámetros estimados en el modelo, p = k + 1", isCorrect: true, explanation: "tr(H) = tr(X(X^T X)^(-1) X^T) = tr((X^T X)^(-1) X^T X) = tr(I_{k+1}) = k + 1." },
+        { id: "b", text: "El número total de observaciones muestrales n", isCorrect: false, explanation: "n es la dimensión de la matriz H, no su traza." },
+        { id: "c", text: "El coeficiente de determinación R^2", isCorrect: false, explanation: "R^2 es una métrica escalar de bondad de ajuste, no la traza de H." }
+      ]
+    }
+  ]}
+/>

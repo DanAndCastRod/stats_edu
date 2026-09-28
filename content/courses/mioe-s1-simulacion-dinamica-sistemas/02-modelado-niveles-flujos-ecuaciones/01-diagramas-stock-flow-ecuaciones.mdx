@@ -1,0 +1,105 @@
+---
+title: "Diagramas de Stock y Flow y Formulación Matemática"
+order: 1
+description: "Variables de nivel (integradores), tasas de flujo, variables auxiliares, formulación diferencial continua e integración de Euler y Runge-Kutta."
+bloomLevel: "APPLY"
+estimatedMinutes: 70
+quiz:
+  - question: "¿Cuál es la ecuación matemática continua fundamental que gobierna el valor de una variable de nivel (Stock) S(t) en función de sus tasas de entrada In(t) y salida Out(t)?"
+    options:
+      - "S(t) = S(t_0) + integral de t_0 a t [In(s) - Out(s)] ds  <=>  dS/dt = In(t) - Out(t)"
+      - "S(t) = In(t) * Out(t)"
+      - "S(t) = d(In)/dt + d(Out)/dt"
+      - "S(t) = e^(In(t)) / Out(t)"
+    answer: 0
+    explanation: "Los stocks son acumuladores integrales de memoria del sistema: almacenan el balance neto entre flujos de entrada y salida a lo largo del tiempo. Instantáneamente, su derivada temporal es dS/dt = In(t) - Out(t)."
+---
+
+# Diagramas de Stock y Flow y Formulación Matemática
+
+> Mientras que los diagramas de ciclo causal cualifican las relaciones, los **Diagramas de Niveles y Flujos (Stock & Flow)** de Forrester traducen la estructura a un sistema riguroso de ecuaciones diferenciales acopladas no lineales.
+
+---
+
+## 1. Elementos Estructurales
+
+1. **Variables de Nivel (Stock o Estado):** Representan acumulaciones físicas o informacionales (inventario, mano de obra, capital). Tienen memoria y persisten si el tiempo se detuviera.
+   $$S(t) = S(t_0) + \int_{t_0}^t \left[ \text{Entradas}(s) - \text{Salidas}(s) \right] ds$$
+2. **Variables de Flujo (Rate):** Representan tasas de cambio instantáneas por unidad de tiempo (unidades/día, personas/mes).
+3. **Variables Auxiliares y Constantes:** Expresan relaciones intermedias de decisión algebraica y parámetros tecnológicos.
+
+---
+
+## 2. Métodos Numéricos de Integración
+
+Dado el sistema $\frac{d\mathbf{S}}{dt} = \mathbf{f}(\mathbf{S}, t)$:
+
+### Método de Euler (Primer Orden):
+$$S_{k+1} = S_k + \Delta t \cdot \left[ \text{In}(S_k) - \text{Out}(S_k) \right]$$
+- **Riesgo:** Si el paso $\Delta t$ es superior a la constante de tiempo más rápida del sistema, Euler genera inestabilidad numérica artificial y oscilaciones espurias.
+
+### Método de Runge-Kutta de 4to Orden (RK4):
+Evalúa la pendiente en 4 puntos de prueba con error de truncamiento local $O(\Delta t^5)$, garantizando estabilidad y precisión en sistemas altamente dinámicos.
+
+---
+
+## 3. Simulación en Python con `scipy.integrate`
+
+```python
+import numpy as np
+from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+
+# Modelo de producción e inventario con realimentación
+# Stocks: Inventario (I), Tasa de Producción Suavizada (P)
+def sistema_produccion(t, y, demanda_base, tiempo_ajuste_inv, tiempo_ajuste_prod):
+    I, P = y
+    
+    # Demanda externa con escalón repentino en t=10
+    demanda = demanda_base if t < 10 else demanda_base * 1.5
+    
+    # Inventario deseado: 5 días de cobertura
+    inventario_deseado = demanda * 5.0
+    
+    # Tasa de producción deseada
+    produccion_deseada = demanda + (inventario_deseado - I) / tiempo_ajuste_inv
+    
+    # Ecuaciones diferenciales:
+    dI_dt = P - demanda
+    dP_dt = (produccion_deseada - P) / tiempo_ajuste_prod
+    
+    return [dI_dt, dP_dt]
+
+# Simulación 60 días
+t_span = (0, 60)
+t_eval = np.linspace(0, 60, 600)
+y0 = [500.0, 100.0] # I0, P0
+
+sol = solve_ivp(
+    sistema_produccion, t_span, y0, t_eval=t_eval,
+    args=(100.0, 3.0, 5.0), method="RK45"
+)
+
+print(f"Simulación exitosa: {sol.success}")
+print(f"Inventario final t=60:   {sol.y[0, -1]:.2f}")
+print(f"Producción final t=60:   {sol.y[1, -1]:.2f}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Modelado de Stock y Flow"
+  questions={[
+    {
+      id: "q_stock_test",
+      text: "¿Cuál es el 'test de la fotografía' para distinguir conceptualmente un Stock de un Flujo?",
+      options: [
+        { id: "a", text: "Si el tiempo se congela en un instante infinitesimal, los Stocks siguen existiendo con un valor medible, mientras que los Flujos cesan a cero", isCorrect: true, explanation: "Correcto: El agua acumulada en un tanque (stock) sigue allí si congelas el tiempo, pero la velocidad del chorro que entra o sale (flujo) requiere una duración dt > 0 para manifestarse." },
+        { id: "b", text: "Los stocks siempre son números negativos", isCorrect: false, explanation: "Los stocks representan cantidades acumuladas típicamente no negativas." },
+        { id: "c", text: "Los flujos se miden en kilogramos puros sin dimensión temporal", isCorrect: false, explanation: "Los flujos tienen dimensión de cantidad por unidad de tiempo (ej. kg/s)." }
+      ]
+    }
+  ]}
+/>

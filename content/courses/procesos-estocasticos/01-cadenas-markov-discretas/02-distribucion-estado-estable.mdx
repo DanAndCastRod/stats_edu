@@ -1,0 +1,158 @@
+---
+title: "Distribución Estacionaria y Probabilidades de Estado Estable"
+order: 2
+description: "Cadenas ergódicas, ecuaciones de balance global pi = pi * P, tiempos medios de retorno y aplicaciones industriales en mantenimiento y marketing."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué condiciones son necesarias y suficientes para que una Cadena de Markov discreta posea una distribución estacionaria única e independiente del estado inicial?"
+    options:
+      - "Que la cadena sea irreducible, aperiódica y recurrente positiva (ergódica)"
+      - "Que la matriz de transición sea simétrica y ortogonal"
+      - "Que todos los elementos de la diagonal principal sean idénticos a cero"
+      - "Que el número de estados sea estrictamente impar"
+    answer: 0
+    explanation: "Una cadena ergódica (irreducible, aperiódica y recurrente positiva con estados finitos) garantiza la existencia de un vector de estado estable único pi tal que lim_{n -> inf} P^n tiene filas idénticas iguales a pi."
+  - question: "¿Cuál es el sistema algebraico que define al vector de distribución estacionaria pi?"
+    options:
+      - "pi = pi * P, sujeto a sum_i pi_i = 1 y pi_i >= 0"
+      - "P * pi = 0"
+      - "pi = P^(-1)"
+      - "det(P - pi * I) = 0"
+    answer: 0
+    explanation: "El estado estacionario refleja que la distribución no se altera tras una transición adicional: pi P = pi. La condición de normalización sum pi_i = 1 garantiza que sea una medida de probabilidad válida."
+---
+
+# Introducción
+
+> A largo plazo, ¿qué porcentaje del tiempo estará una línea de producción en estado de paro por calibración? ¿Cuál será la cuota de mercado estabilizada de nuestra marca frente a la competencia? El **análisis de estado estable** responde a estas preguntas eliminando el efecto de las condiciones iniciales.
+
+Cuando una cadena de Markov no tiene estados absorbentes y permite transitar entre cualquier par de estados sin ciclos rígidos (ergódica), el sistema converge hacia un régimen estacionario invariable en el tiempo.
+
+<Callout type="info">
+**Interpretación Ergódica:** $\pi_i$ representa tanto la probabilidad a largo plazo de encontrar el sistema en el estado $i$, como la fracción promedio del tiempo total que el sistema reside en dicho estado.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formular el sistema lineal de ecuaciones de balance $\pi = \pi P$ con la condición de normalización $\sum \pi_i = 1$.
+- Resolver el vector estacionario mediante álgebra matricial y eliminación gaussiana en Python.
+- Calcular los tiempos medios de primer retorno $\mu_{ii} = 1 / \pi_i$.
+- Aplicar el modelo estacionario a la optimización de planes de mantenimiento preventivo.
+
+---
+
+# Fundamentos Teóricos
+
+### Teorema del Límite Ergódico
+
+Si una cadena de Markov con espacio de estados finito $S = \{1, \dots, M\}$ es **irreducible** y **aperiódica**, existe una distribución de probabilidad única $\pi = [\pi_1, \pi_2, \dots, \pi_M]$ tal que:
+
+$$\lim_{n \to \infty} p_{ij}^{(n)} = \pi_j, \quad \forall i, j \in S$$
+
+Independientemente de la distribución inicial $\pi^{(0)}$:
+
+$$\lim_{n \to \infty} \pi^{(n)} = \lim_{n \to \infty} \pi^{(0)} P^n = \pi$$
+
+### Ecuaciones de Balance
+
+El vector fila $\pi$ satisface:
+
+$$\pi P = \pi \iff \pi (P - I) = 0$$
+
+Transponiendo a vectores columna convencionales:
+
+$$(P^T - I) \pi^T = 0$$
+
+Dado que $(P^T - I)$ es una matriz singular de rango $M - 1$, se reemplaza una de las ecuaciones redundantes por la ecuación de normalización:
+
+$$\sum_{i=1}^M \pi_i = 1, \quad \pi_i > 0$$
+
+### Tiempo Medio de Recurrencia
+
+Para un estado recurrente positivo $i$, el tiempo esperado en pasos hasta el primer retorno a dicho estado es:
+
+$$\mu_{ii} = \frac{1}{\pi_i}$$
+
+---
+
+# Laboratorio en Python: Estado Estable de Confiabilidad y Mantenimiento
+
+```python
+import numpy as np
+import pandas as pd
+
+# Proceso de 3 estados de un compresor industrial con mantenimiento:
+# 1: Funcionamiento Normal
+# 2: Mantenimiento Preventivo (parada programada)
+# 3: Mantenimiento Correctivo (falla imprevista)
+estados = ['Normal', 'Preventivo', 'Correctivo']
+
+# Matriz de transición diaria P (ergódica)
+P = np.array([
+    [0.85, 0.10, 0.05],
+    [0.70, 0.25, 0.05],
+    [0.40, 0.10, 0.50]
+])
+
+M = len(estados)
+
+# Construcción del sistema lineal: (P^T - I) pi = 0
+A = P.T - np.eye(M)
+# Reemplazar la última fila por la restricción sum(pi) = 1
+A[-1, :] = np.ones(M)
+b = np.zeros(M)
+b[-1] = 1.0
+
+# Solución del sistema lineal A * pi = b
+pi = np.linalg.solve(A, b)
+
+# Cálculo de tiempos medios de retorno en días (mu_ii = 1 / pi_i)
+mu_retorno = 1.0 / pi
+
+# Verificación numérica por potenciación de matrices (P^100)
+P_inf = np.linalg.matrix_power(P, 100)
+
+df_resultado = pd.DataFrame({
+    'Estado': estados,
+    'Probabilidad_Estable (pi)': pi,
+    'Porcentaje_Tiempo (%)': pi * 100,
+    'Tiempo_Medio_Retorno (dias)': mu_retorno,
+    'Fila_P_100': P_inf[0, :]
+})
+
+print("DISTRIBUCIÓN DE ESTADO ESTABLE Y TIEMPOS DE RETORNO:")
+print(df_resultado.round(4).to_string(index=False))
+
+# Costo diario esperado si: Normal = $0, Prev = $200/día, Corr = $800/día
+costos = np.array([0, 200, 800])
+costo_esperado_diario = np.sum(pi * costos)
+print(f"\nCosto esperado de mantenimiento por día: USD {costo_esperado_diario:.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Estado Estable en Cadenas de Markov"
+  questions={[
+    {
+      id: "q_ss_1",
+      text: "Si la probabilidad estacionaria de que un servidor esté en reparación es pi_reparacion = 0.04, ¿cuál es el tiempo medio esperado entre reparaciones sucesivas?",
+      options: [
+        { id: "a", text: "25 periodos (mu_ii = 1 / 0.04 = 25)", isCorrect: true, explanation: "El tiempo medio de primer retorno a un estado recurrente es el inverso recíproco de su probabilidad estacionaria: mu_ii = 1 / pi_i." },
+        { id: "b", text: "4 periodos", isCorrect: false, explanation: "0.04 no equivale a 4 periodos; 1 / 0.04 = 25." },
+        { id: "c", text: "100 periodos", isCorrect: false, explanation: "100 periodos correspondería a una probabilidad de 0.01." }
+      ]
+    },
+    {
+      id: "q_ss_2",
+      text: "¿Por qué una cadena periódica (por ejemplo, con periodo d = 2 donde el sistema alterna estrictamente entre dos estados) no converge a un límite fila único en P^n?",
+      options: [
+        { id: "a", text: "Porque P^n oscila indefinidamente entre dos matrices distintas según n sea par o impar", isCorrect: true, explanation: "La periodicidad genera oscilación armónica continua; aunque existe una medida estacionaria algebraica pi tal que pi P = pi, las probabilidades de transición de paso n no convergen a un valor escalar fijo." },
+        { id: "b", text: "Porque la suma de probabilidades deja de ser igual a 1", isCorrect: false, explanation: "La propiedad estocástica se preserva rigurosamente en toda potencia P^n." },
+        { id: "c", text: "Porque los autovalores de P son siempre mayores a 5", isCorrect: false, explanation: "Por el teorema de Perron-Frobenius, el radio espectral de toda matriz estocástica es exactamente 1." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,69 @@
+---
+title: "Principio de Descomposición de Dantzig-Wolfe"
+order: 1
+description: "Estructura angular en bloques, problema maestro restringido (RMP), subproblemas convexos y precios sombra coordinadores."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 75
+quiz:
+  - question: "¿Cuál es la estructura matemática requerida en un problema de optimización lineal para aplicar con máxima eficiencia la Descomposición de Dantzig-Wolfe?"
+    options:
+      - "Una estructura 'angular en bloques' con restricciones acopladoras generales y bloques de restricciones independientes por división/periodo."
+      - "Una matriz de restricciones completamente ortogonal sin ninguna variable compartida."
+      - "Un problema no lineal con restricciones sinusoidales continuas."
+      - "Una matriz estrictamente antisimétrica de dimensión impar."
+    answer: 0
+    explanation: "La descomposición explota estructuras donde un conjunto de restricciones comunes (recursos corporativos compartidos) acopla varios subsistemas independientes, permitiendo resolver subproblemas desacoplados coordinados por un Problema Maestro."
+---
+
+# Principio de Descomposición de Dantzig-Wolfe
+
+> Desarrollado por George Dantzig y Philip Wolfe (1960), este principio permite resolver problemas lineales con millones de variables explotando estructuras matriciales angulares en bloques mediante precios descentralizados.
+
+---
+
+## 1. Estructura Angular en Bloques
+
+Consideremos el problema:
+$$\begin{aligned}
+\min \quad & \mathbf{c}_1^\top \mathbf{x}_1 + \mathbf{c}_2^\top \mathbf{x}_2 + \dots + \mathbf{c}_K^\top \mathbf{x}_K \\
+\text{s.a.} \quad & \mathbf{L}_1 \mathbf{x}_1 + \mathbf{L}_2 \mathbf{x}_2 + \dots + \mathbf{L}_K \mathbf{x}_K = \mathbf{b}_0 \quad & (\text{Restricciones de Acoplamiento}) \\
+& \mathbf{A}_k \mathbf{x}_k = \mathbf{b}_k, \, \mathbf{x}_k \ge \mathbf{0} \quad (k=1,\dots,K) & (\text{Subproblemas Independientes } X_k)
+\end{aligned}$$
+
+---
+
+## 2. El Problema Maestro y los Subproblemas
+
+Aplicando el Teorema de Minkowski-Weyl a cada politopo acotado $X_k = \operatorname{conv}(\{\mathbf{v}_k^1, \dots, \mathbf{v}_k^{P_k}\})$, cualquier $\mathbf{x}_k \in X_k$ se expresa como:
+$$\mathbf{x}_k = \sum_{p=1}^{P_k} \lambda_k^p \mathbf{v}_k^p, \quad \sum_{p=1}^{P_k} \lambda_k^p = 1, \quad \lambda_k^p \ge 0$$
+
+### Problema Maestro Restringido (RMP)
+En lugar de enumerar todos los vértices extremos $P_k$ (número astronómico), el RMP trabaja sobre un subconjunto inicial pequeño de propuestas generadas.
+
+Sean $\boldsymbol{\pi}$ el vector dual de las restricciones de acoplamiento y $\sigma_k$ el multiplicador de convexidad.
+
+### Subproblema de Precios $k$-ésimo
+Para evaluar si existe un nuevo vértice extremo que reduzca el costo:
+$$\min_{\mathbf{x}_k \in X_k} \left( \mathbf{c}_k^\top - \boldsymbol{\pi}^\top \mathbf{L}_k \right) \mathbf{x}_k - \sigma_k$$
+
+- Si el valor óptimo del subproblema es $< 0$, el nuevo vértice óptimo $\mathbf{x}_k^*$ genera una **columna con costo reducido negativo** que se incorpora al RMP.
+- Si para todos los subproblemas el valor mínimo es $\ge 0$, la solución del RMP es el **óptimo global exacto**.
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Descomposición de Dantzig-Wolfe"
+  questions={[
+    {
+      id: "q_dw_prices",
+      text: "¿Qué papel económico desempeñan los multiplicadores duales pi de las restricciones de acoplamiento transferidos desde el Maestro a los Subproblemas?",
+      options: [
+        { id: "a", text: "Actúan como precios internos de transferencia que penalizan a cada subsistema por el consumo de los recursos corporativos escasos", isCorrect: true, explanation: "Correcto: pi ajusta el vector de costos unitarios de los subproblemas a (c_k - pi^T L_k), coordinando de forma descentralizada el uso óptimo de recursos escasos compartidos." },
+        { id: "b", text: "Obligan a los subproblemas a anular su producción", isCorrect: false, explanation: "Los precios incentivan propuestas eficientes, no el cese de operaciones." },
+        { id: "c", text: "Son números aleatorios sin interpretación económica", isCorrect: false, explanation: "Son precios sombra de equilibrio de mercado." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,111 @@
+---
+title: "Teoría de la Dualidad e Interpretación Económica"
+order: 2
+description: "Formulación primal-dual canónica, teoremas de dualidad débil y fuerte, holgura complementaria y precios sombra."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 60
+quiz:
+  - question: "De acuerdo con el Teorema de Holgura Complementaria, si en la solución óptima de un problema de maximización la restricción del recurso i tiene holgura estrictamente positiva (s_i* > 0), ¿cuál es el precio sombra y_i* correspondiente?"
+    options:
+      - "y_i* = 0 (el recurso no está saturado y una unidad adicional no añade valor a la función objetivo)."
+      - "y_i* = 1 siempre por normalización."
+      - "y_i* tiende a infinito positivo."
+      - "y_i* es igual al costo reducido de la variable más rentable."
+    answer: 0
+    explanation: "El teorema exige que y_i * (b_i - a_i^T x) = 0. Si el recurso sobra (b_i - a_i^T x > 0), obligatoriamente su multiplicador dual y_i* debe ser cero, reflejando que el recurso es económicamente superabundante en el óptimo."
+---
+
+# Teoría de la Dualidad e Interpretación Económica
+
+> Todo problema de optimización lineal lineal lleva intrínseco un problema espejo denominado **Problema Dual**. La dualidad no es únicamente un artefacto algebraico: provee la fundamentación económica de los precios de equilibrio en mercados competitivos.
+
+---
+
+## 1. El Par Primal-Dual Canónico
+
+Consideremos el problema primal simétrico de maximización y su correspondiente dual simétrico:
+
+### Primal (P):
+$$\begin{aligned}
+\max_{\mathbf{x}} \quad & Z = \mathbf{c}^\top \mathbf{x} \\
+\text{s.a.} \quad & \mathbf{A}\mathbf{x} \le \mathbf{b} \\
+& \mathbf{x} \ge \mathbf{0}
+\end{aligned}$$
+
+### Dual (D):
+$$\begin{aligned}
+\min_{\mathbf{y}} \quad & W = \mathbf{b}^\top \mathbf{y} \\
+\text{s.a.} \quad & \mathbf{A}^\top \mathbf{y} \ge \mathbf{c} \\
+& \mathbf{y} \ge \mathbf{0}
+\end{aligned}$$
+
+---
+
+## 2. Teoremas Fundamentales de Dualidad
+
+### Teorema de Dualidad Débil
+Si $\mathbf{x}$ es factible para (P) e $\mathbf{y}$ es factible para (D), entonces:
+$$\mathbf{c}^\top \mathbf{x} \le \mathbf{y}^\top \mathbf{A}\mathbf{x} \le \mathbf{y}^\top \mathbf{b} = \mathbf{b}^\top \mathbf{y}$$
+*Corolario:* Si $\mathbf{c}^\top \bar{\mathbf{x}} = \mathbf{b}^\top \bar{\mathbf{y}}$, entonces $\bar{\mathbf{x}}$ y $\bar{\mathbf{y}}$ son simultáneamente soluciones óptimas de sus respectivos problemas.
+
+### Teorema de Dualidad Fuerte
+Si el problema primal (P) tiene una solución óptima finita $\mathbf{x}^*$, entonces el problema dual (D) también posee una solución óptima finita $\mathbf{y}^*$, y los valores óptimos coinciden exactamente:
+$$\mathbf{c}^\top \mathbf{x}^* = \mathbf{b}^\top \mathbf{y}^*$$
+
+### Teorema de Holgura Complementaria (*Complementary Slackness*)
+Sean $\mathbf{x}^*$ e $\mathbf{y}^*$ soluciones factibles primal y dual. Son mutuamente óptimas si y solo si:
+1. $y_i^* (b_i - \mathbf{a}_{i\cdot} \mathbf{x}^*) = 0, \quad \forall i=1, \dots, m$
+2. $x_j^* (\mathbf{a}_{\cdot j}^\top \mathbf{y}^* - c_j) = 0, \quad \forall j=1, \dots, n$
+
+---
+
+## 3. Interpretación Económica: Los Precios Sombra
+
+En el óptimo, la derivada parcial de la función objetivo respecto a la disponibilidad del recurso $b_i$ es:
+$$y_i^* = \frac{\partial Z^*}{\partial b_i}$$
+
+Cada variable dual $y_i^*$ cuantifica la **disposición marginal a pagar** por una unidad adicional del recurso escaso $i$. Si una empresa puede adquirir una hora extra de ensamble a un costo menor que $y_{\text{ensamble}}^*$, la operación incrementará su beneficio neto.
+
+```python
+import pulp
+
+# Demostración del Teorema de Dualidad Fuerte en Python
+prob = pulp.LpProblem("Dualidad_Fuerte", pulp.LpMaximize)
+
+x1 = pulp.LpVariable("x1", lowBound=0)
+x2 = pulp.LpVariable("x2", lowBound=0)
+
+prob += 3*x1 + 5*x2, "Z"
+c1 = prob += 2*x1 + 3*x2 <= 12, "Recurso_1"
+c2 = prob += 2*x1 + 1*x2 <= 8,  "Recurso_2"
+
+prob.solve(pulp.PULP_CBC_CMD(msg=False))
+
+print(f"Valor Primal Óptimo Z*:  {pulp.value(prob.objective):.4f}")
+print(f"Precio Sombra y1* (pi_1): {c1.pi:.4f}")
+print(f"Precio Sombra y2* (pi_2): {c2.pi:.4f}")
+
+# Comprobación valor dual W = b1*y1 + b2*y2
+W_dual = 12 * c1.pi + 8 * c2.pi
+print(f"Valor Dual Óptimo W*:    {W_dual:.4f}")
+assert abs(pulp.value(prob.objective) - W_dual) < 1e-6, "¡Fallo en Dualidad Fuerte!"
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Teoremas de Dualidad"
+  questions={[
+    {
+      id: "q_unbounded_dual",
+      text: "Si el problema primal es no acotado (su función objetivo puede crecer indefinidamente hacia +infinito), ¿qué se deduce sobre el problema dual?",
+      options: [
+        { id: "a", text: "El problema dual es estrictamente infactible (su región factible es el conjunto vacío)", isCorrect: true, explanation: "Correcto: Por dualidad débil, si el dual fuera factible con solución y, b^T y actuaría como cota superior finita para el primal, contradiciendo que el primal sea no acotado." },
+        { id: "b", text: "El problema dual también es no acotado", isCorrect: false, explanation: "Un problema de minimización no acotado hacia -infinito no puede emparejarse con un primal no acotado." },
+        { id: "c", text: "El problema dual tiene solución óptima finita y = 0", isCorrect: false, explanation: "Contradice el teorema de dualidad débil." }
+      ]
+    }
+  ]}
+/>

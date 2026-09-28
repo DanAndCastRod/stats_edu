@@ -1,0 +1,7 @@
+{
+  "title": "Metaheurísticas y Optimización Combinatoria",
+  "code": "IO223",
+  "description": "Algoritmos avanzados para problemas NP-difíciles: metaheurísticas de trayectoria (Recocido Simulado, Búsqueda Tabú con memoria adaptativa) y algoritmos poblacionales (Algoritmos Genéticos con cruces de permutación y PSO aplicado a ruteo y secuenciación).",
+  "slug": "mioe-s2-metaheuristicas",
+  "isMock": false
+}

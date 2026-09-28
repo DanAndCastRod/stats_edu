@@ -1,0 +1,158 @@
+---
+title: "Tasa de Fallas, Distribución de Weibull y MTBF"
+order: 2
+description: "Curva de la bañera, función de tasa de fallas h(t), distribución de Weibull (forma beta y escala eta) y cálculo de MTBF y MTTR."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué interpretación física tiene el parámetro de forma beta de la distribución de Weibull en la tasa de fallas h(t)?"
+    options:
+      - "beta < 1 indica fallas tempranas (mortalidad infantil); beta = 1 indica tasa constante (fallas aleatorias); beta > 1 indica desgaste por envejecimiento"
+      - "beta siempre debe ser exactamente igual a 3.14"
+      - "beta representa el costo unitario de repuesto en inventario"
+      - "beta > 1 indica que el equipo mejora con el uso de forma perpetua"
+    answer: 0
+    explanation: "El parámetro de forma beta modela las tres fases de la curva de la bañera: tasa decreciente (beta < 1), tasa constante exponencial (beta = 1) y tasa creciente por desgaste y fatiga de materiales (beta > 1)."
+  - question: "¿Cómo se define analíticamente el Tiempo Medio Entre Fallas (MTBF) a partir de la función de confiabilidad R(t)?"
+    options:
+      - "MTBF = int_0^infty R(t) dt"
+      - "MTBF = R(0) - R(infty)"
+      - "MTBF = 1 / R(t)"
+      - "MTBF = int_0^infty t * R(t) dt"
+    answer: 0
+    explanation: "Integrando por partes la esperanza matemática de una variable aleatoria no negativa E[T] = int_0^infty t f(t) dt, se demuestra formalmente que MTBF = int_0^infty R(t) dt."
+---
+
+# Introducción
+
+> Todos los equipos industriales mueren. La pregunta para el ingeniero de confiabilidad no es si fallarán, sino **cuándo** y **a qué ritmo**. Reemplazar un rodamiento demasiado pronto desperdicia vida útil residual; reemplazarlo demasiado tarde causa una catástrofe en la línea de producción.
+
+La **Tasa de Fallas** $h(t)$ cuantifica el riesgo instantáneo de que un equipo que ha sobrevivido hasta el tiempo $t$ falle en el siguiente instante infinitesimal.
+
+<Callout type="info">
+**La Curva de la Bañera:** Describe el ciclo de vida clásico de activos:
+1. *Mortalidad infantil* (defectos de fabricación, $h'(t) < 0$).
+2. *Vida útil* (fallas estocásticas accidentales, $h(t) = \lambda$ constante).
+3. *Desgaste y obsolescencia* (fatiga, corrosión, $h'(t) > 0$).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formalizar la función de tasa de fallas instantánea $h(t) = f(t) / R(t)$.
+- Conectar la tasa de fallas constante con la distribución exponencial y el $MTBF = 1/\lambda$.
+- Analizar la distribución de Weibull y la interpretación física de sus parámetros $\beta$ (forma) y $\eta$ (escala).
+- Calcular la disponibilidad inherente de un activo: $A = \frac{MTBF}{MTBF + MTTR}$.
+
+---
+
+# Fundamentos Teóricos
+
+### Tasa de Fallas Instantánea (Hazard Rate)
+
+$$h(t) = \lim_{\Delta t \to 0} \frac{\mathbb{P}(t < T \le t + \Delta t \mid T > t)}{\Delta t} = \frac{f(t)}{R(t)} = -\frac{d}{dt} \ln R(t)$$
+
+Integrando ambos lados:
+
+$$R(t) = \exp\left( -\int_0^t h(u) du \right)$$
+
+Si la tasa de fallas es constante $h(t) = \lambda$:
+
+$$R(t) = e^{-\lambda t}$$
+
+$$MTBF = \mathbb{E}[T] = \int_0^\infty e^{-\lambda t} dt = \frac{1}{\lambda}$$
+
+### La Distribución de Weibull
+
+Es el modelo más versátil de confiabilidad en ingeniería:
+
+$$R(t) = \exp\left( -\left( \frac{t}{\eta} \right)^\beta \right), \quad t \ge 0$$
+
+$$h(t) = \frac{\beta}{\eta} \left( \frac{t}{\eta} \right)^{\beta - 1}$$
+
+- $\beta > 0$: Parámetro de forma (adimensional).
+- $\eta > 0$: Parámetro de escala o vida característica (tiempo al cual ha fallado el 63.2% de la población, ya que $R(\eta) = e^{-1} = 0.368$).
+
+El $MTBF$ para la distribución de Weibull es:
+
+$$MTBF = \eta \cdot \Gamma\left( 1 + \frac{1}{\beta} \right)$$
+
+Donde $\Gamma(x)$ es la función Gamma de Euler.
+
+### Disponibilidad Inherente ($A$)
+
+Combina confiabilidad ($MTBF$) y mantenibilidad ($MTTR$ - Tiempo Medio Para Reparar):
+
+$$A = \frac{MTBF}{MTBF + MTTR}$$
+
+---
+
+# Laboratorio en Python: Análisis Weibull de Turbina de Vapor
+
+```python
+import math
+import numpy as np
+import pandas as pd
+from scipy import stats
+from scipy.special import gamma
+
+# Parámetros de Weibull para álabes de turbina sometidos a fatiga térmica
+beta = 2.5       # beta > 1: proceso de desgaste y fatiga acelerada
+eta = 12000.0    # Vida característica: 12,000 horas de operación
+MTTR = 48.0      # Tiempo medio de reemplazo y reparación: 48 horas
+
+# 1. Cálculo del MTBF
+MTBF = eta * gamma(1.0 + 1.0 / beta)
+
+# 2. Confiabilidad R(t) y tasa de fallas h(t) a diferentes horizontes temporales
+tiempos_h = [2000, 4000, 6000, 8000, 10000, 12000, 14000]
+reporte = []
+
+for t in tiempos_h:
+    R_t = np.exp(-(t / eta)**beta)
+    # Tasa instantánea de fallas por millón de horas (failures per million hours - FPMH)
+    h_t = (beta / eta) * (t / eta)**(beta - 1.0) * 1_000_000
+    reporte.append({
+        'Tiempo_Horas': t,
+        'Confiabilidad_R(t)': R_t,
+        'Prob_Falla_F(t)': 1.0 - R_t,
+        'Tasa_Fallas_h(t) [FPMH]': h_t
+    })
+
+df_weibull = pd.DataFrame(reporte)
+
+# 3. Disponibilidad Operacional Inherente
+A = MTBF / (MTBF + MTTR)
+
+print("ANÁLISIS DE CONFIABILIDAD WEIBULL (beta=2.5, eta=12,000 h):")
+print(df_weibull.round(4).to_string(index=False))
+print(f"\nMTBF (Tiempo Medio Entre Fallas): {MTBF:.1f} horas ({MTBF/24:.1f} días de operación continua)")
+print(f"MTTR (Tiempo Medio de Reparación): {MTTR:.1f} horas")
+print(f"Disponibilidad Inherente del Activo (A): {A*100:.3f}%")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Tasa de Fallas y Weibull"
+  questions={[
+    {
+      id: "q_wb_1",
+      text: "Si un equipo industrial opera en su fase de vida útil con tasa de fallas constante lambda = 0.0005 fallas/hora, ¿cuál es su MTBF?",
+      options: [
+        { id: "a", text: "2000 horas (MTBF = 1 / lambda = 1 / 0.0005 = 2000 h)", isCorrect: true, explanation: "Bajo el modelo exponencial (tasa constante), el MTBF es el inverso recíproco de lambda." },
+        { id: "b", text: "500 horas", isCorrect: false, explanation: "1 / 0.0005 = 2000, no 500." },
+        { id: "c", text: "10000 horas", isCorrect: false, explanation: "10000 horas correspondería a una tasa de 0.0001." }
+      ]
+    },
+    {
+      id: "q_wb_2",
+      text: "Si un motor tiene MTBF = 950 horas y MTTR = 50 horas, ¿cuál es su disponibilidad inherente A?",
+      options: [
+        { id: "a", text: "95% (A = 950 / (950 + 50) = 950 / 1000 = 0.95)", isCorrect: true, explanation: "La disponibilidad es el porcentaje del tiempo total que el equipo se encuentra apto para operar: MTBF / (MTBF + MTTR)." },
+        { id: "b", text: "50%", isCorrect: false, explanation: "50% sería si el MTBF y el MTTR fueran idénticos." },
+        { id: "c", text: "99.9%", isCorrect: false, explanation: "Requeriría un MTTR mucho menor en comparación con el MTBF." }
+      ]
+    }
+  ]}
+/>

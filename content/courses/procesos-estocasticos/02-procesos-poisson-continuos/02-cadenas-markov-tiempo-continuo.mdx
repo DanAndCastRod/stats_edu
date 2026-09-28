@@ -1,0 +1,165 @@
+---
+title: "Cadenas de Markov en Tiempo Continuo y Ecuaciones de Kolmogorov"
+order: 2
+description: "Matriz generadora infinitesimal Q, tasas de transición q_ij, ecuaciones diferenciales de Kolmogorov y procesos de nacimiento y muerte."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué propiedad fundamental define a la matriz generadora infinitesimal Q de una cadena de Markov en tiempo continuo?"
+    options:
+      - "Los elementos fuera de la diagonal q_{ij} son no negativos y la suma de cada fila es exactamente cero (q_{ii} = -sum_{j != i} q_{ij})"
+      - "Todos los elementos son positivos y suman 1 en cada columna"
+      - "La diagonal principal contiene únicamente números imaginarios"
+      - "Q es una matriz identidad multiplicada por una constante"
+    answer: 0
+    explanation: "Por definición de tasas de transición infinitesimales, q_{ij} >= 0 para i != j y sum_{j} q_{ij} = 0, lo que obliga a que q_{ii} = -sum_{j != i} q_{ij} <= 0."
+  - question: "¿Cómo se formula la distribución de probabilidad estacionaria pi en una CTMC?"
+    options:
+      - "pi * Q = 0, sujeto a sum_i pi_i = 1"
+      - "pi * Q = pi"
+      - "Q * pi = 1"
+      - "det(Q) = pi"
+    answer: 0
+    explanation: "En tiempo continuo la derivada temporal de las probabilidades de estado en equilibrio es cero: d pi(t) / dt = pi Q = 0, con la restricción de normalización sum pi_i = 1."
+---
+
+# Introducción
+
+> En los sistemas productivos reales, las transiciones no ocurren en intervalos de reloj fijos; una bomba centrífuga puede averiarse en cualquier instante continuo $t$. Las **Cadenas de Markov en Tiempo Continuo (CTMC)** capturan esta dinámica mediante tasas instantáneas de transición.
+
+En una CTMC, el tiempo que el sistema pasa en un estado $i$ antes de hacer una transición es una variable aleatoria exponencial con tasa $\nu_i$, y la probabilidad de saltar al estado $j$ está gobernada por una matriz de saltos discretos.
+
+<Callout type="info">
+**La Matriz Generadora $Q$:** Es el análogo diferencial de la matriz de transición discreta. Describe la tasa a la que la probabilidad fluye entre los estados del sistema.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Definir la matriz de tasas infinitesimales $Q$ y sus propiedades de conservación de flujo.
+- Interpretar las Ecuaciones Diferenciales de Kolmogorov Progresivas ($P'(t) = P(t)Q$) y Regresivas ($P'(t) = QP(t)$).
+- Formular procesos de nacimiento y muerte para sistemas de servicio y manufactura.
+- Resolver el vector de estado estacionario continuo $\pi Q = 0$ con Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Tasas de Transición y Matriz $Q$
+
+Para $i \ne j$:
+
+$$q_{ij} = \lim_{h \to 0} \frac{p_{ij}(h)}{h}$$
+
+La tasa total a la que el proceso abandona el estado $i$ es:
+
+$$\nu_i = \sum_{j \ne i} q_{ij} = -q_{ii}$$
+
+Por tanto, la matriz generadora $Q = [q_{ij}]$ cumple:
+
+$$\sum_{j \in S} q_{ij} = 0, \quad \forall i \in S$$
+
+### Ecuaciones Diferenciales de Kolmogorov
+
+Las probabilidades de transición en el tiempo $t$, $P(t) = [p_{ij}(t)]$, satisfacen:
+- **Ecuación Regresiva de Kolmogorov:**
+  $$\frac{d P(t)}{dt} = Q P(t)$$
+- **Ecuación Progresiva de Kolmogorov:**
+  $$\frac{d P(t)}{dt} = P(t) Q$$
+
+La solución analítica formal mediante la exponencial matricial es:
+
+$$P(t) = e^{Qt} = \sum_{k=0}^\infty \frac{(Qt)^k}{k!}$$
+
+### Distribución Estacionaria
+
+A medida que $t \to \infty$, $\frac{d \pi(t)}{dt} \to 0$, por lo que el vector de estado estable satisface el sistema de **Balance Global:**
+
+$$\pi Q = 0, \quad \sum_{i \in S} \pi_i = 1$$
+
+El flujo de probabilidad que sale de cualquier estado o conjunto de estados debe ser idéntico al flujo de probabilidad que entra a dicho estado en equilibrio.
+
+---
+
+# Laboratorio en Python: Dinámica de Falla y Reparación en Planta
+
+```python
+import numpy as np
+import pandas as pd
+from scipy.linalg import expm
+
+# Sistema industrial de 3 estados:
+# 0: Máquina Operativa al 100%
+# 1: Máquina con Rendimiento Degradado
+# 2: Máquina en Parada por Falla (Reparación)
+estados = ['Operativa', 'Degradada', 'Falla']
+
+# Tasas por hora (eventos/hora):
+# De Operativa -> Degradada: lambda_1 = 0.05
+# De Operativa -> Falla directa: lambda_0 = 0.01
+# De Degradada -> Falla: lambda_2 = 0.20
+# De Degradada -> Operativa (ajuste rapido): mu_1 = 0.10
+# De Falla -> Operativa (reparación completa): mu_2 = 0.50
+
+Q = np.array([
+    [-0.06,  0.05,  0.01],
+    [ 0.10, -0.30,  0.20],
+    [ 0.50,  0.00, -0.50]
+])
+
+print("Matriz Generadora Infinitesimal Q (suma de filas = 0):")
+print(Q)
+print("Verificación de suma de filas:", np.sum(Q, axis=1))
+
+# 1. Cálculo de probabilidades de estado a las 10 horas: P(10) = expm(Q * 10)
+t = 10.0
+P_t = expm(Q * t)
+df_Pt = pd.DataFrame(P_t, index=estados, columns=estados)
+print(f"\nMatriz de Probabilidades de Transición a t = {t} horas:")
+print(df_Pt.round(4))
+
+# 2. Distribución estacionaria: pi * Q = 0
+M = len(estados)
+A = Q.T.copy()
+A[-1, :] = np.ones(M)
+b = np.zeros(M)
+b[-1] = 1.0
+
+pi = np.linalg.solve(A, b)
+
+df_est = pd.DataFrame({
+    'Estado': estados,
+    'Probabilidad_Estacionaria (pi)': pi,
+    'Disponibilidad (%)': pi * 100
+})
+
+print("\nDISTRIBUCIÓN ESTACIONARIA CONTINUA (pi * Q = 0):")
+print(df_est.round(4).to_string(index=False))
+print(f"\nDisponibilidad global de la planta: {pi[0]*100:.2f}%")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Cadenas de Markov en Tiempo Continuo"
+  questions={[
+    {
+      id: "q_ctmc_1",
+      text: "En una CTMC, el tiempo que el proceso permanece en el estado i antes de saltar a cualquier otro estado sigue una distribución:",
+      options: [
+        { id: "a", text: "Exponencial con parámetro nu_i = -q_{ii}", isCorrect: true, explanation: "El tiempo de permanencia es el mínimo de variables exponenciales independientes con tasas q_ij, el cual es exponencial con tasa igual a la suma nu_i = sum_{j != i} q_ij = -q_ii." },
+        { id: "b", text: "Uniforme continua entre 0 y 1", isCorrect: false, explanation: "La propiedad de Markov continua exige falta de memoria, que solo cumple la distribución exponencial." },
+        { id: "c", text: "Normal con media nu_i", isCorrect: false, explanation: "La distribución normal admite valores negativos y no tiene propiedad de pérdida de memoria." }
+      ]
+    },
+    {
+      id: "q_ctmc_2",
+      text: "¿Cuál es la interpretación física de la ecuación de balance global pi * Q = 0?",
+      options: [
+        { id: "a", text: "La tasa total de flujo de probabilidad que sale de cada estado es exactamente igual a la tasa de flujo que entra a dicho estado", isCorrect: true, explanation: "pi_i * sum_{j != i} q_ij = sum_{j != i} pi_j * q_ji, es decir, Flujo Saliente = Flujo Entrante en régimen permanente." },
+        { id: "b", text: "Que todos los eventos se cancelan y el sistema deja de operar", isCorrect: false, explanation: "El sistema continúa saltando estocásticamente; lo que no cambia son las probabilidades agregadas." },
+        { id: "c", text: "Que la matriz Q es invertible", isCorrect: false, explanation: "Q es siempre singular puesto que sus filas suman cero." }
+      ]
+    }
+  ]}
+/>

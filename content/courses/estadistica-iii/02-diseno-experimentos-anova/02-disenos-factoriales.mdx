@@ -1,0 +1,177 @@
+---
+title: "Diseños Factoriales 2^k y Análisis de Interacción"
+order: 2
+description: "Estructura de diseños factoriales de dos niveles, cálculo de efectos principales, interacciones sinérgicas y antagónicas y optimización de procesos."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué representa el concepto de 'interacción' entre dos factores A y B en un diseño experimental?"
+    options:
+      - "Que el efecto del factor A sobre la variable de respuesta depende del nivel en el que se encuentre el factor B"
+      - "Que ambos factores tienen exactamente el mismo coeficiente de correlación lineal"
+      - "Que los factores son colineales y deben descartarse del análisis"
+      - "Que el error experimental se reduce a cero de forma espontánea"
+    answer: 0
+    explanation: "Existe interacción estadística entre dos factores cuando el cambio en la respuesta media al pasar del nivel bajo al alto del factor A varía en magnitud o signo según el nivel del factor B."
+  - question: "En un diseño factorial completo 2^3 con n = 2 réplicas por combinación, ¿cuántas corridas experimentales totales se requieren?"
+    options:
+      - "16 corridas (2^3 = 8 tratamientos x 2 réplicas = 16)"
+      - "6 corridas (3 factores x 2 réplicas)"
+      - "12 corridas (2^3 + 4)"
+      - "24 corridas (8 x 3)"
+    answer: 0
+    explanation: "Un diseño 2^3 tiene 2 x 2 x 2 = 8 combinaciones de tratamiento. Con n = 2 réplicas independientes, el número total de unidades experimentales es 8 x 2 = 16."
+---
+
+# Introducción
+
+> La mayoría de los fracasos en optimización industrial ocurren por la falacia del método clásico de "un factor a la vez" (OFAT: *One-Factor-At-A-Time*). Si la temperatura óptima de un reactor depende de la presión operativa, variar la temperatura manteniendo fija la presión jamás encontrará el óptimo global del sistema.
+
+Los **diseños factoriales** investigan simultáneamente todas las combinaciones posibles de los niveles de dos o más factores, permitiendo cuantificar los efectos de interacción que impulsan la competitividad de las plantas de manufactura.
+
+<Callout type="info">
+**Notación de Yates:** En diseños $2^k$, los factores se codifican como $-1$ (nivel bajo) y $+1$ (nivel alto). El tratamiento donde todos los factores están en su nivel bajo se denota como $(1)$, mientras que las letras minúsculas $a, b, ab$ indican los factores que se encuentran en su nivel alto.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comprender la ventaja competitiva y estadística de los experimentos factoriales frente a la estrategia OFAT.
+- Calcular efectos principales y efectos de interacción doble y triple en diseños $2^k$.
+- Formular la tabla ANOVA factorial y evaluar la significancia de los términos.
+- Interpretar gráficos de interacción para detectar sinergias y antagonismos entre variables.
+
+---
+
+# Fundamentos Teóricos
+
+### El Diseño Factorial $2^2$
+
+Consideremos dos factores $A$ y $B$, cada uno en dos niveles ($-1$ y $+1$), con $n$ réplicas por tratamiento:
+
+| Combinación | Factor A | Factor B | Notación Yates | Total de Respuesta |
+| :---: | :---: | :---: | :---: | :---: |
+| 1 | $-$ | $-$ | $(1)$ | $y_{(1)}$ |
+| 2 | $+$ | $-$ | $a$ | $y_a$ |
+| 3 | $-$ | $+$ | $b$ | $y_b$ |
+| 4 | $+$ | $+$ | $ab$ | $y_{ab}$ |
+
+### Cálculo de Efectos y Contrastes
+
+El **efecto principal** del factor $A$ es la diferencia media en la respuesta cuando $A$ pasa de su nivel bajo a su nivel alto:
+
+$$\text{Efecto}(A) = \frac{1}{2n} [ab + a - b - (1)]$$
+
+El **efecto de interacción** $AB$ es la mitad de la diferencia entre el efecto de $A$ en el nivel alto de $B$ y el efecto de $A$ en el nivel bajo de $B$:
+
+$$\text{Efecto}(AB) = \frac{1}{2n} [ab + (1) - a - b]$$
+
+### Sumas de Cuadrados
+
+Para cualquier factor o interacción con contraste $C$:
+
+$$SS = \frac{C^2}{n \cdot 2^k}$$
+
+$$SS_A = \frac{[ab + a - b - (1)]^2}{4n}, \quad SS_{AB} = \frac{[ab + (1) - a - b]^2}{4n}$$
+
+La Suma Total de Cuadrados se particiona en:
+
+$$SST = SS_A + SS_B + SS_{AB} + SSE$$
+
+---
+
+# Laboratorio en Python: Rendimiento en Moldeo por Inyección
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# Experimento 2^2 con n=3 réplicas
+# Factor A: Temperatura del molde (140°C vs 180°C)
+# Factor B: Presión de inyección (80 bar vs 120 bar)
+# Variable de respuesta: Resistencia al impacto (Joules)
+datos_2k = pd.DataFrame({
+    'Corrida': range(1, 13),
+    'A': [-1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1],
+    'B': [-1, -1,  1,  1, -1, -1,  1,  1, -1, -1,  1,  1],
+    'Respuesta': [
+        18.2, 24.5, 20.1, 31.4,  # Réplica 1
+        17.9, 23.8, 19.5, 30.8,  # Réplica 2
+        18.5, 24.1, 20.6, 31.9   # Réplica 3
+    ]
+})
+
+n = 3
+k = 2
+N = n * (2**k)
+
+# Contrastes de efectos
+datos_2k['AB'] = datos_2k['A'] * datos_2k['B']
+
+contraste_A = np.sum(datos_2k['A'] * datos_2k['Respuesta'])
+contraste_B = np.sum(datos_2k['B'] * datos_2k['Respuesta'])
+contraste_AB = np.sum(datos_2k['AB'] * datos_2k['Respuesta'])
+
+efecto_A = contraste_A / (n * 2**(k - 1))
+efecto_B = contraste_B / (n * 2**(k - 1))
+efecto_AB = contraste_AB / (n * 2**(k - 1))
+
+# Sumas de cuadrados
+SSA = (contraste_A**2) / N
+SSB = (contraste_B**2) / N
+SSAB = (contraste_AB**2) / N
+
+media_total = datos_2k['Respuesta'].mean()
+SST = np.sum((datos_2k['Respuesta'] - media_total)**2)
+SSE = SST - SSA - SSB - SSAB
+
+df_efectos = 1
+df_error = N - 2**k
+
+MSE = SSE / df_error
+
+tabla_2k = pd.DataFrame({
+    'Fuente': ['Factor A (Temperatura)', 'Factor B (Presión)', 'Interacción AB', 'Error', 'Total'],
+    'Efecto': [efecto_A, efecto_B, efecto_AB, np.nan, np.nan],
+    'SS': [SSA, SSB, SSAB, SSE, SST],
+    'df': [df_efectos, df_efectos, df_efectos, df_error, N - 1],
+    'MS': [SSA, SSB, SSAB, MSE, np.nan],
+    'F_0': [SSA/MSE, SSB/MSE, SSAB/MSE, np.nan, np.nan],
+    'p_valor': [
+        1 - stats.f.cdf(SSA/MSE, 1, df_error),
+        1 - stats.f.cdf(SSB/MSE, 1, df_error),
+        1 - stats.f.cdf(SSAB/MSE, 1, df_error),
+        np.nan, np.nan
+    ]
+})
+
+print("ANÁLISIS EXPERIMENTAL FACTORIAL 2^2:")
+print(tabla_2k.round(4).to_string(index=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Diseños Factoriales 2^k"
+  questions={[
+    {
+      id: "q_fact_1",
+      text: "Si en un gráfico de interacción las líneas correspondientes a los dos niveles del factor B son perfectamente paralelas, esto significa que:",
+      options: [
+        { id: "a", text: "No existe interacción entre los factores A y B (el efecto de A es idéntico en ambos niveles de B)", isCorrect: true, explanation: "Líneas paralelas reflejan independencia de efectos: el efecto de A no depende del nivel de B. Cruces o pendientes divergentes indican interacción significativa." },
+        { id: "b", text: "La interacción entre A y B es estadísticamente máxima y significativa", isCorrect: false, explanation: "Al contrario, el paralelismo es la firma gráfica de interacción nula." },
+        { id: "c", text: "El modelo no cumple el supuesto de normalidad", isCorrect: false, explanation: "El paralelismo de medias no tiene relación directa con la distribución de residuos." }
+      ]
+    },
+    {
+      id: "q_fact_2",
+      text: "¿Por qué el principio de escasez de efectos (sparsity of effects) es fundamental en la industria?",
+      options: [
+        { id: "a", text: "Porque la mayor parte de la respuesta del sistema es explicada por efectos principales e interacciones de bajo orden (orden 2), permitiendo fraccionar experimentos", isCorrect: true, explanation: "El principio postula que las interacciones de orden 3 o superior suelen ser despreciables físicamente, justificando los diseños factoriales fraccionados 2^(k-p)." },
+        { id: "b", text: "Porque obliga a que los experimentos nunca tengan réplicas", isCorrect: false, explanation: "Las réplicas siempre son deseables para estimar con precisión el error puro." },
+        { id: "c", text: "Porque asegura que todos los factores tengan p-valores idénticos", isCorrect: false, explanation: "Los factores tendrán p-valores diferentes según su impacto en el proceso." }
+      ]
+    }
+  ]}
+/>

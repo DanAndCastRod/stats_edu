@@ -1,0 +1,157 @@
+---
+title: "Series Uniformes, Anualidades y Gradientes"
+order: 2
+description: "Modelado de flujos periódicos constantes (anualidades vencidas y anticipadas), gradientes aritméticos lineales y gradientes geométricos porcentuales."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es la expresión cerrada del factor de Valor Presente de una Anualidad Vencida (P/A, i, n)?"
+    options:
+      - "P = A * [ ( (1 + i)^n - 1 ) / ( i * (1 + i)^n ) ]"
+      - "P = A * (1 + i)^n"
+      - "P = A / (n * i)"
+      - "P = A * [ (1 + i)^n - 1 ]"
+    answer: 0
+    explanation: "Sumando los n términos de la serie geométrica decreciente de flujos descontados P = sum_{t=1}^n A / (1 + i)^t se obtiene la fórmula cerrada P = A * [ (1 - (1+i)^(-n)) / i ]."
+  - question: "¿Qué diferencia a un Gradiente Aritmético de un Gradiente Geométrico en finanzas de ingeniería?"
+    options:
+      - "El gradiente aritmético incrementa en una cantidad monetaria fija constante G en cada periodo; el geométrico varía a una tasa porcentual fija g por periodo"
+      - "El aritmético es solo para préstamos hipotecarios y el geométrico para leasing de maquinaria"
+      - "El aritmético no depende de la tasa de interés"
+      - "No existe diferencia matemática entre ellos"
+    answer: 0
+    explanation: "Aritmético: A_t = A_1 + (t - 1)G (crecimiento lineal en dólares). Geométrico: A_t = A_1 * (1 + g)^(t-1) (crecimiento exponencial porcentual, como el escalamiento de contratos por inflación)."
+---
+
+# Introducción
+
+> En la práctica ingenieril, los flujos de efectivo rara vez consisten en un único desembolso y un único cobro. La cuota de arrendamiento de una grúa telescópica es una serie uniforme periódica (**Anualidad**); los costos de mantenimiento de un compresor crecen típicamente cada año debido al desgaste mecánico (**Gradiente Aritmético**); y los ingresos por venta de energía de una planta solar escalan según la inflación proyectada (**Gradiente Geométrico**).
+
+Las fórmulas de series uniformes y gradientes permiten transformar diagramas de flujo de caja complejos de múltiples periodos en un único valor presente ($P$) o futuro ($F$) equivalente.
+
+<Callout type="info">
+**Anualidad Vencida vs Anticipada:**
+- *Vencida (Ordinaria):* Los pagos ocurren al final de cada periodo (estándar en créditos bancarios y proyectos de inversión).
+- *Anticipada:* Los pagos ocurren al inicio de cada periodo (estándar en contratos de alquiler y seguros).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Deducir y aplicar los factores de anualidad $(P/A, i, n)$, $(A/P, i, n)$, $(F/A, i, n)$ y $(A/F, i, n)$.
+- Modelar flujos con crecimiento constante lineal mediante el factor de gradiente aritmético $(P/G, i, n)$.
+- Resolver flujos con crecimiento porcentual continuo mediante gradientes geométricos.
+- Programar tablas de amortización de créditos bancarios industriales en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Factores de Anualidad Vencida
+
+Dada una serie de $n$ pagos uniformes iguales a $A$ ocurridos en $t = 1, 2, \dots, n$:
+
+$$P = A \left[ \frac{(1 + i)^n - 1}{i(1 + i)^n} \right] = A \left[ \frac{1 - (1 + i)^{-n}}{i} \right] \iff (P/A, i, n)$$
+
+La cuota periódica uniforme equivalente a un valor presente $P$ (factor de recuperación de capital):
+
+$$A = P \left[ \frac{i(1 + i)^n}{(1 + i)^n - 1} \right] \iff (A/P, i, n)$$
+
+El valor futuro acumulado al final del periodo $n$:
+
+$$F = A \left[ \frac{(1 + i)^n - 1}{i} \right] \iff (F/A, i, n)$$
+
+### Gradiente Aritmético Lineal
+
+Flujos donde el desembolso en el año $t$ es $C_t = A_1 + (t - 1)G$:
+
+$$P = A_1(P/A, i, n) + G(P/G, i, n)$$
+
+Donde el factor de gradiente aritmético es:
+
+$$(P/G, i, n) = \frac{1}{i} \left[ \frac{(1 + i)^n - 1}{i(1 + i)^n} - \frac{n}{(1 + i)^n} \right]$$
+
+### Gradiente Geométrico Porcentual
+
+Flujos donde $C_t = A_1(1 + g)^{t-1}$, con tasa de crecimiento porcentual $g$:
+- Si $i \ne g$:
+  $$P = \frac{A_1}{i - g} \left[ 1 - \left( \frac{1 + g}{1 + i} \right)^n \right]$$
+- Si $i = g$:
+  $$P = \frac{n A_1}{1 + i}$$
+
+---
+
+# Laboratorio en Python: Tabla de Amortización y Gradientes de Mantenimiento
+
+```python
+import numpy as np
+import pandas as pd
+
+# Caso 1: Amortización de Maquinaria Industrial
+# Préstamo P = $200,000 USD, Plazo n = 5 años, Tasa i = 10% anual (cuotas vencidas)
+P = 200_000.0
+i = 0.10
+n = 5
+
+cuota_A = P * (i * (1 + i)**n) / ((1 + i)**n - 1)
+
+tabla_amortizacion = []
+saldo = P
+
+for periodo in range(1, n + 1):
+    interes = saldo * i
+    abono_capital = cuota_A - interes
+    saldo_final = saldo - abono_capital
+    tabla_amortizacion.append({
+        'Año': periodo,
+        'Saldo_Inicial': saldo,
+        'Cuota_Anual': cuota_A,
+        'Interes': interes,
+        'Abono_Capital': abono_capital,
+        'Saldo_Final': max(0.0, saldo_final)
+    })
+    saldo = saldo_final
+
+df_amort = pd.DataFrame(tabla_amortizacion)
+
+# Caso 2: Costo de Mantenimiento con Gradiente Aritmético
+# Año 1 = $5,000 USD, incrementa $1,200 USD/año durante 6 años. Tasa i = 8% anual
+A1 = 5_000.0
+G = 1_200.0
+n_mant = 6
+i_mant = 0.08
+
+P_A = A1 * (1 - (1 + i_mant)**(-n_mant)) / i_mant
+P_G = (G / i_mant) * ((1 - (1 + i_mant)**(-n_mant)) / i_mant - n_mant / (1 + i_mant)**n_mant)
+VP_mantenimiento_total = P_A + P_G
+
+print(f"TABLA DE AMORTIZACIÓN BANCARIA (Cuota Anual = USD {cuota_A:,.2f}):")
+print(df_amort.round(2).to_string(index=False))
+print(f"\nValor Presente de Costos de Mantenimiento (A1=$5000, G=$1200): USD {VP_mantenimiento_total:,.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Anualidades y Gradientes"
+  questions={[
+    {
+      id: "q_anual_1",
+      text: "¿Por qué en una tabla de amortización con cuota fija francesa el abono a capital es menor al principio y crece con cada periodo?",
+      options: [
+        { id: "a", text: "Porque al inicio el saldo deudor es máximo, lo que genera mayores intereses; a medida que el saldo cae, menor porción de la cuota va a intereses y mayor porción a capital", isCorrect: true, explanation: "Interés = Saldo * i. Conforme el saldo se reduce periodo a periodo, el cargo por intereses disminuye, liberando una mayor fracción de la cuota fija para amortizar el capital principal." },
+        { id: "b", text: "Porque el banco incrementa la tasa de interés arbitrariamente", isCorrect: false, explanation: "La tasa de interés pactada permanece fija en el sistema francés." },
+        { id: "c", text: "Porque la cuota total aumenta cada año", isCorrect: false, explanation: "La cuota es constante (anualidad uniforme)." }
+      ]
+    },
+    {
+      id: "q_anual_2",
+      text: "Si los costos anuales de energía de una caldera se proyectan en A_1 = $20,000 USD el primer año y crecerán a una tasa de inflación energética constante g = 6% anual durante 8 años con tasa i = 6% anual, ¿qué fórmula aplica para el Valor Presente?",
+      options: [
+        { id: "a", text: "P = (n * A_1) / (1 + i) (caso especial i = g en gradiente geométrico)", isCorrect: true, explanation: "Cuando la tasa de crecimiento g es idéntica a la tasa de descuento i, el factor (1+g)/(1+i) = 1 para todos los periodos, simplificando la suma a P = n * A_1 / (1 + i)." },
+        { id: "b", text: "P = A_1 * n", isCorrect: false, explanation: "Ignora el descuento financiero del denominador (1 + i)." },
+        { id: "c", text: "P = 0", isCorrect: false, explanation: "Los costos presentes son positivos y sustanciales." }
+      ]
+    }
+  ]}
+/>

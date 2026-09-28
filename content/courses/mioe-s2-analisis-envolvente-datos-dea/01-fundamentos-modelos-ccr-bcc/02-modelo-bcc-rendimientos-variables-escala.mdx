@@ -1,0 +1,74 @@
+---
+title: "Modelo BCC y Rendimientos Variables a Escala (VRS)"
+order: 2
+description: "Restricción de convexidad sum lambda_j = 1, descomposición de la eficiencia técnica global en eficiencia técnica pura y de escala."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 75
+quiz:
+  - question: "En el análisis DEA, ¿cómo se descompone matemáticamente la Eficiencia Técnica Global (CCR) a partir de los scores del modelo BCC?"
+    options:
+      - "Eficiencia Técnica Global (CCR) = Eficiencia Técnica Pura (BCC) * Eficiencia de Escala (SE)"
+      - "Eficiencia Global = Eficiencia Pura + Eficiencia de Escala"
+      - "Eficiencia Global = Eficiencia Pura / Eficiencia de Escala"
+      - "Eficiencia Global = log(Eficiencia Pura)"
+    answer: 0
+    explanation: "El modelo BCC añade la restricción sum lambda_j = 1, aislando la gestión operativa pura del impacto del tamaño físico de la planta. Se deduce que theta_CCR* = theta_BCC* * SE, donde SE = theta_CCR* / theta_BCC* <= 1."
+---
+
+# Modelo BCC y Rendimientos Variables a Escala (VRS)
+
+> En la realidad de la ingeniería industrial, una planta pequeña puede operar con impecable gestión gerencial pero sufrir desventajas competitivas por no alcanzar la escala mínima eficiente. El modelo **BCC (Banker, Charnes y Cooper, 1984)** desacopla la eficiencia operativa pura del tamaño de la operación.
+
+---
+
+## 1. El Modelo Envolvente BCC
+
+El modelo BCC incorpora la **restricción de convexidad** $\sum_{j=1}^n \lambda_j = 1$:
+
+$$\begin{aligned}
+\min_{\theta_B, \boldsymbol{\lambda}} \quad & \theta_B \\
+\text{s.a.} \quad & \sum_{j=1}^n \lambda_j \mathbf{x}_j \le \theta_B \mathbf{x}_o \\
+& \sum_{j=1}^n \lambda_j \mathbf{y}_j \ge \mathbf{y}_o \\
+& \sum_{j=1}^n \lambda_j = 1 \quad (\text{Restricción de Convexidad VRS}) \\
+& \lambda_j \ge 0, \, \forall j
+\end{aligned}$$
+
+Al restringir la combinación a una combinación convexa estricta, la frontera envolvente se ciñe más estrechamente a los datos, garantizando que:
+$$\theta_{CCR}^* \le \theta_{BCC}^*$$
+
+---
+
+## 2. Descomposición de la Eficiencia: Escala vs. Gestión Pura
+
+- **Eficiencia Técnica Global ($TE = \theta_{CCR}^*$):** Eficiencia total bajo rendimientos constantes.
+- **Eficiencia Técnica Pura ($PTE = \theta_{BCC}^*$):** Eficiencia atribuible exclusivamente a la calidad de la administración y procesos internos.
+- **Eficiencia de Escala ($SE$):**
+  $$SE = \frac{\theta_{CCR}^*}{\theta_{BCC}^*} \le 1$$
+
+---
+
+## 3. Identificación del Tipo de Rendimientos a Escala
+
+Analizando el término dual libre $u_0^*$ del modelo multiplicador BCC:
+- **Rendimientos Crecientes a Escala (IRS):** $u_0^* < 0$. La DMU es subóptimamente pequeña; duplicar los insumos generaría más del doble de productos.
+- **Rendimientos Decrecientes a Escala (DRS):** $u_0^* > 0$. La DMU sufre de deseconomías de escala por hipertrofia o burocracia.
+- **Escala Óptima (CRS):** $u_0^* = 0$. La DMU opera en el tamaño óptimo de escala.
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Modelo BCC y Eficiencia de Escala"
+  questions={[
+    {
+      id: "q_bcc_score_diff",
+      text: "Si una DMU obtiene theta_BCC* = 1.0 pero theta_CCR* = 0.75, ¿cuál es el diagnóstico operativo preciso?",
+      options: [
+        { id: "a", text: "Su gestión gerencial interna es 100% eficiente (no desperdicia insumos para su escala), pero su tamaño de planta es inadecuado respecto a la escala de máxima productividad", isCorrect: true, explanation: "Correcto: PTE = 1.0 certifica excelencia gerencial en sus procesos, mientras que SE = 0.75 / 1.0 = 0.75 indica una pérdida del 25% atribuible a operar fuera del tamaño óptimo de escala." },
+        { id: "b", text: "La DMU debe cerrar de inmediato", isCorrect: false, explanation: "Es eficiente en sus procesos; requiere ajustar su escala de producción." },
+        { id: "c", text: "El modelo BCC falló por multicolinealidad", isCorrect: false, explanation: "El DEA no asume ninguna forma funcional paramétrica." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,150 @@
+---
+title: "Autovalores, Autovectores y Diagonalización de Matrices"
+order: 1
+description: "Ecuación característica det(A - lambda*I) = 0, teorema espectral, multiplicidad algebraica y geométrica, y diagonalización A = P D P^(-1)."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cómo se define formalmente un autovector v != 0 y su autovalor asociado lambda para una transformación lineal gobernada por la matriz A?"
+    options:
+      - "A * v = lambda * v (la acción de la matriz sobre el vector no altera su dirección, únicamente lo escala por el factor lambda)"
+      - "A * v = 0 siempre"
+      - "v * A = lambda"
+      - "det(A) * v = lambda"
+    answer: 0
+    explanation: "Un autovector v representa una dirección invariante de la transformación: aplicar la matriz A equivale a una simple homotecia o multiplicación escalar por lambda: A v = lambda v."
+  - question: "¿Qué afirma el Teorema Espectral para matrices reales simétricas (A = A^T)?"
+    options:
+      - "Todos sus autovalores son estrictamente reales y siempre existe una base ortonormal completa de autovectores que diagonaliza ortogonalmente a A (A = Q D Q^T)"
+      - "Todos sus autovalores son imaginarios puros"
+      - "La matriz nunca es invertible"
+      - "El determinante es siempre igual a 1"
+    answer: 0
+    explanation: "El teorema espectral garantiza que toda matriz real simétrica es diagonalizable ortogonalmente mediante una matriz ortogonal Q (donde Q^(-1) = Q^T) y sus autovalores son todos números reales."
+---
+
+# Introducción
+
+> ¿Hacia dónde se concentran las mayores vibraciones de un puente grúa en una nave industrial? ¿Cómo reduce el algoritmo PCA (*Principal Component Analysis*) un conjunto de 20 variables de calidad a solo 2 factores clave sin perder información? La respuesta matemática en ambos casos radica en el **análisis espectral de autovalores y autovectores**.
+
+Cuando una matriz multiplica a un vector genérico, típicamente lo rota y cambia su longitud. Sin embargo, existen direcciones privilegiadas en las que la matriz **solo dilata o contrae el vector sin rotarlo**: estos son los **autovectores**.
+
+<Callout type="info">
+**Potencias de Matrices:** Diagonalizar una matriz $A = P D P^{-1}$ permite calcular potencias gigantescas $A^k = P D^k P^{-1}$ de forma instantánea, elevando simplemente los elementos diagonales de $D$ a la potencia $k$.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Plantear y resolver la ecuación característica $\det(A - \lambda I) = 0$.
+- Calcular el espacio propio (*eigenspace*) asociado a cada autovalor.
+- Comprender las condiciones de diagonalizabilidad (multiplicidad geométrica = multiplicidad algebraica).
+- Aplicar la descomposición espectral en Python con NumPy.
+
+---
+
+# Fundamentos Teóricos
+
+### La Ecuación Característica
+
+Buscamos vectores no nulos $v \ne 0$ tales que:
+
+$$A v = \lambda v \iff (A - \lambda I) v = 0$$
+
+Para que este sistema homogéneo tenga soluciones no triviales ($v \ne 0$), el operador debe ser singular:
+
+$$p(\lambda) = \det(A - \lambda I) = 0$$
+
+Este es el **polinomio característico** de grado $n$, cuyas raíces son los autovalores $\{\lambda_1, \dots, \lambda_n\}$.
+
+### Propiedades Espectrales Clave
+
+1. La suma de los autovalores es igual a la traza de la matriz:
+   $$\sum_{i=1}^n \lambda_i = \text{tr}(A)$$
+2. El producto de los autovalores es igual al determinante:
+   $$\prod_{i=1}^n \lambda_i = \det(A)$$
+
+### Diagonalización
+
+Si $A$ posee $n$ autovectores linealmente independientes $\{v_1, \dots, v_n\}$, formamos la matriz de paso $P = [v_1 \mid v_2 \mid \dots \mid v_n]$ y la matriz diagonal $D = \text{diag}(\lambda_1, \dots, \lambda_n)$:
+
+$$A P = P D \implies A = P D P^{-1}$$
+
+Para cualquier potencia entera $k$:
+
+$$A^k = P D^k P^{-1} = P \begin{bmatrix} \lambda_1^k & & 0 \\ & \ddots & \\ 0 & & \lambda_n^k \end{bmatrix} P^{-1}$$
+
+---
+
+# Laboratorio en Python: Descomposición Espectral y Potencias de Matrices
+
+```python
+import numpy as np
+import pandas as pd
+
+# Matriz de covarianzas de un proceso de manufactura (simétrica)
+Sigma = np.array([
+    [4.0, 1.5, 0.5],
+    [1.5, 3.0, 1.0],
+    [0.5, 1.0, 2.0]
+])
+
+# 1. Cálculo de Autovalores y Autovectores
+autovalores, autovectores = np.linalg.eigh(Sigma)  # 'eigh' optimizado para matrices simétricas/hermitianas
+
+# Ordenar de mayor a menor varianza explicada
+idx_orden = np.argsort(autovalores)[::-1]
+autovalores = autovalores[idx_orden]
+autovectores = autovectores[:, idx_orden]
+
+# 2. Verificación de Propiedades Espectrales
+traza_real = np.trace(Sigma)
+suma_lambdas = np.sum(autovalores)
+
+det_real = np.linalg.det(Sigma)
+prod_lambdas = np.prod(autovalores)
+
+# 3. Reconstrucción Espectral: Sigma = Q @ D @ Q.T
+D = np.diag(autovalores)
+Q = autovectores
+Sigma_reconstruida = Q @ D @ Q.T
+
+# 4. Potenciación Ultrarrápida: Sigma^10
+Sigma_pot_10 = Q @ np.diag(autovalores**10) @ Q.T
+
+print("=== ANÁLISIS ESPECTRAL DE LA MATRIZ ===")
+print("Autovalores ordenados (Varianza en direcciones principales):")
+for i, l in enumerate(autovalores, 1):
+    pct = (l / suma_lambdas) * 100.0
+    print(f"  lambda_{i}: {l:.4f} ({pct:.2f}% de la varianza total)")
+
+print(f"\nTraza real: {traza_real:.4f} | Suma de lambdas: {suma_lambdas:.4f}")
+print(f"Determinante real: {det_real:.4f} | Producto de lambdas: {prod_lambdas:.4f}")
+print(f"Reconstrucción espectral exacta: {np.allclose(Sigma, Sigma_reconstruida)}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Autovalores y Diagonalización"
+  questions={[
+    {
+      id: "q_eig_1",
+      text: "Si una matriz A de 3x3 tiene autovalores lambda_1 = 4, lambda_2 = 2, lambda_3 = -1, ¿cuál es el determinante det(A)?",
+      options: [
+        { id: "a", text: "-8 (el determinante es el producto de todos sus autovalores: 4 * 2 * (-1) = -8)", isCorrect: true, explanation: "Por el teorema de descomposición espectral, det(A) = prod_{i=1}^n lambda_i = 4 * 2 * (-1) = -8." },
+        { id: "b", text: "+5", isCorrect: false, explanation: "5 es la suma de autovalores (la traza), no el determinante." },
+        { id: "c", text: "0", isCorrect: false, explanation: "Ningún autovalor es cero, por lo que el determinante no es nulo." }
+      ]
+    },
+    {
+      id: "q_eig_2",
+      text: "¿Qué implica que uno de los autovalores de una matriz A sea exactamente igual a cero (lambda = 0)?",
+      options: [
+        { id: "a", text: "Que la matriz A es singular (no invertible), ya que det(A) = prod lambda_i = 0", isCorrect: true, explanation: "Si existe lambda = 0, existe un vector no nulo v tal que A v = 0 v = 0, lo que significa que el núcleo (kernel) no es trivial y la matriz carece de inversa." },
+        { id: "b", text: "Que la matriz es ortogonal", isCorrect: false, explanation: "Las matrices ortogonales tienen autovalores con módulo |lambda| = 1." },
+        { id: "c", text: "Que la traza es cero obligatoriamente", isCorrect: false, explanation: "Los demás autovalores pueden sumar un valor distinto de cero." }
+      ]
+    }
+  ]}
+/>

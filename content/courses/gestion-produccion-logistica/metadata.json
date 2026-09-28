@@ -1,0 +1,10 @@
+{
+  "title": "Gestión de la Producción y Logística",
+  "slug": "gestion-produccion-logistica",
+  "code": "II723",
+  "description": "Modelado cuantitativo de pronósticos de demanda estocástica, planificación agregada, control óptimo de inventarios deterministicos y probabilísticos, y diseño de redes de cadena de suministro.",
+  "credits": 3,
+  "ects": 6,
+  "semester": 7,
+  "isMock": false
+}

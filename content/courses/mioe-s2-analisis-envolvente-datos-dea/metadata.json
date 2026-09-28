@@ -1,0 +1,7 @@
+{
+  "title": "Análisis Envolvente de Datos (DEA)",
+  "code": "IO243",
+  "description": "Medición no paramétrica de eficiencia técnica y de escala: Unidades de Toma de Decisión (DMUs), modelos CCR (CRS) y BCC (VRS) en orientaciones input y output, análisis de holguras (slacks), benchmarking y modelos de red multietapa.",
+  "slug": "mioe-s2-analisis-envolvente-datos-dea",
+  "isMock": false
+}

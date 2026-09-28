@@ -1,0 +1,140 @@
+---
+title: "Algoritmo de Generación de Columnas y el Cutting Stock Problem"
+order: 2
+description: "Formulación de Gilmore-Gomory, subproblema de la mochila (Knapsack) desacoplado y resolución computacional en Python."
+bloomLevel: "CREATE"
+estimatedMinutes: 80
+quiz:
+  - question: "En la formulación de Gilmore-Gomory para el problema de corte de patrones (Cutting Stock Problem), ¿cómo se formula matemáticamente el subproblema de generación de columnas para determinar el patrón entrante más rentable?"
+    options:
+      - "Como un problema de la Mochila Entera (Knapsack) donde los pesos son los anchos w_i, la capacidad es el rollo maestro W y los valores de utilidad son los precios sombra duales pi_i."
+      - "Como un problema de ordenamiento topológico en grafos acíclicos."
+      - "Como una factorización de valores singulares de una matriz aleatoria."
+      - "Como un modelo cuadrático sin restricciones de capacidad."
+    answer: 0
+    explanation: "El costo reducido de un patrón a = [a_1, ..., a_m]^T es 1 - pi^T a. Para minimizar el costo reducido se maximiza pi^T a sujeto a sum w_i a_i <= W, lo cual es exactamente un problema de la Mochila Entera 0-1/acotado."
+---
+
+# Generación de Columnas y el Cutting Stock Problem
+
+> En 1961, P. Gilmore y R. Gomory revolucionaron la optimización combinatoria al formular el problema de corte de material (*Cutting Stock Problem*) resolviendo implícitamente problemas con millones de variables mediante la generación bajo demanda de columnas factibles.
+
+---
+
+## 1. Formulación de Gilmore-Gomory
+
+Una fábrica de papel dispone de rollos maestros de ancho estándar $W$. Se deben satisfacer demandas de $d_i$ piezas de ancho $w_i$ ($i=1,\dots,m$).
+
+Un **patrón de corte** $j$ es un vector entero $\mathbf{a}_j = [a_{1j}, a_{2j}, \dots, a_{mj}]^\top$ que satisface:
+$$\sum_{i=1}^m w_i a_{ij} \le W, \quad a_{ij} \in \mathbb{Z}_+$$
+
+### Problema Maestro Relajado (RMP):
+$$\begin{aligned}
+\min \quad & \sum_{j=1}^P x_j \\
+\text{s.a.} \quad & \sum_{j=1}^P a_{ij} x_j \ge d_i, \quad \forall i=1,\dots,m \\
+& x_j \ge 0
+\end{aligned}$$
+
+---
+
+## 2. El Subproblema de Fijación de Precios (*Pricing Problem*)
+
+Dado el vector de multiplicadores duales $\boldsymbol{\pi} \ge \mathbf{0}$ obtenido del RMP:
+El costo reducido de una columna generada por un patrón $\mathbf{a}$ es:
+$$r(\mathbf{a}) = 1 - \sum_{i=1}^m \pi_i a_i$$
+
+Para encontrar la columna más atractiva ($r(\mathbf{a}) < 0$), minimizamos $r(\mathbf{a})$, lo cual es equivalente a resolver el **Problema de la Mochila (Knapsack)**:
+$$\begin{aligned}
+z_{KS}^* = \max \quad & \sum_{i=1}^m \pi_i a_i \\
+\text{s.a.} \quad & \sum_{i=1}^m w_i a_i \le W \\
+& a_i \in \mathbb{Z}_+, \quad i=1,\dots,m
+\end{aligned}$$
+
+<Callout type="info">
+**Criterio de Parada:**
+- Si $z_{KS}^* > 1$, entonces $r(\mathbf{a}^*) = 1 - z_{KS}^* < 0$: se añade la columna $\mathbf{a}^*$ al RMP y se reoptimiza.
+- Si $z_{KS}^* \le 1$, ninguna columna puede mejorar la solución actual: la solución del RMP es el **óptimo global exacto de la relajación lineal**.
+</Callout>
+
+---
+
+## 3. Implementación Completa en Python
+
+```python
+import numpy as np
+from scipy.optimize import linprog
+
+def solve_cutting_stock(W, widths, demands, max_iters=20):
+    m = len(widths)
+    # Patrones iniciales diagonales triviales: floor(W / w_i)
+    patterns = []
+    for i in range(m):
+        pat = np.zeros(m)
+        pat[i] = int(W // widths[i])
+        patterns.append(pat)
+        
+    patterns = np.array(patterns).T # Matriz m x n_patrones
+    
+    for it in range(max_iters):
+        # 1. Resolver RMP
+        n_p = patterns.shape[1]
+        c = np.ones(n_p)
+        res = linprog(c, A_ub=-patterns, b_ub=-np.array(demands), bounds=(0, None), method="highs")
+        
+        pi = res.ineqlin.marginals # Precios sombra duales
+        
+        # 2. Resolver Subproblema Mochila (heurística voraz / programación dinámica)
+        # Max sum(pi_i * a_i) s.a. sum(w_i * a_i) <= W
+        # Para ilustración con DP exacta:
+        dp = np.zeros(int(W) + 1)
+        best_choice = [[] for _ in range(int(W) + 1)]
+        for cap in range(1, int(W) + 1):
+            for i in range(m):
+                if widths[i] <= cap:
+                    val = dp[cap - int(widths[i])] + pi[i]
+                    if val > dp[cap]:
+                        dp[cap] = val
+                        best_choice[cap] = best_choice[cap - int(widths[i])] + [i]
+                        
+        z_ks = dp[int(W)]
+        new_pattern = np.zeros(m)
+        for idx in best_choice[int(W)]:
+            new_pattern[idx] += 1
+            
+        print(f"Iteración {it+1}: RMP rollos={res.fun:.2f}, Valor Mochila={z_ks:.4f}")
+        
+        if z_ks <= 1.0 + 1e-6:
+            print(">>> ¡Optimalidad alcanzada! Ningún patrón mejora el costo.")
+            return res.fun, patterns, res.x
+            
+        # Añadir nueva columna
+        patterns = np.column_stack([patterns, new_pattern])
+        
+    return res.fun, patterns, res.x
+
+W_master = 100
+item_widths = [22, 35, 42]
+item_demands = [110, 85, 40]
+
+min_rolls, final_patterns, x_opt = solve_cutting_stock(W_master, item_widths, item_demands)
+print(f"Mínimo teórico de rollos maestros: {min_rolls:.2f}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Generación de Columnas"
+  questions={[
+    {
+      id: "q_cg_integrality",
+      text: "¿Qué procedimiento se utiliza cuando la solución final del algoritmo de Gilmore-Gomory arroja variables fraccionarias de patrones y se requieren rollos enteros?",
+      options: [
+        { id: "a", text: "Integrar la generación de columnas dentro de un árbol de Branch and Bound (algoritmo Branch and Price)", isCorrect: true, explanation: "Correcto: El algoritmo Branch and Price resuelve el RMP mediante generación de columnas en cada nodo del árbol de ramificación para obtener soluciones enteras puras óptimas." },
+        { id: "b", text: "Truncar todos los decimales a cero independientemente de la demanda", isCorrect: false, explanation: "Eso violaría las restricciones de demanda no satisfaciendo a los clientes." },
+        { id: "c", text: "Reemplazar los anchos por números imaginarios", isCorrect: false, explanation: "Las dimensiones físicas son reales y estrictamente positivas." }
+      ]
+    }
+  ]}
+/>

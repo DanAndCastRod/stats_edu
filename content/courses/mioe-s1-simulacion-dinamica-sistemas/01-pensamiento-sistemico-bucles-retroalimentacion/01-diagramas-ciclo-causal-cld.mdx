@@ -1,0 +1,67 @@
+---
+title: "Diagramas de Ciclo Causal (CLD) y Bucles de Retroalimentación"
+order: 1
+description: "Polaridad de enlaces causales, bucles reforzadores (R) y balanceadores (B), bucle dominante y no linealidad causal."
+bloomLevel: "UNDERSTAND"
+estimatedMinutes: 60
+quiz:
+  - question: "¿Cómo se determina rigurosamente la polaridad neta de un bucle de retroalimentación cerrado en un Diagrama de Ciclo Causal (CLD)?"
+    options:
+      - "Contando el número de enlaces causales negativos (-): si es impar, el bucle es de Balance (B); si es par o cero, es Reforzador (R)."
+      - "Calculando la suma de los tiempos de retardo de las variables."
+      - "Verificando si la variable con mayor valor es positiva."
+      - "Contando el número total de nodos impares del sistema."
+    answer: 0
+    explanation: "Matemáticamente, la derivada en cadena dX/dX a lo largo del bucle es el producto de las derivadas parciales de cada enlace. Cada enlace negativo aporta un signo (-1). Por lo tanto, un número impar de enlaces negativos produce una derivada neta negativa, induciendo un comportamiento autorregulador o de balance (B)."
+---
+
+# Pensamiento Sistémico y Diagramas de Ciclo Causal (CLD)
+
+> En sistemas industriales complejos, la intuición basada en causa-efecto lineal inmediata fracasa debido a la presencia de **bucles de retroalimentación**, **no linealidades** y **retrasos temporales**. La Dinámica de Sistemas (fundada por Jay Forrester en el MIT) modela la estructura que gobierna este comportamiento.
+
+---
+
+## 1. Polaridad de Enlaces Causales
+
+Un enlace causal de la variable $X$ a la variable $Y$ describe la dirección del cambio:
+- **Polaridad Positiva ($+$):** $\frac{\partial Y}{\partial X} > 0$. Si $X$ aumenta, $Y$ aumenta respecto a lo que habría sido; si $X$ disminuye, $Y$ disminuye.
+- **Polaridad Negativa ($-$):** $\frac{\partial Y}{\partial X} < 0$. Si $X$ aumenta, $Y$ disminuye respecto a lo que habría sido; si $X$ disminuye, $Y$ aumenta.
+
+---
+
+## 2. Tipología de Bucles de Retroalimentación
+
+Un ciclo cerrado de influencias causales conforma un **bucle de retroalimentación**:
+
+### A. Bucles de Refuerzo o Realimentación Positiva ($R$)
+Generan crecimiento exponencial autoacelerado o colapso acelerado:
+$$\frac{dX}{dt} = k X, \quad (k > 0) \implies X(t) = X_0 e^{kt}$$
+Ejemplo: Efecto boca a boca en ventas, adopción de innovaciones tecnológicas.
+
+### B. Bucles de Balance o Realimentación Negativa ($B$)
+Buscan un objetivo o estado de equilibrio dinámico, contrarrestando desviaciones:
+$$\frac{dX}{dt} = -\frac{1}{\tau}(X - X_{\text{objetivo}}) \implies X(t) = X_{\text{objetivo}} + (X_0 - X_{\text{objetivo}})e^{-t/\tau}$$
+Ejemplo: Control de inventarios por punto de reorden, autorregulación de capacidad productiva.
+
+<Callout type="info">
+**Cambio de Dominancia de Bucles (Loop Dominance):** En el crecimiento logístico de una población o mercado de productos (Curva S), inicialmente domina el bucle reforzador de contagio ($R$), pero a medida que el mercado se satura, el bucle balanceador de capacidad de carga ($B$) toma el control dinámico, estabilizando el sistema en el límite asintótico.
+</Callout>
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Dinámica de Ciclos Causales"
+  questions={[
+    {
+      id: "q_cld_dominance",
+      text: "¿Qué patrón de comportamiento temporal genera típicamente un sistema compuesto por un bucle reforzador R acoplado a un bucle balanceador B con un retraso temporal significativo?",
+      options: [
+        { id: "a", text: "Oscilaciones sostenidas, amortiguadas o caóticas alrededor del objetivo (overshoot and collapse)", isCorrect: true, explanation: "Correcto: El retraso temporal impide que la acción correctiva del bucle balanceador actúe a tiempo, provocando que el sistema sobrepase la capacidad de soporte (overshoot) y oscile." },
+        { id: "b", text: "Crecimiento estrictamente lineal constante", isCorrect: false, explanation: "Los sistemas de retroalimentación con retrasos son intrínsecamente no lineales." },
+        { id: "c", text: "Equilibrio estático instantáneo sin fluctuaciones", isCorrect: false, explanation: "Los retrasos impiden el equilibrio inmediato." }
+      ]
+    }
+  ]}
+/>

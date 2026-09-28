@@ -1,0 +1,69 @@
+---
+title: "Optimización por Enjambre de Partículas (PSO) en Scheduling y VRP"
+order: 2
+description: "Vectores de velocidad y posición, componente cognoscitivo vs social, factor de inercia omega y discretización para problemas combinatorios."
+bloomLevel: "CREATE"
+estimatedMinutes: 80
+quiz:
+  - question: "En la ecuación canónica de actualización de velocidad del Enjambre de Partículas (PSO), ¿qué efecto ejerce el factor de inercia omega sobre el comportamiento del enjambre?"
+    options:
+      - "Valores altos de omega favorecen la exploración global en el espacio; valores bajos promueven la explotación refinada en torno a los mejores puntos hallados."
+      - "Fuerza a las partículas a colisionar entre sí."
+      - "Anula el componente social del enjambre."
+      - "Multiplica la dimensión del espacio por una constante."
+    answer: 0
+    explanation: "El peso de inercia omega modula el impacto de la velocidad previa. Al inicio se utiliza omega cercano a 0.9 para exploración amplia, reduciéndolo linealmente hacia 0.4 para intensificación local final."
+---
+
+# Optimización por Enjambre de Partículas (PSO) en Sistemas Industriales
+
+> Desarrollado por James Kennedy y Russell Eberhart (1995), el **PSO (Particle Swarm Optimization)** modela el comportamiento emergente coordinado de bandadas de aves o bancos de peces mediante inteligencia colectiva.
+
+---
+
+## 1. Cinemática Continua del Enjambre
+
+Cada partícula $i$ en un espacio continuo posee:
+- Posición actual: $\mathbf{x}_i^t \in \mathbb{R}^d$
+- Velocidad actual: $\mathbf{v}_i^t \in \mathbb{R}^d$
+- Mejor posición histórica personal (*Personal Best*): $\mathbf{p}_i \in \mathbb{R}^d$
+- Mejor posición encontrada por todo el enjambre (*Global Best*): $\mathbf{g}^* \in \mathbb{R}^d$
+
+### Ecuaciones de Movimiento:
+$$\mathbf{v}_i^{t+1} = \omega \mathbf{v}_i^t + c_1 r_1 (\mathbf{p}_i - \mathbf{x}_i^t) + c_2 r_2 (\mathbf{g}^* - \mathbf{x}_i^t)$$
+$$\mathbf{x}_i^{t+1} = \mathbf{x}_i^t + \mathbf{v}_i^{t+1}$$
+
+donde:
+- $\omega$: Inercia de movimiento.
+- $c_1$: Coeficiente cognitivo (confianza individual).
+- $c_2$: Coeficiente social (confianza comunitaria).
+- $r_1, r_2 \sim \mathcal{U}(0, 1)$: Componentes estocásticas independientes.
+
+---
+
+## 2. Discretización de PSO: Regla SPV (*Smallest Position Value*)
+
+Para aplicar PSO a problemas combinatorios como **Job Shop Scheduling** o **Ruteo de Vehículos (VRP)**:
+1. Las partículas evolucionan en un espacio continuo $\mathbb{R}^n$.
+2. La posición continua $\mathbf{x}_i = [0.82, -0.45, 1.30, 0.12]$ se transforma a una secuencia de trabajos ordenando los índices según el valor de sus componentes (**SPV rule**):
+   $$\text{Orden: } [-0.45, 0.12, 0.82, 1.30] \implies \text{Permutación: } [2, 4, 1, 3]$$
+Esto permite optimizar funciones combinatorias complejas empleando operadores vectoriales continuos.
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: PSO y Heurísticas de Enjambre"
+  questions={[
+    {
+      id: "q_pso_topology",
+      text: "¿Cuál es la diferencia entre la topología global gbest y la topología local lbest en PSO?",
+      options: [
+        { id: "a", text: "gbest conecta a todas las partículas convergiendo más rápido pero con mayor riesgo de óptimo local; lbest conecta solo vecinos inmediatos de anillo, manteniendo mayor diversidad", isCorrect: true, explanation: "Correcto: La topología local lbest ralentiza la propagación de la información de la mejor partícula a través del anillo, evitando el colapso prematuro del enjambre en óptimos locales atractivos pero engañosos." },
+        { id: "b", text: "lbest no requiere calcular velocidades", isCorrect: false, explanation: "Ambas usan las mismas ecuaciones de velocidad." },
+        { id: "c", text: "gbest opera exclusivamente con números primos", isCorrect: false, explanation: "Ambas son continuas en R^d." }
+      ]
+    }
+  ]}
+/>

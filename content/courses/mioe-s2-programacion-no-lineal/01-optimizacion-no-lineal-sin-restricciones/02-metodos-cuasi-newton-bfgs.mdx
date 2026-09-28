@@ -1,0 +1,97 @@
+---
+title: "Métodos Cuasi-Newton y Actualización BFGS"
+order: 2
+description: "Ecuación secante, aproximación iterativa de la inversa del Hessiano H_k, actualización de rango 2 de Broyden-Fletcher-Goldfarb-Shanno."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 75
+quiz:
+  - question: "¿Cuál es la propiedad fundamental de la fórmula de actualización de Broyden-Fletcher-Goldfarb-Shanno (BFGS) para la aproximación de la inversa del Hessiano H_k?"
+    options:
+      - "Preserva la simetría y la condición estrictamente definida positiva de H_k en cada iteración siempre que se cumpla la condición de curvatura y_k^T s_k > 0."
+      - "Calcula exactamente las derivadas simbólicas de orden tres."
+      - "Anula los costos reducidos de las variables no básicas."
+      - "Transforma el espacio euclidiano en un conjunto discreto de enteros."
+    answer: 0
+    explanation: "La actualización BFGS garantiza algebraicamente que si H_k es simétrica definida positiva, la matriz sucesora H_{k+1} también lo será, asegurando que la dirección d = -H_{k+1} grad(f) sea siempre una dirección de descenso factible."
+---
+
+# Métodos Cuasi-Newton y Actualización BFGS
+
+> El método clásico de Newton $\mathbf{x}_{k+1} = \mathbf{x}_k - [\nabla^2 f(\mathbf{x}_k)]^{-1} \nabla f(\mathbf{x}_k)$ posee convergencia cuadrática, pero requiere calcular e invertir el Hessiano en cada paso con costo $O(n^3)$. Los **métodos Cuasi-Newton** aproximan la curvatura utilizando únicamente diferencias de gradientes de primer orden.
+
+---
+
+## 1. La Ecuación Secante
+
+Sean los desplazamientos en posición y gradiente entre iteraciones consecutivas:
+$$\mathbf{s}_k = \mathbf{x}_{k+1} - \mathbf{x}_k$$
+$$\mathbf{y}_k = \nabla f(\mathbf{x}_{k+1}) - \nabla f(\mathbf{x}_k)$$
+
+Por el teorema del valor medio, para aproximar la matriz Hessiana $\mathbf{B}_{k+1} \approx \nabla^2 f$ se impone la **Ecuación Secante**:
+$$\mathbf{B}_{k+1} \mathbf{s}_k = \mathbf{y}_k \iff \mathbf{H}_{k+1} \mathbf{y}_k = \mathbf{s}_k$$
+donde $\mathbf{H}_{k+1} \approx [\nabla^2 f]^{-1}$ es la aproximación de la inversa del Hessiano.
+
+---
+
+## 2. La Fórmula de Actualización BFGS
+
+La actualización de rango 2 de **Broyden, Fletcher, Goldfarb y Shanno** (1970) para $\mathbf{H}_k$:
+$$\mathbf{H}_{k+1} = (\mathbf{I} - \rho_k \mathbf{s}_k \mathbf{y}_k^\top) \mathbf{H}_k (\mathbf{I} - \rho_k \mathbf{y}_k \mathbf{s}_k^\top) + \rho_k \mathbf{s}_k \mathbf{s}_k^\top$$
+donde:
+$$\rho_k = \frac{1}{\mathbf{y}_k^\top \mathbf{s}_k}$$
+
+<Callout type="info">
+**Condición de Curvatura:** Para que $\mathbf{H}_{k+1}$ conserve la definición positiva, se requiere que:
+$$\mathbf{y}_k^\top \mathbf{s}_k > 0$$
+Esta condición se satisface automáticamente si el tamaño de paso $\alpha_k$ satisface las **Condiciones de Wolfe** (Armijo + curvatura).
+</Callout>
+
+---
+
+## 3. Implementación en Python vs. SciPy
+
+```python
+import numpy as np
+from scipy.optimize import minimize
+
+# Función de Rosenbrock ("valle de la banana"): f(x, y) = 100*(y - x^2)^2 + (1 - x)^2
+def rosenbrock(x):
+    return 100.0 * (x[1] - x[0]**2)**2 + (1.0 - x[0])**2
+
+def grad_rosenbrock(x):
+    df_dx = -400.0 * x[0] * (x[1] - x[0]**2) - 2.0 * (1.0 - x[0])
+    df_dy = 200.0 * (x[1] - x[0]**2)
+    return np.array([df_dx, df_dy])
+
+# Resolución con BFGS
+x0 = np.array([-1.2, 1.0])
+res_bfgs = minimize(rosenbrock, x0, jac=grad_rosenbrock, method="BFGS")
+
+print("--- RESULTADO OPTIMIZACIÓN BFGS ---")
+print(f"Éxito:                   {res_bfgs.success}")
+print(f"Solución x*:             {res_bfgs.x}")
+print(f"Valor óptimo f(x*):      {res_bfgs.fun:.2e}")
+print(f"Número de iteraciones:   {res_bfgs.nit}")
+print(f"Evaluaciones de gradiente: {res_bfgs.njev}")
+print(f"Inversa Hessiana aprox:
+{res_bfgs.hess_inv}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Métodos Cuasi-Newton"
+  questions={[
+    {
+      id: "q_lbfgs_memory",
+      text: "¿Por qué en problemas de aprendizaje profundo o gran escala con n = 10^6 variables se utiliza L-BFGS (Limited-Memory BFGS) en vez de BFGS clásico?",
+      options: [
+        { id: "a", text: "Porque L-BFGS no almacena la matriz densa H_k de n x n (que requeriría terabytes de RAM), sino solo los últimos m vectores s_k e y_k", isCorrect: true, explanation: "Correcto: L-BFGS almacena únicamente los últimos m pares de vectores (típicamente m entre 5 y 20) y calcula el producto H_k * grad(f) mediante el algoritmo recursivo de dos lazos con costo de memoria O(m * n)." },
+        { id: "b", text: "Porque L-BFGS es un algoritmo heurístico no exacto", isCorrect: false, explanation: "L-BFGS es un algoritmo determinista con fundamento matemático riguroso." },
+        { id: "c", text: "Porque L-BFGS solo funciona para enteros", isCorrect: false, explanation: "Opera en el espacio continuo R^n." }
+      ]
+    }
+  ]}
+/>

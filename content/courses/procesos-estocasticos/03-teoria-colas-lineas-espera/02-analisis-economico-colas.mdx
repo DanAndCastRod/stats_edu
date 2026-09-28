@@ -1,0 +1,159 @@
+---
+title: "Optimización y Análisis Económico del Servicio y Espera"
+order: 2
+description: "Modelos de costo total esperado E[TC], trade-off entre costo de servicio y costo de espera, determinación del número óptimo de servidores s*."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cómo se define la función clásica de Costo Total Esperado por unidad de tiempo en el diseño económico de un sistema de colas?"
+    options:
+      - "E[TC(s)] = C_s * s + C_w * L (o bien C_s * s + C_w * L_q)"
+      - "E[TC(s)] = C_s / s + C_w * W"
+      - "E[TC(s)] = (C_s + C_w) * lambda"
+      - "E[TC(s)] = C_s * mu * s"
+    answer: 0
+    explanation: "El costo total equilibra el costo de proveer s servidores (C_s * s, lineal creciente con s) y el costo de oportunidad o penalización por la espera de los clientes/entidades (C_w * L, convexo decreciente con s)."
+  - question: "A medida que se incrementa el número de servidores s en un sistema de colas, ¿qué sucede con las dos curvas de costo?"
+    options:
+      - "El costo de servicio se incrementa linealmente, mientras que el costo de espera disminuye de forma exponencial/hiperbólica"
+      - "Ambos costos se incrementan al mismo tiempo"
+      - "El costo de espera aumenta debido a la confusión de los clientes"
+      - "El costo total se vuelve independiente del número de servidores"
+    answer: 0
+    explanation: "Existe un trade-off clásico convexo: más servidores implican mayor costo fijo/operativo pero minimizan drásticamente los tiempos de cola de los usuarios."
+---
+
+# Introducción
+
+> En ingeniería industrial, las decisiones nunca son puramente técnicas; son fundamentalmente económicas. Contratar 10 inspectores eliminará la fila de lotes por revisar, pero arruinará la rentabilidad de la fábrica por mano de obra ociosa. Tener 1 solo inspector maximiza su ocupación, pero paraliza el flujo productivo de las demás líneas.
+
+El **Análisis Económico de Colas** determina el número óptimo de estaciones o servidores $s^*$ que minimiza la suma de costos de servicio y costos de espera.
+
+<Callout type="info">
+**El Dilema del Ingeniero:** Diseñar la capacidad no para la demanda promedio, sino considerando la variabilidad estocástica y el costo relativo del cliente esperando vs el servidor desocupado.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formular la función de costo total esperado por hora o por turno $E[TC(s)]$.
+- Identificar los componentes de costo de servicio ($C_s$) y costo de espera ($C_w$).
+- Aplicar búsqueda discreta sobre $s \in \{s_{\min}, s_{\min}+1, \dots\}$ para hallar el óptimo global $s^*$.
+- Realizar análisis de sensibilidad económica ante cambios en el costo de espera en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Formulación del Modelo de Costo Total
+
+Sea:
+- $C_s$: Costo marginal de operar un servidor por unidad de tiempo (salario, depreciación, energía).
+- $C_w$: Costo de espera por cliente por unidad de tiempo en el sistema (insatisfacción, pérdida de goodwill, inventario en proceso WIP inmovilizado).
+- $s$: Número entero de servidores en paralelo ($s \ge \lceil \lambda / \mu \rceil$).
+
+La función de Costo Total Esperado por hora es:
+
+$$E[TC(s)] = C_s \cdot s + C_w \cdot L(s)$$
+
+Si la empresa penaliza únicamente el tiempo de espera en la fila antes de ser atendido:
+
+$$E[TC_q(s)] = C_s \cdot s + C_w \cdot L_q(s)$$
+
+### Condición de Optimalidad Discreta
+
+Dado que $s$ es una variable discreta, $s^*$ es el número óptimo de servidores si y solo si:
+
+$$E[TC(s^*)] \le E[TC(s^* - 1)] \quad \text{y} \quad E[TC(s^*)] \le E[TC(s^* + 1)]$$
+
+Gráficamente, la curva $E[TC(s)]$ tiene forma de "U" convexa.
+
+---
+
+# Laboratorio en Python: Optimización de Bahías de Descarga en Muelle
+
+```python
+import math
+import numpy as np
+import pandas as pd
+
+def metricas_mms(tasa_l, tasa_m, s):
+    a = tasa_l / tasa_m
+    rho = a / s
+    if rho >= 1.0:
+        return {'L': np.inf, 'Lq': np.inf, 'W': np.inf, 'Wq': np.inf, 'rho': rho}
+    
+    suma_k = sum((a**n) / math.factorial(n) for n in range(s))
+    termino_s = (a**s) / (math.factorial(s) * (1.0 - rho))
+    P0 = 1.0 / (suma_k + termino_s)
+    
+    erlang_c = termino_s * P0
+    Lq = (erlang_c * rho) / (1.0 - rho)
+    Wq = Lq / tasa_l
+    W = Wq + (1.0 / tasa_m)
+    L = tasa_l * W
+    return {'L': L, 'Lq': Lq, 'W': W, 'Wq': Wq, 'rho': rho}
+
+# Parámetros del Puerto:
+# Arribo de buques de carga: lambda = 3 buques/día
+# Capacidad de descarga por grúa pórtico: mu = 2 buques/día
+# Costo operativo de cada grúa: Cs = $2,500 USD/día
+# Costo de sobrestadía (demurrage) por buque esperando en puerto: Cw = $8,000 USD/día
+
+tasa_l = 3.0
+tasa_m = 2.0
+Cs = 2500.0
+Cw = 8000.0
+
+s_min = math.floor(tasa_l / tasa_m) + 1  # s >= 2 para estabilidad (rho < 1)
+resultados = []
+
+for s in range(s_min, s_min + 6):
+    m = metricas_mms(tasa_l, tasa_m, s)
+    costo_servicio = Cs * s
+    costo_espera = Cw * m['L']
+    costo_total = costo_servicio + costo_espera
+    
+    resultados.append({
+        'Servidores (s)': s,
+        'Utilizacion (rho)': m['rho'],
+        'Buques_en_Puerto (L)': m['L'],
+        'Espera_Media_Dias (W)': m['W'],
+        'Costo_Servicio ($)': costo_servicio,
+        'Costo_Espera ($)': costo_espera,
+        'Costo_Total_Diario ($)': costo_total
+    })
+
+df_econ = pd.DataFrame(resultados)
+s_optimo = df_econ.loc[df_econ['Costo_Total_Diario ($)'].idxmin(), 'Servidores (s)']
+
+print("EVALUACIÓN ECONÓMICA DE BAHÍAS DE DESCARGA:")
+print(df_econ.round(2).to_string(index=False))
+print(f"\n--> NÚMERO ÓPTIMO DE GRÚAS: s* = {int(s_optimo)} con un Costo Mínimo de USD {df_econ['Costo_Total_Diario ($)'].min():.2f}/día")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Optimización Económica de Colas"
+  questions={[
+    {
+      id: "q_econ_q_1",
+      text: "Si el costo por hora de espera de un cliente C_w se incrementa drásticamente debido a penalizaciones contractuales por retrasos, ¿hacia dónde se desplaza el número óptimo de servidores s*?",
+      options: [
+        { id: "a", text: "Hacia un mayor número de servidores (s* aumenta) para reducir L y evitar las severas penalizaciones", isCorrect: true, explanation: "Al encarecerse la espera, el óptimo se desplaza hacia mayor capacidad instalada que minimice el tiempo en fila." },
+        { id: "b", text: "Hacia un menor número de servidores para ahorrar en salarios", isCorrect: false, explanation: "Reducir servidores incrementaría exponencialmente los costos de espera, aumentando el costo total." },
+        { id: "c", text: "Permanece exactamente igual puesto que lambda no cambió", isCorrect: false, explanation: "El balance económico depende de la razón C_w / C_s." }
+      ]
+    },
+    {
+      id: "q_econ_q_2",
+      text: "¿Por qué no es viable operar un sistema con s = lambda / mu exactamente?",
+      options: [
+        { id: "a", text: "Porque la utilización rho sería exactamente 1.0, lo que genera una cola estocástica que crece sin límite hacia infinito", isCorrect: true, explanation: "Bajo variabilidad estocástica, rho = 1 no es estable; las fluctuaciones de llegadas no pueden compensarse sin capacidad de reserva ociosa." },
+        { id: "b", text: "Porque el costo de servicio sería cero", isCorrect: false, explanation: "El costo de servicio es proporcional a s." },
+        { id: "c", text: "Porque los servidores trabajarían a velocidad infinita", isCorrect: false, explanation: "La tasa mu es finita." }
+      ]
+    }
+  ]}
+/>

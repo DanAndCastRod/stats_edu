@@ -1,0 +1,160 @@
+---
+title: "Gradiente, Matriz Hessiana y Condiciones de Optimalidad"
+order: 2
+description: "Cálculo multivariado aplicado, aproximación de Taylor de 2º orden, caracterización de convexidad mediante la Hessiana y algoritmo de descenso de gradiente."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué condición garantiza que un punto crítico x* (donde grad(f)(x*) = 0) sea un Mínimo Local Estricto en optimización multivariada libre?"
+    options:
+      - "La matriz Hessiana H(x*) es simétrica y Definida Positiva (todos sus autovalores son estrictamente positivos: lambda_i > 0)"
+      - "La matriz Hessiana tiene determinante negativo"
+      - "El gradiente tiene norma infinita"
+      - "Todos los elementos de la Hessiana son cero"
+    answer: 0
+    explanation: "Por el criterio del desarrollo en serie de Taylor de segundo orden, si grad(f)(x*) = 0 y H(x*) es Definida Positiva, cualquier desplazamiento Delta x produce f(x* + Delta x) - f(x*) aprox (1/2) Delta x^T H Delta x > 0, garantizando un mínimo estricto."
+  - question: "¿Qué caracteriza a una función f(x) estrictamente convexa en todo su dominio en la toma de decisiones industriales?"
+    options:
+      - "Cualquier mínimo local encontrado es automáticamente el Mínimo Global único de toda la función"
+      - "La función no puede tener derivadas"
+      - "Tiene múltiples puntos de silla oscilatorios"
+      - "Solo se puede optimizar en una dimensión"
+    answer: 0
+    explanation: "La convexidad es la propiedad más codiciada en optimización: garantiza que no existen trampas de óptimos locales subóptimos; cualquier algoritmo convergente alcanzará el óptimo global definitivo."
+---
+
+# Introducción
+
+> ¿Cómo ajusta un algoritmo de aprendizaje automático millones de parámetros para minimizar el error de predicción? ¿Cómo determina un ingeniero el plan de producción que minimiza los costos operativos no lineales de una refinería? La respuesta radica en el cálculo multivariado de segundo orden: el **Gradiente** y la **Matriz Hessiana**.
+
+Mientras el vector gradiente apunta en la dirección de máximo crecimiento instantáneo de la función, la matriz Hessiana describe su **curvatura local** en todas las direcciones espaciales.
+
+<Callout type="info">
+**Clasificación de Formas Cuadráticas:**
+- *Definida Positiva ($H \succ 0$):* $\lambda_i > 0, \forall i$ $\to$ Curvatura convexa hacia arriba (**Mínimo Local**).
+- *Definida Negativa ($H \prec 0$):* $\lambda_i < 0, \forall i$ $\to$ Curvatura cóncava hacia abajo (**Máximo Local**).
+- *Indefinida:* Autovalores con signos mixtos positivos y negativos $\to$ **Punto de Silla** (*Saddle Point*).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Calcular el vector gradiente $\nabla f(x)$ y evaluar las Condiciones de Primer Orden (FOC).
+- Construir la Matriz Hessiana $H(x)$ y evaluar las Condiciones de Segundo Orden (SOC).
+- Clasificar puntos críticos mediante los autovalores de la Hessiana.
+- Implementar el algoritmo de Descenso de Gradiente (*Gradient Descent*) en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Desarrollo en Serie de Taylor Multivariado
+
+Sea $f: \mathbb{R}^n \to \mathbb{R}$ dos veces diferenciable. Alrededor de un punto $x^*$:
+
+$$f(x^* + \Delta x) \approx f(x^*) + \nabla f(x^*)^T \Delta x + \frac{1}{2} \Delta x^T H(x^*) \Delta x$$
+
+Donde:
+- **Vector Gradiente $\nabla f(x) \in \mathbb{R}^{n \times 1}$:**
+  $$\nabla f(x) = \begin{bmatrix} \frac{\partial f}{\partial x_1}, & \frac{\partial f}{\partial x_2}, & \dots, & \frac{\partial f}{\partial x_n} \end{bmatrix}^T$$
+- **Matriz Hessiana $H(x) \in \mathbb{R}^{n \times n}$:**
+  $$H_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}$$
+  Por el Teorema de Schwarz, si las segundas derivadas son continuas, $H$ es simétrica ($H = H^T$).
+
+### Algoritmo del Descenso de Gradiente
+
+Para minimizar $f(x)$ sin restricciones partiendo de un punto inicial $x_0$:
+
+$$x_{k+1} = x_k - \alpha \nabla f(x_k)$$
+
+Donde $\alpha > 0$ es la tasa de aprendizaje o tamaño de paso (*learning rate*).
+
+---
+
+# Laboratorio en Python: Optimización Multivariada y Descenso de Gradiente
+
+```python
+import numpy as np
+import pandas as pd
+
+# Función de Costo de Producción Bivariada f(x1, x2):
+# x1: Producción Planta Norte, x2: Producción Planta Sur
+# f(x1, x2) = 2*(x1 - 4)^2 + (x2 - 6)^2 + 0.5*x1*x2 + 50
+def costo(x):
+    return 2.0 * (x[0] - 4.0)**2 + (x[1] - 6.0)**2 + 0.5 * x[0] * x[1] + 50.0
+
+def gradiente(x):
+    # df/dx1 = 4*(x1 - 4) + 0.5*x2 = 4*x1 - 16 + 0.5*x2
+    # df/dx2 = 2*(x2 - 6) + 0.5*x1 = 2*x2 - 12 + 0.5*x1
+    df_dx1 = 4.0 * x[0] - 16.0 + 0.5 * x[1]
+    df_dx2 = 2.0 * x[1] - 12.0 + 0.5 * x[0]
+    return np.array([df_dx1, df_dx2])
+
+def hessiana(x):
+    # d2f/dx1^2 = 4, d2f/dx2^2 = 2, d2f/dx1dx2 = 0.5
+    return np.array([
+        [4.0, 0.5],
+        [0.5, 2.0]
+    ])
+
+# 1. Análisis de Convexidad de la Hessiana
+H = hessiana([0, 0])
+lambdas_H = np.linalg.eigvals(H)
+es_convexa = np.all(lambdas_H > 0)
+
+print("MATRIZ HESSIANA DEL SISTEMA:")
+print(H)
+print(f"Autovalores de la Hessiana: {lambdas_H}")
+print(f"¿Es estrictamente Definida Positiva (Convexa)? {es_convexa} -> Mínimo Global Garantizado\n")
+
+# 2. Algoritmo de Descenso de Gradiente
+x_k = np.array([0.0, 0.0])  # Punto inicial arbitrario
+tasa_alfa = 0.15
+tolerancia = 1e-6
+max_iter = 100
+
+historial = []
+
+for k in range(max_iter):
+    grad = gradiente(x_k)
+    norma_grad = np.linalg.norm(grad)
+    historial.append({'Iteracion': k, 'x1': x_k[0], 'x2': x_k[1], 'Costo': costo(x_k), 'Norma_Grad': norma_grad})
+    
+    if norma_grad < tolerancia:
+        break
+        
+    x_k = x_k - tasa_alfa * grad
+
+df_descenso = pd.DataFrame(historial)
+
+print("CONVERGENCIA DEL DESCENSO DE GRADIENTE (Primeras y últimas iteraciones):")
+print(pd.concat([df_descenso.head(4), df_descenso.tail(3)]).round(4).to_string(index=False))
+print(f"\n--> PUNTO ÓPTIMO ENCONTRADO: x1* = {x_k[0]:.4f}, x2* = {x_k[1]:.4f}")
+print(f"--> COSTO MÍNIMO GLOBAL: USD {costo(x_k):.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Gradiente y Matriz Hessiana"
+  questions={[
+    {
+      id: "q_opt_1",
+      text: "Si en un punto crítico x* los autovalores de la matriz Hessiana son lambda_1 = 5.2 y lambda_2 = -1.8, ¿qué tipo de punto es x*?",
+      options: [
+        { id: "a", text: "Punto de Silla (Saddle Point): la función sube en una dirección y baja en otra", isCorrect: true, explanation: "La presencia de autovalores de signos mixtos (positivos y negativos) define una forma cuadrática indefinida, correspondiente geométricamente a una silla de montar." },
+        { id: "b", text: "Mínimo Local Estricto", isCorrect: false, explanation: "Requeriría que todos los autovalores fueran estrictamente positivos." },
+        { id: "c", text: "Máximo Local Estricto", isCorrect: false, explanation: "Requeriría que todos los autovalores fueran estrictamente negativos." }
+      ]
+    },
+    {
+      id: "q_opt_2",
+      text: "¿Por qué en el Descenso de Gradiente se actualiza la posición restando el vector gradiente (x_{k+1} = x_k - alfa * grad(f))?",
+      options: [
+        { id: "a", text: "Porque el gradiente apunta en la dirección de máxima tasa de crecimiento; por tanto, el negativo (-grad) es la dirección de máximo descenso más empinado (steepest descent)", isCorrect: true, explanation: "Por propiedades geométricas del producto escalar, el ángulo que minimiza la derivada direccional es theta = pi, es decir, la dirección exactamente opuesta al gradiente." },
+        { id: "b", text: "Porque el signo negativo anula los errores de redondeo", isCorrect: false, explanation: "Es una deducción analítica de cálculo multivariado de derivadas direccionales." },
+        { id: "c", text: "Para evitar tener que calcular la norma del vector", isCorrect: false, explanation: "La dirección -grad define el sentido de avance hacia el fondo del valle." }
+      ]
+    }
+  ]}
+/>

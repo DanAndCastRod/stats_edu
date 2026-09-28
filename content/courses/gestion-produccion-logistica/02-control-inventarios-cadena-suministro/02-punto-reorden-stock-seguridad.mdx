@@ -1,0 +1,147 @@
+---
+title: "Punto de Reorden (ROP), Demanda Estocástica y Stock de Seguridad"
+order: 2
+description: "Control de inventarios probabilístico bajo demanda y lead time variables, cálculo del Stock de Seguridad y Nivel de Servicio del Ciclo (CSL)."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cómo se define analíticamente el Punto de Reorden (ROP) bajo demanda estocástica y tiempo de entrega determinístico L?"
+    options:
+      - "ROP = d_barra * L + SS, donde d_barra es la demanda media diaria y SS es el Stock de Seguridad"
+      - "ROP = Q* / 2"
+      - "ROP = L / d_barra"
+      - "ROP = Demanda Anual / 365"
+    answer: 0
+    explanation: "El ROP debe cubrir la demanda esperada durante el tiempo de reposición del proveedor (d_barra * L) más un colchón de protección (Stock de Seguridad SS) para absorber fluctuaciones imprevistas."
+  - question: "¿Qué representa el Nivel de Servicio del Ciclo (CSL - Cycle Service Level) en una política de inventario (s, Q)?"
+    options:
+      - "La probabilidad de no sufrir quiebre de stock durante el tiempo de entrega (P(Demanda en L <= ROP) = 1 - alfa)"
+      - "El porcentaje de descuento otorgado al cliente"
+      - "El número de pedidos atendidos en el año"
+      - "La velocidad promedio del camión de reparto"
+    answer: 0
+    explanation: "El CSL cuantifica la probabilidad estadística de que la demanda acumulada durante el Lead Time sea completamente satisfecha con el inventario disponible."
+---
+
+# Introducción
+
+> En el mundo real, los proveedores no entregan con puntualidad cronométrica ni los clientes compran exactamente la misma cantidad cada día. Un retraso de 3 días en la aduana marítima o un pico repentino de pedidos pueden agotar el inventario antes de que arribe el pedido de reposición, generando quiebres costosos y pérdida de lealtad de marca.
+
+El **Punto de Reorden (ROP - Reorder Point)** y el **Stock de Seguridad (SS - Safety Stock)** son las defensas matemáticas para operar con éxito en entornos estocásticos bajo incertidumbre.
+
+<Callout type="info">
+**El Costo de la Perfección:** Aumentar el nivel de servicio del 90% al 95% requiere un incremento moderado de inventario de seguridad. Sin embargo, pasar del 95% al 99.9% exige multiplicar exponencialmente el stock de seguridad debido a las colas asintóticas de la distribución normal ($Z_{0.95} = 1.645$ vs $Z_{0.999} = 3.090$).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formalizar el modelo de revisión continua $(s, Q)$ y el cálculo del ROP.
+- Deducir la desviación estándar de la demanda durante el tiempo de entrega ($\sigma_L$).
+- Calcular el factor $Z$ de la distribución normal asociado al Nivel de Servicio deseado ($CSL$).
+- Analizar el caso general con demanda variable y tiempo de entrega variable en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Demanda Durante el Tiempo de Entrega ($D_L$)
+
+Sea $d$ la demanda diaria con media $\bar{d}$ y desviación estándar $\sigma_d$. Sea $L$ el tiempo de entrega en días.
+
+#### Caso 1: Demanda Variable y Tiempo de Entrega Constante ($L$)
+
+$$\mu_L = \mathbb{E}[D_L] = \bar{d} \cdot L$$
+
+$$\sigma_L = \sqrt{\text{Var}(D_L)} = \sigma_d \sqrt{L}$$
+
+$$SS = Z_{\alpha} \cdot \sigma_L = Z_{\alpha} \cdot \sigma_d \sqrt{L}$$
+
+$$ROP = \bar{d} \cdot L + Z_{\alpha} \cdot \sigma_d \sqrt{L}$$
+
+Donde $Z_{\alpha} = \Phi^{-1}(CSL)$ es el valor crítico de la distribución normal estándar.
+
+#### Caso 2: Demanda Variable y Tiempo de Entrega Variable (General)
+
+Si tanto la demanda diaria ($d \sim (\bar{d}, \sigma_d)$) como el Lead Time ($L \sim (\bar{L}, \sigma_L)$) son variables aleatorias independientes:
+
+$$\mu_{\text{total}} = \bar{d} \cdot \bar{L}$$
+
+$$\sigma_{\text{total}} = \sqrt{\bar{L} \sigma_d^2 + \bar{d}^2 \sigma_L^2}$$
+
+$$ROP = \bar{d} \cdot \bar{L} + Z_{\alpha} \sqrt{\bar{L} \sigma_d^2 + \bar{d}^2 \sigma_L^2}$$
+
+---
+
+# Laboratorio en Python: Diseño de Políticas de Inventario Probabilístico
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# Parámetros del Centro de Distribución:
+# Demanda diaria: media = 150 unidades/día, desviación = 25 unidades/día
+# Tiempo de entrega del proveedor (Lead Time): media = 6 días, desviación = 1.5 días
+d_media = 150.0
+d_sigma = 25.0
+L_media = 6.0
+L_sigma = 1.5
+
+# Evaluación para diferentes Niveles de Servicio de Ciclo (CSL): 90%, 95%, 98%, 99%, 99.5%
+niveles_servicio = [0.90, 0.95, 0.98, 0.99, 0.995]
+tabla_rop = []
+
+# Varianza combinada de demanda durante el lead time
+# Var(D_L) = L_media * sigma_d^2 + d_media^2 * sigma_L^2
+varianza_DL = L_media * (d_sigma**2) + (d_media**2) * (L_sigma**2)
+sigma_DL = np.sqrt(varianza_DL)
+demanda_esperada_L = d_media * L_media
+
+for csl in niveles_servicio:
+    z_score = stats.norm.ppf(csl)
+    ss = z_score * sigma_DL
+    rop = demanda_esperada_L + ss
+    
+    tabla_rop.append({
+        'Nivel_Servicio_%': csl * 100,
+        'Factor_Z': z_score,
+        'Demanda_Media_LeadTime': demanda_esperada_L,
+        'Stock_Seguridad (SS)': int(np.ceil(ss)),
+        'Punto_Reorden (ROP)': int(np.ceil(rop)),
+        'Incremento_SS_%': ((ss / (stats.norm.ppf(0.90) * sigma_DL)) - 1.0) * 100
+    })
+
+df_rop = pd.DataFrame(tabla_rop)
+
+print(f"PARÁMETROS COMBINADOS: Demanda Esperada en Lead Time = {demanda_esperada_L:.0f} unidades")
+print(f"Desviación Estándar Total durante Lead Time (sigma_DL): {sigma_DL:.2f} unidades\n")
+print("POLÍTICAS DE PUNTO DE REORDEN (ROP) SEGÚN NIVEL DE SERVICIO:")
+print(df_rop.round(2).to_string(index=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Punto de Reorden y Stock de Seguridad"
+  questions={[
+    {
+      id: "q_rop_1",
+      text: "Si la demanda media diaria es de 50 piezas, el Lead Time es constante de 4 días y la desviación durante el Lead Time es sigma_L = 10 piezas, ¿cuál es el ROP para un CSL del 97.7% (Z = 2.0)?",
+      options: [
+        { id: "a", text: "220 piezas (ROP = 50 * 4 + 2.0 * 10 = 200 + 20 = 220 piezas)", isCorrect: true, explanation: "La demanda esperada es 50 * 4 = 200. El stock de seguridad es 2.0 * 10 = 20. ROP = 200 + 20 = 220 piezas." },
+        { id: "b", text: "200 piezas", isCorrect: false, explanation: "200 piezas no incluye ningún stock de seguridad (CSL del 50%)." },
+        { id: "c", text: "50 piezas", isCorrect: false, explanation: "50 piezas solo cubriría un día de demanda." }
+      ]
+    },
+    {
+      id: "q_rop_2",
+      text: "En la fórmula de varianza combinada sigma_total^2 = L_barra * sigma_d^2 + d_barra^2 * sigma_L^2, ¿qué término tiene habitualmente mayor impacto en el incremento del Stock de Seguridad?",
+      options: [
+        { id: "a", text: "El segundo término (d_barra^2 * sigma_L^2), debido a que la demanda media está elevada al cuadrado", isCorrect: true, explanation: "La variabilidad en el tiempo de entrega del proveedor (sigma_L) se amplifica por el cuadrado de la demanda media diaria, haciendo que la impuntualidad del proveedor sea mucho más destructiva para el inventario que la variabilidad de ventas del cliente." },
+        { id: "b", text: "Ambos términos siempre son idénticos", isCorrect: false, explanation: "Dependen de magnitudes operativas muy distintas." },
+        { id: "c", text: "El primer término siempre domina", isCorrect: false, explanation: "L_barra solo entra de forma lineal, mientras que d_barra entra cuadrática." }
+      ]
+    }
+  ]}
+/>

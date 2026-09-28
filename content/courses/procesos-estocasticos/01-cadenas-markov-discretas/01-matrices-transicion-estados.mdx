@@ -1,0 +1,154 @@
+---
+title: "Matrices de Transición y Clasificación de Estados"
+order: 1
+description: "Propiedad de Markov, matrices estocásticas, ecuaciones de Chapman-Kolmogorov y clasificación formal de estados transitorios y recurrentes."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué postula rigurosamente la Propiedad de Markov (falta de memoria en tiempo discreto)?"
+    options:
+      - "La distribución condicional del estado futuro depende exclusivamente del estado presente, siendo condicionalmente independiente de la historia pasada"
+      - "Que la probabilidad de permanecer en el mismo estado es siempre mayor al 50%"
+      - "Que la suma de cada columna de la matriz de transición debe ser igual a 1"
+      - "Que todos los estados de la cadena deben ser periódicos con periodo d = 2"
+    answer: 0
+    explanation: "La propiedad de Markov establece que P(X_{n+1} = j | X_n = i, X_{n-1} = i_{n-1}, ..., X_0 = i_0) = P(X_{n+1} = j | X_n = i), es decir, el futuro depende del pasado únicamente a través del presente."
+  - question: "¿Qué característica define a una matriz estocástica (o matriz de probabilidad de transición) P?"
+    options:
+      - "Todos sus elementos p_{ij} son no negativos y la suma de cada fila es exactamente 1"
+      - "Su determinante es siempre estrictamente mayor a 1"
+      - "Es una matriz antisimétrica con ceros en la diagonal"
+      - "Todos sus autovalores son imaginarios puros"
+    answer: 0
+    explanation: "Una matriz P es estocástica si p_{ij} >= 0 para todo i, j, y sum_{j} p_{ij} = 1 para cada fila i, puesto que representa una distribución de probabilidad condicional completa."
+---
+
+# Introducción
+
+> ¿Cómo evoluciona el estado operativo de una máquina entre 'Óptimo', 'Degradado' y 'Falla' a lo largo de las semanas? ¿Cómo cambia la cuota de mercado de tres operadores logísticos competidores? Los procesos estocásticos modelan la evolución temporal de sistemas bajo incertidumbre.
+
+Una **Cadena de Markov en Tiempo Discreto (DTMC)** describe un sistema estocástico que salta entre un conjunto discreto de estados $S = \{1, 2, \dots, M\}$ en instantes de tiempo discretos $n = 0, 1, 2, \dots$.
+
+<Callout type="info">
+**Ecuaciones de Chapman-Kolmogorov:** Permiten calcular la probabilidad de transición en $n + m$ pasos mediante el producto algebraico de matrices: $P^{(n+m)} = P^{(n)} P^{(m)}$. Por lo tanto, $P^{(n)} = P^n$.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formalizar la propiedad de Markov y construir la matriz de transición de un paso $P$.
+- Aplicar las ecuaciones de Chapman-Kolmogorov para proyectar probabilidades en $n$ pasos.
+- Clasificar estados en accesibles, comunicantes, transitorios, recurrentes absorbentes y periódicos.
+- Implementar la evolución temporal de una cadena de Markov con NumPy.
+
+---
+
+# Fundamentos Teóricos
+
+### Definición Formal de la Cadena
+
+Sea $\{X_n, n \in \mathbb{N}_0\}$ una secuencia de variables aleatorias que toman valores en un espacio de estados finito o numerable $S$. La cadena cumple la **Propiedad de Markov** si:
+
+$$\mathbb{P}(X_{n+1} = j \mid X_n = i, X_{n-1} = i_{n-1}, \dots, X_0 = i_0) = \mathbb{P}(X_{n+1} = j \mid X_n = i) = p_{ij}$$
+
+La **Matriz de Transición de un Paso** $P = [p_{ij}]$ satisface:
+
+$$p_{ij} \ge 0, \quad \forall i, j \in S$$
+
+$$\sum_{j \in S} p_{ij} = 1, \quad \forall i \in S$$
+
+### Ecuaciones de Chapman-Kolmogorov
+
+La probabilidad de pasar del estado $i$ al estado $j$ en $n$ pasos es:
+
+$$p_{ij}^{(n)} = \mathbb{P}(X_{m+n} = j \mid X_m = i)$$
+
+$$p_{ij}^{(n+m)} = \sum_{k \in S} p_{ik}^{(n)} p_{kj}^{(m)} \iff P^{(n+m)} = P^{(n)} \cdot P^{(m)}$$
+
+Por inducción matemática inmediata:
+
+$$P^{(n)} = P^n$$
+
+Si $\pi^{(0)} = [\mathbb{P}(X_0 = 1), \dots, \mathbb{P}(X_0 = M)]$ es la distribución de probabilidad inicial, la distribución en el paso $n$ es:
+
+$$\pi^{(n)} = \pi^{(0)} P^n$$
+
+### Clasificación Estructural de Estados
+
+1. **Accesibilidad ($i \to j$):** El estado $j$ es accesible desde $i$ si existe $n \ge 0$ tal que $p_{ij}^{(n)} > 0$.
+2. **Comunicación ($i \leftrightarrow j$):** Dos estados comunican si $i \to j$ y $j \to i$. La comunicación es una relación de equivalencia que particiona $S$ en clases disjuntas.
+3. **Irreducibilidad:** Una cadena es irreducible si todos sus estados pertenecen a una única clase comunicante.
+4. **Recurrencia y Transitoriedad:**
+   Sea $f_{ii} = \mathbb{P}(\text{el proceso retorna alguna vez al estado } i \mid X_0 = i)$.
+   - Si $f_{ii} = 1$, el estado $i$ es **recurrente**.
+   - Si $f_{ii} < 1$, el estado $i$ es **transitorio**.
+5. **Estado Absorbente:** Un estado $i$ es absorbente si $p_{ii} = 1$.
+
+---
+
+# Laboratorio en Python: Estado de Desgaste de Maquinaria
+
+```python
+import numpy as np
+import pandas as pd
+
+# Espacio de estados de una máquina CNC:
+# 0: Estado Óptimo (Nuevo)
+# 1: Degradación Leve
+# 2: Degradación Severa
+# 3: Falla Crítica (Absorbente hasta mantenimiento)
+estados = ['Óptimo', 'Deg_Leve', 'Deg_Severa', 'Falla']
+
+# Matriz de transición semanal P
+P = np.array([
+    [0.70, 0.20, 0.08, 0.02],
+    [0.00, 0.65, 0.25, 0.10],
+    [0.00, 0.00, 0.60, 0.40],
+    [0.00, 0.00, 0.00, 1.00]
+])
+
+# Vector de distribución inicial (máquina 100% nueva en semana 0)
+pi_0 = np.array([1.0, 0.0, 0.0, 0.0])
+
+# Proyección a semanas 1, 2, 4, 8 y 12
+semanas = [1, 2, 4, 8, 12]
+historial = []
+
+for n in semanas:
+    Pn = np.linalg.matrix_power(P, n)
+    pi_n = pi_0 @ Pn
+    historial.append([n] + list(pi_n))
+
+df_proy = pd.DataFrame(historial, columns=['Semana'] + estados)
+print("PROYECCIÓN TEMPORAL DE PROBABILIDADES DE ESTADO (pi_n = pi_0 * P^n):")
+print(df_proy.round(4).to_string(index=False))
+
+# Probabilidad de absorción (falla) acumulada
+print(f"\nProbabilidad de falla acumulada a 12 semanas: {df_proy.loc[4, 'Falla']*100:.2f}%")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Cadenas de Markov y Matrices de Transición"
+  questions={[
+    {
+      id: "q_dtmc_1",
+      text: "Si un estado k tiene p_kk = 1, ¿qué clasificación recibe formalmente?",
+      options: [
+        { id: "a", text: "Estado Absorbente (una vez que el sistema entra en él, nunca puede abandonarlo)", isCorrect: true, explanation: "p_kk = 1 implica que la probabilidad de transición hacia cualquier otro estado j != k es estrictamente 0." },
+        { id: "b", text: "Estado Transitorio", isCorrect: false, explanation: "Un estado absorbente es recurrente puesto que retorna a sí mismo con probabilidad 1 en cada paso." },
+        { id: "c", text: "Estado Inaccesible", isCorrect: false, explanation: "Otros estados pueden tener transiciones positivas hacia k." }
+      ]
+    },
+    {
+      id: "q_dtmc_2",
+      text: "Para calcular la probabilidad de pasar del estado 1 al estado 3 en exactamente 4 pasos, ¿qué operación matemática se debe realizar?",
+      options: [
+        { id: "a", text: "Elevar la matriz P a la cuarta potencia P^4 y extraer el elemento en la fila 1 y columna 3", isCorrect: true, explanation: "Por las ecuaciones de Chapman-Kolmogorov, P^(4) = P^4, por lo que p_{13}^(4) = [P^4]_{1,3}." },
+        { id: "b", text: "Multiplicar el elemento p_{13} por 4", isCorrect: false, explanation: "Las probabilidades condicionales intermedias deben sumarse sobre todas las trayectorias posibles." },
+        { id: "c", text: "Calcular la transpuesta P^T", isCorrect: false, explanation: "La transpuesta invierte las direcciones de origen y destino, no proyecta en el tiempo." }
+      ]
+    }
+  ]}
+/>

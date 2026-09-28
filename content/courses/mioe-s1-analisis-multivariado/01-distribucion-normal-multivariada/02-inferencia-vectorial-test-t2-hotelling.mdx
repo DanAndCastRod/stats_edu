@@ -1,0 +1,112 @@
+---
+title: "Inferencia Vectorial y Test T² de Hotelling"
+order: 2
+description: "Generalización multivariada de la prueba t de Student, contrastes simultáneos, regiones elipsoidales y MANOVA de una vía."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 70
+quiz:
+  - question: "Al contrastar H0: mu = mu_0 frente a H1: mu != mu_0 con un estadístico T^2 de Hotelling muestral en R^p con n observaciones, ¿cuál es la relación exacta de distribución bajo H0?"
+    options:
+      - "((n - p) / (p * (n - 1))) * T^2 sigue exactamente una distribución F de Fisher con p y n - p grados de libertad."
+      - "T^2 sigue una distribución t de Student unidimensional con n - 1 grados de libertad."
+      - "T^2 es idénticamente igual a la constante de Euler."
+      - "T^2 diverge asintóticamente a una distribución Poisson."
+    answer: 0
+    explanation: "Harold Hotelling demostró que bajo H0, la transformación lineal ((n - p) / (p*(n-1))) * T^2 sigue con total exactitud una distribución F_{p, n-p}, permitiendo contrastes de hipótesis vectoriales insesgados."
+---
+
+# Inferencia Vectorial y Test T² de Hotelling
+
+> Cuando un ingeniero industrial analiza simultáneamente múltiples indicadores de calidad (resistencia mecánica, elongación, rugosidad), ejecutar pruebas $t$ univariadas por separado infla catastróficamente el error tipo I familiar (problema de multiplicidad). El **Test $T^2$ de Hotelling** evalúa el vector conjuntamente.
+
+---
+
+## 1. El Estadístico T² de Hotelling para Una Muestra
+
+Para contrastar:
+$$H_0: \boldsymbol{\mu} = \boldsymbol{\mu}_0 \quad \text{vs.} \quad H_1: \boldsymbol{\mu} \neq \boldsymbol{\mu}_0$$
+a partir de una muestra aleatoria de tamaño $n$ con vector de medias muestral $\bar{\mathbf{x}}$ y matriz de covarianza muestral $\mathbf{S}$:
+$$T^2 = n (\bar{\mathbf{x}} - \boldsymbol{\mu}_0)^\top \mathbf{S}^{-1} (\bar{\mathbf{x}} - \boldsymbol{\mu}_0)$$
+
+Bajo la hipótesis nula $H_0$, el estadístico transformado sigue una distribución $F$:
+$$F_{\text{calc}} = \frac{n - p}{p(n - 1)} T^2 \sim \mathcal{F}_{p, n - p}$$
+
+Se rechaza $H_0$ a un nivel de significancia $\alpha$ si:
+$$T^2 > \frac{p(n-1)}{n-p} F_{\alpha}(p, n-p)$$
+
+---
+
+## 2. Test T² para Dos Muestras Independientes
+
+Dadas dos poblaciones con tamaños $n_1$ y $n_2$, medias muestrales $\bar{\mathbf{x}}_1, \bar{\mathbf{x}}_2$ y matriz de covarianza agrupada común:
+$$\mathbf{S}_{pooled} = \frac{(n_1 - 1)\mathbf{S}_1 + (n_2 - 1)\mathbf{S}_2}{n_1 + n_2 - 2}$$
+
+El estadístico de dos muestras es:
+$$T^2 = \frac{n_1 n_2}{n_1 + n_2} (\bar{\mathbf{x}}_1 - \bar{\mathbf{x}}_2)^\top \mathbf{S}_{pooled}^{-1} (\bar{\mathbf{x}}_1 - \bar{\mathbf{x}}_2)$$
+con distribución bajo $H_0: \boldsymbol{\mu}_1 = \boldsymbol{\mu}_2$:
+$$\frac{n_1 + n_2 - p - 1}{p(n_1 + n_2 - 2)} T^2 \sim \mathcal{F}_{p, n_1 + n_2 - p - 1}$$
+
+---
+
+## 3. Implementación en Python con SciPy
+
+```python
+import numpy as np
+from scipy import stats
+
+def hotelling_t2_one_sample(X, mu_0):
+    n, p = X.shape
+    x_bar = np.mean(X, axis=0)
+    S = np.cov(X, rowvar=False) # Matriz de covarianza insesgada
+    
+    diff = x_bar - mu_0
+    S_inv = np.linalg.inv(S)
+    
+    T2 = n * (diff.T @ S_inv @ diff)
+    F_stat = ((n - p) / (p * (n - 1))) * T2
+    p_value = 1.0 - stats.f.cdf(F_stat, dfn=p, dfd=n - p)
+    
+    return T2, F_stat, p_value
+
+# Simulación de control de calidad con 3 variables físicas
+np.random.seed(42)
+n_muestras = 50
+p_vars = 3
+mu_objetivo = np.array([120.0, 50.0, 15.0])
+
+# Proceso real ligeramente desviado en la primera variable
+mu_real = np.array([123.5, 49.8, 15.1])
+Sigma_proceso = np.array([
+    [9.0, 2.0, 1.0],
+    [2.0, 4.0, 0.5],
+    [1.0, 0.5, 1.0]
+])
+
+datos = np.random.multivariate_normal(mu_real, Sigma_proceso, size=n_muestras)
+
+T2, F, p_val = hotelling_t2_one_sample(datos, mu_objetivo)
+print(f"Estadístico T2:    {T2:.4f}")
+print(f"F transformado:    {F:.4f}")
+print(f"Valor p:           {p_val:.6e}")
+if p_val < 0.05:
+    print(">>> Conclusión: Se rechaza H0. El vector de medias difiere significativamente del estándar.")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Hotelling y MANOVA"
+  questions={[
+    {
+      id: "q_bonferroni_t2",
+      text: "¿Por qué el elipsoide de confianza de Hotelling es superior a construir intervalos univariados individuales de Bonferroni para cada variable?",
+      options: [
+        { id: "a", text: "Porque captura formalmente la covarianza entre las variables, evitando aceptar puntos fuera del soporte real o rechazar puntos factibles altamente correlacionados", isCorrect: true, explanation: "Correcto: Los intervalos univariados forman una caja ortogonal que ignora la orientación oblicua del elipsoide inducida por las covarianzas no nulas." },
+        { id: "b", text: "Porque duplica el tamaño de muestra de forma ficticia", isCorrect: false, explanation: "El tamaño de muestra no se altera." },
+        { id: "c", text: "Porque siempre produce intervalos más anchos en todas las direcciones", isCorrect: false, explanation: "En ciertas direcciones correlacionadas el elipsoide es más estrecho y preciso." }
+      ]
+    }
+  ]}
+/>

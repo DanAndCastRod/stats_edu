@@ -1,0 +1,127 @@
+---
+title: "Análisis de Holguras (Slacks) y Determinación de Pares de Benchmarking"
+order: 1
+description: "Fase II del modelo DEA: maximización de slacks de insumos y productos, frontera eficiente de Pareto-Koopmans y metas de mejoramiento para DMUs ineficientes."
+bloomLevel: "APPLY"
+estimatedMinutes: 75
+quiz:
+  - question: "En la evaluación DEA, ¿por qué es obligatoria la Fase II de maximización de holguras (slacks) tras obtener el score radial theta*?"
+    options:
+      - "Para satisfacer el criterio de eficiencia estricta de Pareto-Koopmans: una DMU puede tener theta* = 1 pero presentar excesos no nulos de insumos o déficits de salidas en holguras marginales."
+      - "Para convertir los insumos en dólares constantes."
+      - "Para calcular la inversa de la matriz tecnológica."
+      - "Para forzar a que las ponderaciones lambda sumen cero."
+    answer: 0
+    explanation: "La reducción radial proyecta la DMU sobre la frontera isométrica, pero puede quedar en una cara no horizontal donde sobran insumos (s^- > 0) o faltan productos (s^+ > 0). Solo cuando theta* = 1 y todos los slacks son idénticamente cero se alcanza la eficiencia estricta de Pareto-Koopmans."
+---
+
+# Análisis de Holguras (Slacks) y Benchmarking en DEA
+
+> La proyección radial $\theta^* \mathbf{x}_o$ no siempre conduce a un punto plenamente eficiente en el sentido de **Pareto-Koopmans**: pueden existir holguras (*slacks*) no radiales remanentes.
+
+---
+
+## 1. El Modelo de Dos Fases y Eficiencia de Pareto-Koopmans
+
+### Fase I:
+Resolver el modelo envolvente para determinar la contracción radial óptima $\theta^*$.
+
+### Fase II: Maximización de Holguras
+Fijando $\theta = \theta^*$, se resuelven las holguras de exceso de insumos $\mathbf{s}^- \in \mathbb{R}^m$ y déficit de productos $\mathbf{s}^+ \in \mathbb{R}^s$:
+$$\begin{aligned}
+\max_{\boldsymbol{\lambda}, \mathbf{s}^-, \mathbf{s}^+} \quad & \sum_{i=1}^m s_i^- + \sum_{r=1}^s s_r^+ \\
+\text{s.a.} \quad & \sum_{j=1}^n \lambda_j x_{ij} + s_i^- = \theta^* x_{io}, \quad \forall i=1,\dots,m \\
+& \sum_{j=1}^n \lambda_j y_{rj} - s_r^+ = y_{ro}, \quad \forall r=1,\dots,s \\
+& \lambda_j \ge 0, \, s_i^- \ge 0, \, s_r^+ \ge 0
+\end{aligned}$$
+
+---
+
+## 2. Metas de Proyección Operativa (*Targets*)
+
+Para una DMU ineficiente $o$, las **metas operativas de mejoramiento** para alcanzar la frontera de mejores prácticas son:
+$$\hat{x}_{io} = \theta^* x_{io} - s_i^{-*}, \quad \forall i=1,\dots,m$$
+$$\hat{y}_{ro} = y_{ro} + s_r^{+*}, \quad \forall r=1,\dots,s$$
+
+---
+
+## 3. Implementación en Python con SciPy
+
+```python
+import numpy as np
+from scipy.optimize import linprog
+
+# Evaluación de 5 plantas industriales con 2 insumos (Horas, Capital) y 1 producto (Producción)
+X_data = np.array([
+    [10.0, 15.0],  # D1
+    [20.0, 10.0],  # D2
+    [30.0, 30.0],  # D3
+    [12.0, 10.0],  # D4
+    [25.0, 18.0]   # D5
+]) # Insumos (5 x 2)
+Y_data = np.array([[100.0], [100.0], [120.0], [90.0], [110.0]]) # Productos (5 x 1)
+
+def dea_ccr_input(X, Y, dmu_eval):
+    n, m = X.shape
+    s = Y.shape[1]
+    
+    # Variables: [theta, lambda_1, ..., lambda_n]
+    c = np.zeros(1 + n)
+    c[0] = 1.0 # Minimizar theta
+    
+    # Restricciones de Insumos: sum(lambda_j * x_ij) - theta * x_io <= 0
+    # Restricciones de Salidas: -sum(lambda_j * y_rj) <= -y_ro
+    A_ub = []
+    b_ub = []
+    
+    x_o = X[dmu_eval]
+    y_o = Y[dmu_eval]
+    
+    for i in range(m):
+        row = np.zeros(1 + n)
+        row[0] = -x_o[i]
+        row[1:] = X[:, i]
+        A_ub.append(row)
+        b_ub.append(0.0)
+        
+    for r in range(s):
+        row = np.zeros(1 + n)
+        row[1:] = -Y[:, r]
+        A_ub.append(row)
+        b_ub.append(-y_o[r])
+        
+    bounds = [(0, None)] + [(0, None)] * n
+    res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method="highs")
+    
+    theta_opt = res.x[0]
+    lambdas = res.x[1:]
+    return theta_opt, lambdas
+
+print(f"{'DMU':<6} | {'Score CCR (theta*)':<20} | {'Estado':<16} | {'Pares Benchmark'}")
+print("-" * 65)
+
+for d in range(len(X_data)):
+    score, lam = dea_ccr_input(X_data, Y_data, d)
+    peers = [f"D{j+1}" for j, l in enumerate(lam) if l > 1e-4]
+    estado = "Eficiente" if score >= 0.9999 else "Ineficiente"
+    print(f"D{d+1:<5} | {score:<20.4f} | {estado:<16} | {', '.join(peers)}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Slacks y Benchmarking"
+  questions={[
+    {
+      id: "q_slack_pareto",
+      text: "¿Qué implicación tiene para una empresa ineficiente descubrir un exceso de holgura s_i^- > 0 en el insumo mano de obra?",
+      options: [
+        { id: "a", text: "Que además de la reducción radial proporcional general, la empresa debe recortar una cantidad adicional neta s_i^- de horas para eliminar el desperdicio puro de personal", isCorrect: true, explanation: "Correcto: La meta de insumo x_hat = theta* x - s^- exige una doble corrección: primero la escala radial proporcional y segundo el ajuste fino eliminando los excesos improductivos directos." },
+        { id: "b", text: "Que la empresa debe contratar más personal", isCorrect: false, explanation: "Un exceso de insumo indica redundancia, no escasez." },
+        { id: "c", text: "Que el precio sombra del insumo es negativo", isCorrect: false, explanation: "En formulaciones estándar los precios sombra son no negativos." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,104 @@
+---
+title: "Funciones Convexas y Gradiente Descendente con Búsqueda de Armijo"
+order: 1
+description: "Hessiano semidefinido positivo, curvatura local, tasa de descenso, condición suficiente de Armijo y convergencia global."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 70
+quiz:
+  - question: "En el algoritmo de Descenso del Gradiente con búsqueda lineal inexacta, ¿cuál es el propósito matemático de la Condición de Armijo f(x_k + alpha * d_k) <= f(x_k) + c_1 * alpha * grad(f)^T d_k?"
+    options:
+      - "Garantizar una disminución suficiente en el valor de la función objetivo proporcional a la magnitud del paso y la pendiente direccional."
+      - "Forzar a que la matriz Hessiana sea siempre diagonal."
+      - "Asegurar que el tamaño de paso alpha sea estrictamente mayor a 100."
+      - "Convertir el problema en una ecuación diferencial estocástica."
+    answer: 0
+    explanation: "La condición de Armijo evita pasos excesivamente grandes que sobrepasen el mínimo (overshooting) imponiendo que el decremento real sea al menos una fracción c_1 in (0, 1) de la disminución predicha por el plano tangente lineal."
+---
+
+# Funciones Convexas y Gradiente Descendente con Búsqueda de Armijo
+
+> La optimización no lineal modela fenómenos físicos, cinéticos y económicos donde las relaciones no son proporcionales. La **convexidad** es la divisoria de aguas fundamental entre problemas tratables polinomialmente y problemas NP-difíciles.
+
+---
+
+## 1. Caracterización Rigurosa de Convexidad
+
+Sea una función dos veces continuamente diferenciable $f: \Omega \to \mathbb{R}$, con $\Omega \subseteq \mathbb{R}^n$ abierto y convexo.
+
+1. **Condición de Primer Orden:** $f$ es convexa si y solo si para todo $\mathbf{x}, \mathbf{y} \in \Omega$:
+   $$f(\mathbf{y}) \ge f(\mathbf{x}) + \nabla f(\mathbf{x})^\top (\mathbf{y} - \mathbf{x})$$
+   (La función se encuentra siempre por encima de cualquiera de sus hiperplanos tangentes).
+
+2. **Condición de Segundo Orden:** $f$ es convexa si y solo si su **Matriz Hessiana** $\nabla^2 f(\mathbf{x})$ es semidefinida positiva para todo $\mathbf{x} \in \Omega$:
+   $$\mathbf{d}^\top \nabla^2 f(\mathbf{x}) \mathbf{d} \ge 0, \quad \forall \mathbf{d} \in \mathbb{R}^n$$
+   Si $\nabla^2 f(\mathbf{x}) \succ 0$ (estrictamente definida positiva), la función es **estrictamente convexa** y su mínimo es único.
+
+---
+
+## 2. El Método de Descenso del Gradiente
+
+Iteración fundamental:
+$$\mathbf{x}_{k+1} = \mathbf{x}_k + \alpha_k \mathbf{d}_k, \quad \mathbf{d}_k = -\nabla f(\mathbf{x}_k)$$
+
+### Búsqueda de Línea Inexacta: Condición de Armijo
+Calcular el paso óptimo exacto $\alpha_k = \arg\min_{\alpha > 0} f(\mathbf{x}_k - \alpha \nabla f(\mathbf{x}_k))$ es computacionalmente costoso. En su lugar, el algoritmo de *Backtracking Armijo* reduce $\alpha$ geométricamente ($\alpha \leftarrow \rho \alpha$, con $\rho \in (0, 1)$) hasta satisfacer:
+$$f(\mathbf{x}_k + \alpha_k \mathbf{d}_k) \le f(\mathbf{x}_k) + c_1 \alpha_k \nabla f(\mathbf{x}_k)^\top \mathbf{d}_k$$
+con parámetro típico $c_1 = 10^{-4}$.
+
+---
+
+## 3. Implementación Numérica en Python
+
+```python
+import numpy as np
+
+def gradiente_armijo(f, grad_f, x0, alpha_init=1.0, c1=1e-4, rho=0.5, tol=1e-6, max_iter=200):
+    x = np.array(x0, dtype=float)
+    historia = [x.copy()]
+    
+    for k in range(max_iter):
+        g = grad_f(x)
+        if np.linalg.norm(g) < tol:
+            print(f"Convergencia en iteración {k}: ||grad|| = {np.linalg.norm(g):.2e}")
+            break
+            
+        d = -g # Dirección de máximo descenso
+        alpha = alpha_init
+        
+        # Búsqueda de línea con condición de Armijo
+        while f(x + alpha * d) > f(x) + c1 * alpha * np.dot(g, d):
+            alpha *= rho
+            if alpha < 1e-12:
+                break
+                
+        x = x + alpha * d
+        historia.append(x.copy())
+        
+    return x, historia
+
+# Función cuadrática mal condicionada f(x, y) = 10*x^2 + y^2
+f_cuad = lambda x: 10.0*x[0]**2 + x[1]**2
+grad_cuad = lambda x: np.array([20.0*x[0], 2.0*x[1]])
+
+x_min, trayectoria = gradiente_armijo(f_cuad, grad_cuad, x0=[5.0, 5.0])
+print(f"Mínimo alcanzado: [{x_min[0]:.6f}, {x_min[1]:.6f}]")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Gradiente y Convexidad"
+  questions={[
+    {
+      id: "q_armijo_zigzag",
+      text: "Cuando una función cuadrática tiene un número de condición kappa(Hessiano) muy elevado (ej. kappa = 1000), ¿qué fenómeno cinemático afecta al Gradiente Descendente estándar?",
+      options: [
+        { id: "a", text: "Efecto de zig-zag o encajonamiento en valles estrechos, enlenteciendo dramáticamente la convergencia hacia el óptimo", isCorrect: true, explanation: "Correcto: El gradiente apunta casi ortogonal a la dirección hacia el mínimo real en fondos de valle estrechos, produciendo oscilaciones perpendiculares de avance muy lento." },
+        { id: "b", text: "El método se vuelve inmediatamente instantáneo en 1 paso", isCorrect: false, explanation: "Un alto número de condición ralentiza el descenso." },
+        { id: "c", text: "El gradiente se vuelve idénticamente nulo en todas partes", isCorrect: false, explanation: "El gradiente solo se anula en los puntos estacionarios." }
+      ]
+    }
+  ]}
+/>

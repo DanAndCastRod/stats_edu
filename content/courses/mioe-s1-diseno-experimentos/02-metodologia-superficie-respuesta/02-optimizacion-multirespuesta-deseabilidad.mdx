@@ -1,0 +1,109 @@
+---
+title: "Optimización Multirespuesta por Función de Deseabilidad de Derringer"
+order: 2
+description: "Funciones individuales de deseabilidad d_i(y_i), deseabilidad global geométrica D y optimización simultánea no lineal en Python."
+bloomLevel: "CREATE"
+estimatedMinutes: 75
+quiz:
+  - question: "En el enfoque de deseabilidad de Derringer y Suich, ¿por qué la deseabilidad global D se calcula como la media geométrica ponderada de las deseabilidades individuales d_i en lugar de una suma aritmética?"
+    options:
+      - "Porque si una sola respuesta crítica es completamente inaceptable (d_i = 0), la deseabilidad global D se anula automáticamente a cero."
+      - "Porque la media geométrica siempre es mayor que la media aritmética."
+      - "Porque elimina la necesidad de evaluar los límites de especificación."
+      - "Porque linealiza las ecuaciones diferenciales del sistema."
+    answer: 0
+    explanation: "La propiedad multiplicativa de la media geométrica D = (d_1 * ... * d_m)^(1/m) actúa como una barrera estricta: si un producto no cumple los estándares mínimos en una sola dimensión esencial (ej. toxicidad d_tox = 0), todo el producto es descartado globalmente."
+---
+
+# Optimización Multirespuesta: Deseabilidad de Derringer-Suich
+
+> En la industria real, nunca se optimiza una sola variable. Un proceso metalúrgico debe simultáneamente **maximizar la dureza** ($y_1$), **minimizar el costo de energía** ($y_2$) y mantener la **rugosidad superficial en un valor nominal exacto** ($y_3$).
+
+---
+
+## 1. Transformación de Deseabilidad Individual ($d_i$)
+
+La metodología de Derringer y Suich (1980) transforma cada respuesta predicha $\hat{y}_i$ en una escala adimensional normalizada $d_i \in [0, 1]$:
+
+### A. Para Maximizar ($y_i \ge T_i$):
+$$d_i(\hat{y}_i) = \begin{cases} 0 & \text{si } \hat{y}_i < L_i \\ \left( \frac{\hat{y}_i - L_i}{T_i - L_i} \right)^{s_i} & \text{si } L_i \le \hat{y}_i \le T_i \\ 1 & \text{si } \hat{y}_i > T_i \end{cases}$$
+
+### B. Para Minimizar ($y_i \le T_i$):
+$$d_i(\hat{y}_i) = \begin{cases} 1 & \text{si } \hat{y}_i < T_i \\ \left( \frac{U_i - \hat{y}_i}{U_i - T_i} \right)^{t_i} & \text{si } T_i \le \hat{y}_i \le U_i \\ 0 & \text{si } \hat{y}_i > U_i \end{cases}$$
+
+### C. Para Valor Objetivo Nominal ($y_i = T_i$):
+$$d_i(\hat{y}_i) = \begin{cases} \left( \frac{\hat{y}_i - L_i}{T_i - L_i} \right)^{s_i} & \text{si } L_i \le \hat{y}_i \le T_i \\ \left( \frac{U_i - \hat{y}_i}{U_i - T_i} \right)^{t_i} & \text{si } T_i < \hat{y}_i \le U_i \\ 0 & \text{si } \hat{y}_i < L_i \text{ o } \hat{y}_i > U_i \end{cases}$$
+
+---
+
+## 2. Deseabilidad Global Compuesta ($D$)
+
+Las $m$ deseabilidades individuales se consolidan mediante una **media geométrica ponderada**:
+$$D = \left( d_1^{w_1} \times d_2^{w_2} \times \dots \times d_m^{w_m} \right)^{\frac{1}{\sum_{i=1}^m w_i}}$$
+donde $w_i$ refleja la importancia relativa de cada respuesta.
+
+---
+
+## 3. Optimización Numérica en Python con SciPy
+
+```python
+import numpy as np
+from scipy.optimize import minimize
+
+# Respuestas estimadas por modelos cuadráticos de segundo orden
+# x = [x1, x2] factores de temperatura y presión en rango codificado [-1.5, 1.5]
+def y1_dureza(x):
+    return 80.0 + 5.0*x[0] - 3.0*x[1] - 4.0*x[0]**2 - 2.0*x[1]**2 + 3.0*x[0]*x[1]
+
+def y2_costo(x):
+    return 150.0 + 15.0*x[0] + 20.0*x[1] + 10.0*x[0]**2 + 12.0*x[1]**2
+
+# Funciones de deseabilidad
+def d1_max(val, L=70.0, T=90.0): # Maximizar dureza
+    if val < L: return 0.0
+    if val > T: return 1.0
+    return (val - L) / (T - L)
+
+def d2_min(val, T=140.0, U=200.0): # Minimizar costo
+    if val < T: return 1.0
+    if val > U: return 0.0
+    return (U - val) / (U - T)
+
+# Función objetivo a maximizar: Deseabilidad Global D
+def neg_desirability(x):
+    v1 = y1_dureza(x)
+    v2 = y2_costo(x)
+    d1 = d1_max(v1)
+    d2 = d2_min(v2)
+    D = np.sqrt(d1 * d2)
+    return -D # Para minimizar con scipy
+
+# Búsqueda numérica acotada
+res = minimize(neg_desirability, x0=[0.0, 0.0], bounds=[(-1.5, 1.5), (-1.5, 1.5)], method="L-BFGS-B")
+
+x_opt = res.x
+D_opt = -res.fun
+print(f"Condiciones operativas óptimas (x1*, x2*): [{x_opt[0]:.3f}, {x_opt[1]:.3f}]")
+print(f"Dureza predicha:                         {y1_dureza(x_opt):.2f} (d1 = {d1_max(y1_dureza(x_opt)):.3f})")
+print(f"Costo predicho:                          {y2_costo(x_opt):.2f} (d2 = {d2_min(y2_costo(x_opt)):.3f})")
+print(f"Deseabilidad Global Óptima D*:           {D_opt:.4f}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Optimización Multirespuesta"
+  questions={[
+    {
+      id: "q_derringer_weights",
+      text: "¿Qué impacto tiene incrementar el exponente s_i > 1 en la función de deseabilidad individual d_i?",
+      options: [
+        { id: "a", text: "Vuelve la función más exigente, penalizando severamente valores que se alejan del objetivo óptimo", isCorrect: true, explanation: "Correcto: Con s_i > 1 la curva es convexa, asignando deseabilidades muy bajas hasta que la respuesta se aproxima estrechamente a la meta ideal T_i." },
+        { id: "b", text: "Convierte la respuesta en una constante independiente de x", isCorrect: false, explanation: "La respuesta sigue dependiendo de x a través del modelo de regresión." },
+        { id: "c", text: "Transforma la respuesta en una variable aleatoria de Poisson", isCorrect: false, explanation: "Es una función de deseabilidad determinista." }
+      ]
+    }
+  ]}
+/>

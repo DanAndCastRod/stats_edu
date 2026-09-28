@@ -1,0 +1,136 @@
+---
+title: "Simulación Monte Carlo Aplicada al Análisis de Riesgos"
+order: 2
+description: "Modelado estocástico de incertidumbre, propagación de varianza en modelos financieros y de manufactura, e intervalos de confianza para el VaR."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿En qué consiste esencialmente el método de Simulación Monte Carlo para el análisis de riesgo en proyectos de ingeniería?"
+    options:
+      - "Sustituir parámetros determinísticos fijos por distribuciones de probabilidad y evaluar repetidamente el modelo miles de veces para obtener la distribución empírica de la variable de salida"
+      - "Calcular únicamente el peor escenario posible (Worst-Case Analysis)"
+      - "Forzar a que todos los costos sigan una distribución normal estándar"
+      - "Optimizar el código para que no requiera variables estocásticas"
+    answer: 0
+    explanation: "Monte Carlo muestrea repetidamente variables de entrada probabilísticas para construir la curva de densidad acumulada de la variable de salida (e.g. utilidad neta, VPN, tiempo de entrega)."
+  - question: "¿Qué métrica probabilística representa el Valor en Riesgo (VaR) al nivel del 95%?"
+    options:
+      - "El percentil 5 de la distribución de utilidades (la pérdida máxima tolerable con un 95% de confianza)"
+      - "El promedio simple de las utilidades"
+      - "La desviación estándar multiplicada por 100"
+      - "El valor máximo simulado"
+    answer: 0
+    explanation: "El VaR_95% cuantifica el umbral tal que la probabilidad de que la pérdida exceda dicho valor sea a lo sumo del 5%."
+---
+
+# Introducción
+
+> ¿Cuál es la probabilidad de que una nueva planta de producción de polímeros genere pérdidas durante sus primeros 3 años? La evaluación tradicional mediante promedios estáticos falla catastróficamente debido a la llamada 'Falacia de los Promedios' ($E[f(X)] \ne f(E[X])$ para funciones no lineales).
+
+El método de **Simulación Monte Carlo**, concebido por Stanislaw Ulam y John von Neumann durante el Proyecto Manhattan, resuelve problemas matemáticos y de toma de decisiones mediante muestreo estadístico repetido a gran escala.
+
+<Callout type="info">
+**Falacia de los Promedios:** Evaluar un proyecto usando la demanda promedio y los costos promedio produce una estimación sistemáticamente distorsionada de la rentabilidad real bajo incertidumbre.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Modelar variables de entrada estocásticas con distribuciones pertinentes (Triangular, Normal, Log-normal).
+- Propagar la incertidumbre a través de ecuaciones financieras y operativas no lineales.
+- Construir distribuciones acumuladas de salida y calcular probabilidades de pérdida.
+- Estimar el Valor en Riesgo (VaR) y Conditional VaR (CVaR) en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Estructura de un Modelo Monte Carlo
+
+Sea $Y = g(X_1, X_2, \dots, X_p)$ la variable de interés del sistema, donde cada $X_j$ es una variable aleatoria con densidad conocida $f_j(x_j)$.
+Para $N$ iteraciones independientes:
+1. Muestrear valores pseudoaleatorios $x_1^{(k)}, x_2^{(k)}, \dots, x_p^{(k)}$ para $k = 1, \dots, N$.
+2. Evaluar la función de respuesta:
+   $$y^{(k)} = g(x_1^{(k)}, \dots, x_p^{(k)})$$
+3. Construir la distribución empírica de $\{y^{(k)}\}_{k=1}^N$.
+
+### Teorema del Límite Central y Precisión de Monte Carlo
+
+El estimador de la media poblacional $\mu_Y$ es el promedio muestral:
+
+$$\hat{\mu}_Y = \frac{1}{N} \sum_{k=1}^N y^{(k)}$$
+
+El error estándar de la estimación es:
+
+$$SE(\hat{\mu}_Y) = \frac{\sigma_Y}{\sqrt{N}}$$
+
+La tasa de convergencia es de orden $\mathcal{O}(1 / \sqrt{N})$. Para reducir el error a la mitad, se requiere cuadruplicar el número de corridas $N$.
+
+---
+
+# Laboratorio en Python: Análisis de Riesgo Financiero de Lanzamiento de Producto
+
+```python
+import numpy as np
+import pandas as pd
+
+# Simulación Monte Carlo del Margen Operativo Anual de una Línea de Ensamble
+# Margen = (Precio - Costo_Variable) * Demanda - Costo_Fijo
+N = 100_000
+np.random.seed(42)
+
+# 1. Variables de Entrada con Incertidumbre
+# Demanda anual: Normal con media 50,000 unidades y desv 8,000
+demanda = np.random.normal(loc=50_000, scale=8_000, size=N)
+demanda = np.maximum(demanda, 0)  # No puede ser negativa
+
+# Precio de venta unitario: Triangular (Mín=90, Moda=100, Máx=115 USD)
+precio = np.random.triangular(left=90, mode=100, right=115, size=N)
+
+# Costo variable unitario: Log-normal (Media log=3.9, sigma log=0.15)
+costo_var = np.random.lognormal(mean=3.9, sigma=0.15, size=N)
+
+# Costo fijo anual: Uniforme entre 1,800,000 y 2,400,000 USD
+costo_fijo = np.random.uniform(low=1_800_000, high=2_400_000, size=N)
+
+# 2. Función de Salida
+margen_operativo = (precio - costo_var) * demanda - costo_fijo
+
+# 3. Métricas de Riesgo
+prob_perdida = np.mean(margen_operativo < 0)
+var_5 = np.percentile(margen_operativo, 5)  # Percentil 5
+cvar_5 = np.mean(margen_operativo[margen_operativo <= var_5])  # Pérdida esperada en el peor 5%
+
+print("=== REPORTE DE ANÁLISIS DE RIESGO MONTE CARLO (N = 100,000) ===")
+print(f"Margen Esperado Medio: USD {np.mean(margen_operativo):,.2f}")
+print(f"Desviación Estándar del Margen: USD {np.std(margen_operativo):,.2f}")
+print(f"Probabilidad de Pérdida Financiera (P(Margen < 0)): {prob_perdida * 100:.2f}%")
+print(f"Valor en Riesgo al 95% (VaR 95%): USD {var_5:,.2f}")
+print(f"Conditional VaR (CVaR 95% - Expected Shortfall): USD {cvar_5:,.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Simulación Monte Carlo y Riesgo"
+  questions={[
+    {
+      id: "q_mc_1",
+      text: "¿Por qué para reducir el error estándar de una estimación Monte Carlo a una décima parte (1/10) se deben incrementar las réplicas en 100 veces?",
+      options: [
+        { id: "a", text: "Porque el error disminuye a una tasa proporcional a 1 / sqrt(N)", isCorrect: true, explanation: "SE = sigma / sqrt(N). Para que SE / 10 = sigma / sqrt(100 N), se necesita N * 100." },
+        { id: "b", text: "Porque los números pseudoaleatorios pierden precisión con muestras grandes", isCorrect: false, explanation: "La precisión matemática de cada número generado se mantiene constante." },
+        { id: "c", text: "Porque la distribución normal exige 100 observaciones por parámetro", isCorrect: false, explanation: "La convergencia de Monte Carlo es universal independientemente de la distribución subyacente." }
+      ]
+    },
+    {
+      id: "q_mc_2",
+      text: "¿Qué información clave aporta el Conditional VaR (CVaR) que no proporciona el VaR convencional?",
+      options: [
+        { id: "a", text: "La magnitud promedio esperada de la pérdida cuando el resultado cae en la cola extrema (más allá del umbral del VaR)", isCorrect: true, explanation: "El VaR solo informa el punto de corte; el CVaR (Expected Shortfall) cuantifica la severidad promedio del desastre en los peores escenarios." },
+        { id: "b", text: "El tiempo exacto en que ocurrirá la falla", isCorrect: false, explanation: "Monte Carlo no predice fechas determinísticas." },
+        { id: "c", text: "La rentabilidad máxima posible del proyecto", isCorrect: false, explanation: "El CVaR mide el riesgo de cola negativo." }
+      ]
+    }
+  ]}
+/>

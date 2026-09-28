@@ -1,0 +1,7 @@
+{
+  "title": "Diseño de Experimentos y Superficie de Respuesta",
+  "code": "IO133",
+  "description": "Metodología formal para la optimización de procesos industriales: factoriales completos 2^k, fraccionados 2^(k-p), resolución y alias, diseños centrales compuestos (CCD) y deseabilidad multirespuesta.",
+  "slug": "mioe-s1-diseno-experimentos",
+  "isMock": false
+}

@@ -1,0 +1,201 @@
+---
+title: "Mecanismo del Reloj de Simulación y Lista de Eventos Futuros (FEL)"
+order: 1
+description: "Paradigma de simulación por eventos discretos (DES), avance de reloj por próximo evento vs pasos fijos y gestión de la FEL."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es la principal ventaja computacional del mecanismo de avance de tiempo por 'próximo evento' (Next-Event Time Advance) frente al avance por 'incremento fijo de tiempo' (Delta-t)?"
+    options:
+      - "Salta instantáneamente los periodos de inactividad directamente al instante del siguiente evento programado, evitando ciclos de CPU ociosos"
+      - "Elimina por completo la necesidad de generar números aleatorios"
+      - "Garantiza que la simulación termine siempre en menos de 1 segundo"
+      - "Permite simular sistemas sin definir variables de estado"
+    answer: 0
+    explanation: "El mecanismo de próximo evento actualiza el reloj de simulación exactamente al tiempo del evento inminente extraído de la FEL, ignorando los lapsos continuos donde el estado del sistema no cambia."
+  - question: "¿Qué estructura de datos es la más eficiente para implementar la Lista de Eventos Futuros (FEL) en un motor de simulación DES?"
+    options:
+      - "Una cola de prioridad (Priority Queue / Min-Heap) ordenada por el tiempo de ocurrencia del evento"
+      - "Una pila LIFO (Last-In, First-Out)"
+      - "Una matriz booleana estática"
+      - "Un árbol binario no balanceado"
+    answer: 0
+    explanation: "La FEL requiere extraer continuamente el evento con el menor tiempo programado (operación O(log N) con un Min-Heap) e insertar nuevos eventos generados dinámicamente."
+---
+
+# Introducción
+
+> En un sistema complejo como un centro logístico aeroportuario o una planta de ensamble automatizada, las ecuaciones analíticas cerradas (como las fórmulas de colas $M/M/s$) se vuelven intratables debido a bloqueos, fallas dependientes y prioridades dinámicas. La **Simulación de Eventos Discretos (DES)** es la técnica reina de la investigación de operaciones moderna para evaluar escenarios '¿qué pasaría si?' sin arriesgar capital real.
+
+Un evento es una ocurrencia instantánea que cambia el vector de estado del sistema (e.g. arribo de una pieza, fin de mecanizado, avería de una banda transportadora).
+
+<Callout type="info">
+**La Lista de Eventos Futuros (FEL):** Es el corazón algorítmico del simulador. Contiene la lista cronológica ordenada de todos los eventos previstos para ocurrir en el futuro: $\text{FEL} = \{(e_1, t_1), (e_2, t_2), \dots\}$ con $t_1 \le t_2 \le \dots$.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comparar el enfoque de avance de reloj por pasos fijos (Time-Slicing) vs próximo evento (Next-Event).
+- Diseñar la arquitectura fundamental del ciclo de simulación: inicialización, extracción del evento inminente, actualización del reloj y recolección de estadísticas.
+- Implementar una Lista de Eventos Futuros (FEL) con colas de prioridad en Python.
+- Simular un sistema de manufactura de una estación con arribos y servicios estocásticos.
+
+---
+
+# Fundamentos Teóricos
+
+### Componentes de un Modelo DES
+
+1. **Variables de Estado:** Colección de variables que describen el estado del sistema en el instante $t$ (e.g. $L(t)$ número de clientes en el sistema, $B(t) \in \{0, 1\}$ estado del servidor).
+2. **Reloj de Simulación ($T_{\text{now}}$):** Variable global que registra el tiempo transcurrido en el sistema simulado.
+3. **Lista de Eventos Futuros (FEL):**
+   $$\text{FEL} = \{ (\text{Tipo}_k, t_k) \mid t_k \ge T_{\text{now}} \}$$
+   Donde el evento inminente es $(e^*, t^*) = \arg\min_{(e, t) \in \text{FEL}} t$.
+4. **Rutinas de Evento:** Código que ejecuta la lógica de transición de estado cuando ocurre un evento particular.
+
+### Algoritmo General del Reloj de Simulación
+
+```
+1. Inicializar: T_now = 0, Estado inicial, Insertar primer arribo en FEL.
+2. Mientras T_now < T_fin y FEL no esté vacía:
+   a. Extraer (e*, t*) con menor t de la FEL.
+   b. Actualizar acumuladores estadísticos para el lapso [T_now, t*].
+   c. T_now = t*.
+   d. Ejecutar rutina asociada al evento e* (puede programar nuevos eventos en FEL).
+3. Calcular métricas globales de desempeño y generar reporte.
+```
+
+---
+
+# Laboratorio en Python: Motor DES de Estación de Inspección
+
+```python
+import heapq
+import numpy as np
+import pandas as pd
+
+# Definición de tipos de eventos
+EVENTO_LLEGADA = 1
+EVENTO_FIN_SERVICIO = 2
+
+class SimuladorEstacionSimple:
+    def __init__(self, tasa_llegada, tasa_servicio, tiempo_max):
+        self.tasa_lambda = tasa_llegada
+        self.tasa_mu = tasa_servicio
+        self.tiempo_max = tiempo_max
+        
+        # Reloj y estado
+        self.T_now = 0.0
+        self.servidor_ocupado = False
+        self.cola = 0
+        
+        # FEL (Priority Queue / Min-Heap de tuplas: (tiempo, tipo_evento))
+        self.fel = []
+        
+        # Estadísticas acumuladas
+        self.tiempo_ultimo_evento = 0.0
+        self.area_bajo_Q = 0.0      # Integral de Q(t) dt para calcular Lq
+        self.area_bajo_B = 0.0      # Integral de B(t) dt para calcular utilización
+        self.total_atendidos = 0
+        self.tiempos_espera = []
+        self.tiempos_llegada_cola = []
+
+    def programar_evento(self, tiempo, tipo):
+        heapq.heappush(self.fel, (tiempo, tipo))
+
+    def ejecutar(self):
+        # Programar primer arribo en t > 0
+        primer_arribo = np.random.exponential(1.0 / self.tasa_lambda)
+        self.programar_evento(primer_arribo, EVENTO_LLEGADA)
+        
+        while self.fel and self.T_now < self.tiempo_max:
+            t_evento, tipo_evento = heapq.heappop(self.fel)
+            
+            # 1. Actualizar acumuladores de área temporal
+            dt = t_evento - self.T_now
+            self.area_bajo_Q += self.cola * dt
+            self.area_bajo_B += (1.0 if self.servidor_ocupado else 0.0) * dt
+            self.T_now = t_evento
+            
+            # 2. Despachar rutina de evento
+            if tipo_evento == EVENTO_LLEGADA:
+                self.rutina_llegada()
+            elif tipo_evento == EVENTO_FIN_SERVICIO:
+                self.rutina_fin_servicio()
+                
+        return self.generar_reporte()
+
+    def rutina_llegada(self):
+        # Programar el siguiente arribo futuro
+        proximo_dt = np.random.exponential(1.0 / self.tasa_lambda)
+        if self.T_now + proximo_dt <= self.tiempo_max:
+            self.programar_evento(self.T_now + proximo_dt, EVENTO_LLEGADA)
+            
+        if self.servidor_ocupado:
+            self.cola += 1
+            self.tiempos_llegada_cola.append(self.T_now)
+        else:
+            self.servidor_ocupado = True
+            self.tiempos_espera.append(0.0)  # Pasa directo sin esperar
+            tiempo_servicio = np.random.exponential(1.0 / self.tasa_mu)
+            self.programar_evento(self.T_now + tiempo_servicio, EVENTO_FIN_SERVICIO)
+
+    def rutina_fin_servicio(self):
+        self.total_atendidos += 1
+        if self.cola > 0:
+            self.cola -= 1
+            t_llegada = self.tiempos_llegada_cola.pop(0)
+            self.tiempos_espera.append(self.T_now - t_llegada)
+            
+            tiempo_servicio = np.random.exponential(1.0 / self.tasa_mu)
+            self.programar_evento(self.T_now + tiempo_servicio, EVENTO_FIN_SERVICIO)
+        else:
+            self.servidor_ocupado = False
+
+    def generar_reporte(self):
+        Lq = self.area_bajo_Q / self.T_now
+        utilizacion = self.area_bajo_B / self.T_now
+        Wq = np.mean(self.tiempos_espera) if self.tiempos_espera else 0.0
+        return {
+            'Tiempo_Simulado_h': self.T_now,
+            'Total_Atendidos': self.total_atendidos,
+            'Utilizacion_Servidor': utilizacion,
+            'Longitud_Media_Cola (Lq)': Lq,
+            'Espera_Media_Cola_min (Wq)': Wq * 60
+        }
+
+np.random.seed(42)
+sim = SimuladorEstacionSimple(tasa_llegada=5.0, tasa_servicio=6.0, tiempo_max=1000.0)
+resultados = sim.ejecutar()
+
+print("RESULTADOS DE SIMULACIÓN DE EVENTOS DISCRETOS (DES):")
+for k, v in resultados.items():
+    print(f"  {k}: {v:.4f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Reloj de Simulación y FEL"
+  questions={[
+    {
+      id: "q_sim_rel_1",
+      text: "¿Qué ocurre con el reloj de simulación T_now cuando la estación se queda sin clientes y el próximo arribo está programado en 45 minutos?",
+      options: [
+        { id: "a", text: "T_now salta de inmediato 45 minutos hacia adelante hasta el instante exacto del arribo sin iterar minuto a minuto", isCorrect: true, explanation: "Esa es la esencia del mecanismo Next-Event: no hay cómputo intermedio en los periodos sin eventos programados." },
+        { id: "b", text: "El reloj se congela y arroja un error de desbordamiento", isCorrect: false, explanation: "El avance de eventos discretos maneja perfectamente lapsos vacíos." },
+        { id: "c", text: "Se decrementa hacia cero", isCorrect: false, explanation: "El tiempo simulado es una variable monótonamente no decreciente." }
+      ]
+    },
+    {
+      id: "q_sim_rel_2",
+      text: "Para calcular el número promedio de piezas en cola Lq a lo largo del tiempo, ¿qué cálculo integral se realiza?",
+      options: [
+        { id: "a", text: "Lq = (1 / T_simulado) * int_0^{T_simulado} Q(t) dt", isCorrect: true, explanation: "Es el promedio temporal ponderado: el área bajo la curva escalonada de piezas en cola dividida por el horizonte total de simulación." },
+        { id: "b", text: "Lq = max(Q(t))", isCorrect: false, explanation: "El valor máximo es la capacidad requerida de almacenamiento, no el promedio." },
+        { id: "c", text: "Lq = Q(T_final)", isCorrect: false, explanation: "El valor final es solo una realización puntual al término del ensayo." }
+      ]
+    }
+  ]}
+/>

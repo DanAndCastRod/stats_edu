@@ -1,0 +1,74 @@
+---
+title: "Modelo CAPM, Portafolio Tangente y Capital Market Line"
+order: 2
+description: "Inclusión de activo libre de riesgo r_f, ratio de Sharpe, determinación del coeficiente Beta beta_i y descomposición del riesgo sistemático."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 70
+quiz:
+  - question: "En el modelo CAPM (Capital Asset Pricing Model), ¿qué tipo de riesgo es remunerado en el mercado con una prima de rentabilidad esperada E(R_i) - r_f?"
+    options:
+      - "Exclusivamente el riesgo sistemático no diversificable medido por el coeficiente Beta beta_i."
+      - "El riesgo total medido por la varianza de la acción."
+      - "El riesgo puramente idiosincrático de la empresa."
+      - "El riesgo de liquidez medido por el volumen transado."
+    answer: 0
+    explanation: "El teorema central del CAPM establece que en equilibrio, los inversores diversifican eficientemente todo el riesgo específico/idiosincrático. Por tanto, el mercado solo compensa el riesgo sistemático de mercado capturado por beta_i = Cov(R_i, R_m) / Var(R_m)."
+---
+
+# Modelo CAPM, Portafolio Tangente y Capital Market Line
+
+> Cuando se introduce un **activo libre de riesgo** (bonos del tesoro soberano con rendimiento seguro $r_f$), la frontera de Markowitz deja de ser una curva hiperbólica y se transforma en una línea recta: la **Capital Market Line (CML)**.
+
+---
+
+## 1. El Portafolio Tangente y el Ratio de Sharpe
+
+El **Portafolio Tangente** $\mathbf{w}_T$ es la combinación de activos riesgosos que maximiza la pendiente de la recta de asignación de capital, conocida como el **Ratio de Sharpe**:
+$$\max_{\mathbf{w}} \operatorname{SR}(\mathbf{w}) = \frac{\mathbf{w}^\top \boldsymbol{\mu} - r_f}{\sqrt{\mathbf{w}^\top \boldsymbol{\Sigma} \mathbf{w}}} \quad \text{s.a.} \quad \mathbf{w}^\top \mathbf{1} = 1$$
+
+Analíticamente, el vector óptimo tangente satisface:
+$$\mathbf{w}_T = \frac{\boldsymbol{\Sigma}^{-1}(\boldsymbol{\mu} - r_f \mathbf{1})}{\mathbf{1}^\top \boldsymbol{\Sigma}^{-1}(\boldsymbol{\mu} - r_f \mathbf{1})}$$
+
+---
+
+## 2. Capital Market Line (CML) y Teorema de Separación
+
+<Callout type="info">
+**Teorema de Separación de Fondos de Tobin (1958):** La decisión de inversión se divide en dos pasos totalmente independientes:
+1. **Paso Técnico:** Determinar el portafolio óptimo de activos riesgosos $\mathbf{w}_T$ (idéntico para todos los inversionistas).
+2. **Paso de Preferencia:** Decidir qué porcentaje del capital asignar al activo libre de riesgo vs el portafolio tangente, según la aversión al riesgo del individuo.
+</Callout>
+
+La ecuación de la CML es:
+$$\mathbb{E}[R_p] = r_f + \left( \frac{\mathbb{E}[R_T] - r_f}{\sigma_T} \right) \sigma_p$$
+
+---
+
+## 3. La Ecuación Fundamental del CAPM
+
+Para cualquier activo o portafolio individual $i$:
+$$\mathbb{E}[R_i] = r_f + \beta_i (\mathbb{E}[R_m] - r_f)$$
+donde el coeficiente **Beta** mide la sensibilidad al mercado:
+$$\beta_i = \frac{\operatorname{Cov}(R_i, R_m)}{\operatorname{Var}(R_m)}$$
+
+### Descomposición del Riesgo Total:
+$$\sigma_i^2 = \underbrace{\beta_i^2 \sigma_m^2}_{\text{Riesgo Sistemático}} + \underbrace{\sigma_{\epsilon_i}^2}_{\text{Riesgo Idiosincrático}}$$
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: CAPM y Ratio de Sharpe"
+  questions={[
+    {
+      id: "q_capm_alpha",
+      text: "Si un gestor de fondos de inversión obtiene un activo con Alpha de Jensen positivo (alpha_i > 0), ¿qué significa respecto a la valoración teórica del CAPM?",
+      options: [
+        { id: "a", text: "El activo generó una rentabilidad superior a la requerida por su nivel de riesgo sistemático, indicando que está infravalorado (subvaluado) por el mercado", isCorrect: true, explanation: "Correcto: El Alpha de Jensen alpha = E(R) - [r_f + beta(E(R_m) - r_f)] mide la habilidad superior de generación de valor por encima del benchmark ajustado por riesgo." },
+        { id: "b", text: "El activo tiene volatilidad infinita", isCorrect: false, explanation: "No está relacionado con una divergencia de volatilidad." },
+        { id: "c", text: "El activo debe venderse inmediatamente", isCorrect: false, explanation: "Un alpha positivo es señal de oportunidad de compra de activos subvaluados." }
+      ]
+    }
+  ]}
+/>

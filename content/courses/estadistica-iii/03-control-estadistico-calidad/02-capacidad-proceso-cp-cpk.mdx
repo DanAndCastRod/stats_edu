@@ -1,0 +1,157 @@
+---
+title: "Análisis de Capacidad de Proceso: Índices Cp, Cpk y Cpm"
+order: 2
+description: "Evaluación de la aptitud técnica del proceso frente a especificaciones de ingeniería, cálculo de Cp, Cpk, Cpm y nivel Sigma."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué significa que un proceso tenga Cp = 1.33 pero Cpk = 0.80?"
+    options:
+      - "Que el proceso tiene la precisión potencial suficiente para cumplir especificaciones, pero está descentrado hacia uno de los límites de tolerancia"
+      - "Que el proceso tiene dispersión excesiva y no puede cumplir tolerancias bajo ninguna circunstancia"
+      - "Que los límites de especificación son más estrechos que 6 sigma"
+      - "Que la distribución del proceso no es normal"
+    answer: 0
+    explanation: "Cp mide la capacidad potencial (ancho de tolerancia vs 6-sigma natural). Cpk evalúa el centrado real considerando la distancia de la media al límite más próximo. Si Cp > 1 pero Cpk < 1, el proceso es capaz pero está descentrado."
+  - question: "¿Cuál es la tasa de partes defectuosas por millón (PPM) asociada tradicionalmente a un proceso Seis Sigma con desplazamiento de 1.5 sigma en el largo plazo?"
+    options:
+      - "3.4 PPM"
+      - "2700 PPM"
+      - "0.001 PPM"
+      - "66807 PPM"
+    answer: 0
+    explanation: "Bajo la métrica de Motorola de 6 Sigma con un corrimiento típico de 1.5 sigma en la media a largo plazo, el área fuera de especificaciones es de 3.4 partes por millón (PPM)."
+---
+
+# Introducción
+
+> Un proceso puede estar en perfecto "control estadístico" (estable y predecible en el tiempo) y al mismo tiempo estar fabricando 100% de productos chatarra si sus especificaciones técnicas de diseño son más estrechas que la dispersión natural del proceso.
+
+El **Análisis de Capacidad de Proceso** vincula la voz del proceso (variabilidad natural $6\sigma$) con la voz del cliente (especificaciones de ingeniería $USL$ y $LSL$).
+
+<Callout type="info">
+**Regla de Oro:** Un proceso industrial moderno de Clase Mundial o automotriz exige un $C_{pk} \ge 1.67$, mientras que para procesos industriales convencionales el estándar mínimo de aceptación es $C_{pk} \ge 1.33$.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Distinguir entre Límites de Control (voz del proceso) y Límites de Especificación (voz del cliente).
+- Calcular e interpretar los índices de capacidad potencial ($C_p$) y capacidad real ($C_{pk}$).
+- Evaluar el índice de Taguchi ($C_{pm}$) que penaliza desviaciones respecto al valor nominal objetivo ($T$).
+- Convertir índices de capacidad a Partes por Millón defectuosas (PPM) y nivel Z-Sigma.
+
+---
+
+# Fundamentos Teóricos
+
+Sean:
+- $USL$: Límite de Especificación Superior (*Upper Specification Limit*).
+- $LSL$: Límite de Especificación Inferior (*Lower Specification Limit*).
+- $\mu$: Media del proceso en estado de control.
+- $\sigma$: Desviación estándar del proceso a corto plazo (estimada mediante $\bar{R}/d_2$ o $\bar{S}/c_4$).
+
+### Índice de Capacidad Potencial ($C_p$)
+
+Evalúa el ancho relativo de las especificaciones respecto a la dispersión natural $6\sigma$:
+
+$$C_p = \frac{USL - LSL}{6\sigma}$$
+
+- $C_p < 1.0$: Proceso no capaz (genera piezas defectuosas incluso si está perfectamente centrado).
+- $1.0 \le C_p < 1.33$: Proceso marginalmente capaz.
+- $C_p \ge 1.33$: Proceso satisfactorio y capaz.
+
+### Índice de Capacidad Real ($C_{pk}$)
+
+Penaliza el alejamiento de la media $\mu$ respecto a las especificaciones:
+
+$$C_{pu} = \frac{USL - \mu}{3\sigma}, \quad C_{pl} = \frac{\mu - LSL}{3\sigma}$$
+
+$$C_{pk} = \min(C_{pu}, C_{pl}) = C_p (1 - k)$$
+
+Donde $k = \frac{|T - \mu|}{(USL - LSL)/2}$ es el factor de descentrado respecto al valor objetivo $T$.
+
+### Índice de Taguchi ($C_{pm}$)
+
+Incorpora explícitamente la pérdida de calidad cuadrática cuando la media se aleja del valor objetivo nominal $T$:
+
+$$\tau^2 = \mathbb{E}[(X - T)^2] = \sigma^2 + (\mu - T)^2$$
+
+$$C_{pm} = \frac{USL - LSL}{6\tau} = \frac{USL - LSL}{6\sqrt{\sigma^2 + (\mu - T)^2}} = \frac{C_p}{\sqrt{1 + \left(\frac{\mu - T}{\sigma}\right)^2}}$$
+
+---
+
+# Laboratorio en Python: Capacidad de Fabricación de Ejes
+
+```python
+import numpy as np
+from scipy import stats
+
+# Parámetros de especificación para diámetro de eje (mm)
+USL = 20.05
+LSL = 19.95
+Target = 20.00  # Nominal ideal
+
+# Muestra de 100 ejes medidos en planta
+np.random.seed(42)
+mu_real = 20.015  # Desplazado ligeramente hacia USL
+sigma_real = 0.012
+datos = np.random.normal(mu_real, sigma_real, size=100)
+
+mu_hat = np.mean(datos)
+s_hat = np.std(datos, ddof=1)
+
+# Cálculo de Índices
+Cp = (USL - LSL) / (6 * s_hat)
+Cpu = (USL - mu_hat) / (3 * s_hat)
+Cpl = (mu_hat - LSL) / (3 * s_hat)
+Cpk = min(Cpu, Cpl)
+
+# Taguchi Cpm
+tau = np.sqrt(s_hat**2 + (mu_hat - Target)**2)
+Cpm = (USL - LSL) / (6 * tau)
+
+# Fracción defectuosa esperada y PPM
+p_defectos_sup = 1 - stats.norm.cdf(USL, loc=mu_hat, scale=s_hat)
+p_defectos_inf = stats.norm.cdf(LSL, loc=mu_hat, scale=s_hat)
+p_total = p_defectos_sup + p_defectos_inf
+ppm = p_total * 1_000_000
+
+# Nivel Z-Sigma
+z_sigma = stats.norm.ppf(1 - p_total) if p_total > 0 else 6.0
+
+print("=== REPORTE DE CAPACIDAD DE PROCESO ===")
+print(f"Media Muestral: {mu_hat:.4f} mm | Desviacion: {s_hat:.4f} mm")
+print(f"Tolerancia Total: {USL - LSL:.4f} mm | Dispersion 6-Sigma: {6 * s_hat:.4f} mm")
+print(f"Cp  (Capacidad Potencial): {Cp:.3f}")
+print(f"Cpk (Capacidad Real):      {Cpk:.3f}")
+print(f"Cpm (Indice de Taguchi):   {Cpm:.3f}")
+print(f"PPM Estimadas:             {ppm:.1f} partes por millon")
+print(f"Nivel Sigma del Proceso:   {z_sigma:.2f} Sigma")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Capacidad de Proceso"
+  questions={[
+    {
+      id: "q_cap_1",
+      text: "Si un proceso presenta Cp = 1.60 y Cpk = 1.60 exactamente, ¿qué conclusión geométrica e inferencial es correcta?",
+      options: [
+        { id: "a", text: "La media del proceso coincide de forma exacta con el punto medio de los límites de especificación (T = (USL + LSL)/2)", isCorrect: true, explanation: "Cuando Cp = Cpk, el factor de descentrado k es cero, lo que implica que mu está exactamente en el centro de las tolerancias." },
+        { id: "b", text: "El proceso tiene un 5% de unidades defectuosas garantizadas", isCorrect: false, explanation: "Con Cpk = 1.60 la tasa de defectos es inferior a 1 PPM." },
+        { id: "c", text: "El límite superior USL es igual a 0", isCorrect: false, explanation: "USL no tiene por qué ser cero; define la cota técnica superior." }
+      ]
+    },
+    {
+      id: "q_cap_2",
+      text: "¿Por qué el índice de Taguchi Cpm es más riguroso y preferido en ingeniería de precisión frente a Cpk?",
+      options: [
+        { id: "a", text: "Porque penaliza cualquier desviación respecto al valor nominal ideal T, reconociendo que alejarse del blanco genera costo social de pérdida de calidad", isCorrect: true, explanation: "Según la función de pérdida de Taguchi L(y) = k(y - T)^2, cualquier desviación del valor objetivo es indeseable aunque caiga dentro de los límites de tolerancia." },
+        { id: "b", text: "Porque asume que la tolerancia es infinita", isCorrect: false, explanation: "Taguchi trabaja con tolerancias finitas definidas por el cliente." },
+        { id: "c", text: "Porque no requiere calcular la desviación estándar", isCorrect: false, explanation: "Cpm requiere calcular tau = sqrt(sigma^2 + (mu - T)^2)." }
+      ]
+    }
+  ]}
+/>

@@ -13,7 +13,8 @@ import {
     Menu,
     X,
     Building2,
-    ArrowRight
+    ArrowRight,
+    Calculator
 } from "lucide-react"
 import { ThemeToggle } from "./ThemeToggle"
 
@@ -81,6 +82,13 @@ export function Navbar() {
                     >
                         <Compass className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
                         <span>Malla Curricular</span>
+                    </Link>
+                    <Link
+                        href="/tools"
+                        className="hover:text-blue-900 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 py-1 font-bold text-blue-900 dark:text-blue-300"
+                    >
+                        <Calculator className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>Herramientas</span>
                     </Link>
                     <Link
                         href="/#metodologia"
@@ -159,6 +167,14 @@ export function Navbar() {
                     >
                         <Compass className="h-4 w-4 text-indigo-700" />
                         <span>Estructura Curricular</span>
+                    </Link>
+                    <Link
+                        href="/tools"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-bold text-blue-900 dark:text-blue-300 hover:bg-slate-100 dark:hover:bg-slate-900"
+                    >
+                        <Calculator className="h-4 w-4 text-emerald-600" />
+                        <span>Suite de Herramientas Interactivas</span>
                     </Link>
                     <Link
                         href="/#metodologia"

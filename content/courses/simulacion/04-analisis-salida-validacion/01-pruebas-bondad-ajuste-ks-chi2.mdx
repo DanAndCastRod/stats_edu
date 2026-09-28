@@ -1,0 +1,140 @@
+---
+title: "Pruebas de Bondad de Ajuste: Kolmogorov-Smirnov y Chi-Cuadrado"
+order: 1
+description: "Modelado de datos de entrada a partir de registros empíricos de planta, estimación de parámetros por MLE y contraste con K-S y Chi-cuadrado."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Por qué en una prueba de bondad de ajuste de Chi-cuadrado se deben restar grados de libertad adicionales cuando los parámetros se estiman a partir de los datos muestrales?"
+    options:
+      - "Cada parámetro poblacional desconocido estimado a partir de la muestra reduce en 1 los grados de libertad del error: df = k - 1 - m"
+      - "Porque la suma de frecuencias ya no es igual a n"
+      - "Para evitar que el estadístico sea menor a cero"
+      - "Porque los datos dejan de ser independientes"
+    answer: 0
+    explanation: "Estimar m parámetros teóricos mediante máxima verosimilitud o momentos utiliza información de la muestra, reduciendo los grados de libertad efectivos a df = k - 1 - m."
+  - question: "¿Qué ventaja tiene la prueba de Kolmogorov-Smirnov (K-S) frente a la prueba de Chi-cuadrado para datos continuos?"
+    options:
+      - "Es una prueba de distribución exacta libre de intervalos que no requiere agrupar datos en clases arbitrarias"
+      - "Solo se puede aplicar a variables discretas"
+      - "No requiere conocer la función de distribución acumulada teórica"
+      - "Siempre arroja un p-valor mayor a 0.5"
+    answer: 0
+    explanation: "Chi-cuadrado depende críticamente del número y ancho de clases elegido; K-S opera directamente sobre la distancia vertical máxima entre la FDA empírica continua y la teórica."
+---
+
+# Introducción
+
+> "Basura entra, basura sale" (*Garbage In, Garbage Out*). Esta regla de oro de la computación es letal en simulación. Si el analista asume perezosamente que los tiempos entre fallas de una caldera siguen una distribución Normal (simétrica con soporte negativo) cuando en realidad siguen una distribución de Weibull asimétrica, todas las conclusiones y políticas de mantenimiento serán ficticias.
+
+El **Modelado de Datos de Entrada (Input Modeling)** es el proceso científico de recolectar datos reales de campo, identificar la familia probabilística adecuada, estimar sus parámetros óptimos y validar el ajuste.
+
+<Callout type="info">
+**Criterios de Selección:** Entre varias distribuciones candidatas que no sean rechazadas por las pruebas de bondad de ajuste, se seleccionan aquellas con menor Criterio de Información de Akaike (AIC) o Bayesiano (BIC).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Estimar parámetros de distribución mediante el método de Máxima Verosimilitud (MLE).
+- Aplicar la prueba de bondad de ajuste $\chi^2$ con corrección de grados de libertad por parámetros estimados.
+- Ejecutar la prueba de Kolmogorov-Smirnov y evaluar gráficos cuantil-cuantil (Q-Q Plots).
+- Automatizar el ajuste de múltiples distribuciones candidatas en Python con SciPy.
+
+---
+
+# Fundamentos Teóricos
+
+### Estimación por Máxima Verosimilitud (MLE)
+
+Dada una muestra i.i.d. $x_1, \dots, x_n$, la función de verosimilitud de los parámetros $\theta$ es:
+
+$$L(\theta) = \prod_{i=1}^n f(x_i; \theta) \implies \ln L(\theta) = \sum_{i=1}^n \ln f(x_i; \theta)$$
+
+El estimador MLE $\hat{\theta}$ maximiza el soporte de verosimilitud observada:
+
+$$\frac{\partial \ln L(\theta)}{\partial \theta} = 0$$
+
+### Prueba de Bondad de Ajuste $\chi^2$
+
+Se particiona el soporte en $k$ clases con frecuencias observadas $O_j$ y esperadas $E_j = n \cdot p_j$.
+Si se estimaron $m$ parámetros a partir de la muestra:
+
+$$\chi_0^2 = \sum_{j=1}^k \frac{(O_j - E_j)^2}{E_j} \sim \chi_{k - 1 - m}^2$$
+
+### Gráficos Cuantil-Cuantil (Q-Q Plot)
+
+Grafican los cuantiles empíricos muestrales frente a los cuantiles teóricos de la distribución propuesta. Si los puntos se alinean estrechamente sobre la recta identidad de 45 grados ($y = x$), la distribución es coherente con los datos.
+
+---
+
+# Laboratorio en Python: Ajuste de Distribuciones a Tiempos de Reparación
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# 120 registros empíricos de tiempos de reparación en planta (horas)
+np.random.seed(101)
+datos_campo = np.random.weibull(a=1.8, size=120) * 15.0  # Generados con Weibull (c=1.8, scale=15)
+
+# Distribuciones candidatas para competir
+candidatas = ['expon', 'gamma', 'weibull_min', 'lognorm', 'norm']
+resultados = []
+
+for nombre in candidatas:
+    dist = getattr(stats, nombre)
+    # Ajuste por Máxima Verosimilitud (MLE)
+    params = dist.fit(datos_campo)
+    
+    # Prueba de Kolmogorov-Smirnov
+    ks_stat, ks_p = stats.kstest(datos_campo, nombre, args=params)
+    
+    # Log-Verosimilitud y AIC (Akaike Information Criterion: 2k - 2ln(L))
+    log_l = np.sum(dist.logpdf(datos_campo, *params))
+    k_params = len(params)
+    aic = 2 * k_params - 2 * log_l
+    
+    resultados.append({
+        'Distribución': nombre,
+        'Num_Parámetros': k_params,
+        'Estadístico_KS': ks_stat,
+        'p-valor_KS': ks_p,
+        'AIC': aic,
+        'Ajuste_Válido (alfa=0.05)': 'Aprobado' if ks_p > 0.05 else 'Rechazado'
+    })
+
+df_ajuste = pd.DataFrame(resultados).sort_values(by='AIC')
+
+print("AUDITORÍA DE BONDAD DE AJUSTE A DATOS DE CAMPO:")
+print(df_ajuste.round(4).to_string(index=False))
+mejor = df_ajuste.iloc[0]['Distribución']
+print(f"\n--> MEJOR DISTRIBUCIÓN (Menor AIC y Mayor p-valor): {mejor}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Pruebas de Bondad de Ajuste"
+  questions={[
+    {
+      id: "q_gof_1",
+      text: "Si se ajusta una distribución Normal a datos de tiempos de ciclo y se estiman mu y sigma a partir de la muestra en una prueba de Chi-cuadrado con k = 8 clases, ¿cuántos grados de libertad tiene la prueba?",
+      options: [
+        { id: "a", text: "5 grados de libertad: df = k - 1 - m = 8 - 1 - 2 = 5", isCorrect: true, explanation: "Se estimaron dos parámetros (mu y sigma), por lo que m = 2. df = 8 - 1 - 2 = 5." },
+        { id: "b", text: "7 grados de libertad", isCorrect: false, explanation: "7 sería si los parámetros de la distribución normal fueran conocidos a priori sin estimar." },
+        { id: "c", text: "8 grados de libertad", isCorrect: false, explanation: "Siempre se resta al menos 1 por la restricción de suma total de frecuencias." }
+      ]
+    },
+    {
+      id: "q_gof_2",
+      text: "¿Por qué el Criterio de Información de Akaike (AIC) es preferido para desempatar modelos cuando múltiples distribuciones aprueban la prueba K-S?",
+      options: [
+        { id: "a", text: "Porque premia la calidad del ajuste de máxima verosimilitud y penaliza el sobreajuste introducido por distribuciones con exceso de parámetros", isCorrect: true, explanation: "AIC = 2k - 2 ln(L) aplica el principio de parsimonia (Navaja de Ockham), prefiriendo modelos simples y robustos." },
+        { id: "b", text: "Porque garantiza que el tiempo de simulación sea cero", isCorrect: false, explanation: "AIC es una métrica de selección de modelos, no un optimizador de código." },
+        { id: "c", text: "Porque solo funciona con datos determinísticos", isCorrect: false, explanation: "AIC está fundamentado en la teoría de la información estocástica." }
+      ]
+    }
+  ]}
+/>

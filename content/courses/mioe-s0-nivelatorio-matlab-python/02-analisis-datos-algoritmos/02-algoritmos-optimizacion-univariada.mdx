@@ -1,0 +1,114 @@
+---
+title: "Algoritmos Numéricos de Optimización Univariada"
+order: 2
+description: "Método de la Sección Dorada, interpolación parabólica y método de Newton 1D para optimización unidimensional."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 60
+quiz:
+  - question: "En el método de la Sección Dorada para minimizar una función unimodal en [a, b], ¿qué propiedad geométrica permite evaluar solo UN punto nuevo por iteración?"
+    options:
+      - "La razón áurea phi = (sqrt(5) - 1)/2 asegura que uno de los puntos interiores previos coincide con el nuevo punto de prueba tras la contracción."
+      - "El método siempre selecciona la derivada igual a cero en el punto medio."
+      - "La función se asume ortogonal al vector de gradientes."
+      - "El paso de descenso se multiplica por la matriz identidad."
+    answer: 0
+    explanation: "Gracias a la propiedad algebraica del número áureo phi^2 = 1 - phi, al descartar uno de los extremos del intervalo, el punto interior que sobrevive se posiciona exactamente a la fracción áurea del nuevo intervalo acortado."
+---
+
+# Algoritmos Numéricos de Optimización Univariada
+
+> La optimización univariada (resolución de $\min_{x \in \mathbb{R}} f(x)$ en un intervalo $[a, b]$) es la base indispensable de la **búsqueda de línea** (*line search*) en métodos multivariados avanzados como Gradiente Descendente, BFGS y Algoritmos de Direcciones Conjugadas.
+
+---
+
+## 1. Método de la Sección Dorada (*Golden Section Search*)
+
+Para funciones estrictamente unimodales donde no se dispone de información analítica de la derivada $f'(x)$, el método de la sección dorada divide el intervalo $[a, b]$ utilizando el número áureo:
+$$\phi = \frac{\sqrt{5} - 1}{2} \approx 0.6180339887$$
+
+Se determinan dos puntos interiores de prueba:
+$$x_1 = b - \phi (b - a)$$
+$$x_2 = a + \phi (b - a)$$
+
+### Regla de Reducción:
+- Si $f(x_1) < f(x_2)$, el mínimo no puede encontrarse en $[x_2, b]$. El nuevo intervalo es $[a, x_2]$, y se reutiliza $x_1$ como el nuevo $x_2'$.
+- Si $f(x_1) \ge f(x_2)$, el mínimo no puede encontrarse en $[a, x_1]$. El nuevo intervalo es $[x_1, b]$, y se reutiliza $x_2$ como el nuevo $x_1'$.
+
+La longitud del intervalo en la iteración $k$ decrece a una tasa lineal exacta:
+$$L_k = \phi^k (b_0 - a_0)$$
+
+---
+
+## 2. Método de Newton Univariado
+
+Si $f(x) \in C^2(\mathbb{R})$ y se calculan $f'(x)$ y $f''(x)$, el método de Newton aproxima localmente la función por su expansión de Taylor de segundo orden:
+$$f(x_k + \Delta x) \approx f(x_k) + f'(x_k)\Delta x + \frac{1}{2} f''(x_k)(\Delta x)^2$$
+
+Imponiendo la condición de primer orden para minimizar la parábola osculatriz ($\frac{d}{d(\Delta x)} = 0$):
+$$x_{k+1} = x_k - \frac{f'(x_k)}{f''(x_k)}$$
+
+<Callout type="info">
+**Convergencia Cuadrática:** Si $f''(x^*) > 0$ y $x_0$ está suficientemente cerca del mínimo $x^*$, el error en cada paso satisface:
+$$|x_{k+1} - x^*| \le M |x_k - x^*|^2$$
+lo que duplica el número de dígitos exactos en cada iteración.
+</Callout>
+
+---
+
+## 3. Implementación en Python
+
+```python
+import numpy as np
+
+def golden_section_search(f, a, b, tol=1e-6):
+    phi = (np.sqrt(5) - 1) / 2
+    x1 = b - phi * (b - a)
+    x2 = a + phi * (b - a)
+    f1, f2 = f(x1), f(x2)
+    
+    iters = 0
+    while (b - a) > tol:
+        iters += 1
+        if f1 < f2:
+            b = x2
+            x2 = x1
+            f2 = f1
+            x1 = b - phi * (b - a)
+            f1 = f(x1)
+        else:
+            a = x1
+            x1 = x2
+            f1 = f2
+            x2 = a + phi * (b - a)
+            f2 = f(x2)
+            
+    x_opt = (a + b) / 2
+    return x_opt, f(x_opt), iters
+
+# Función objetivo de prueba no lineal
+f_cost = lambda x: x**4 - 3*x**3 + 2
+
+x_opt, min_val, iters = golden_section_search(f_cost, 0, 3)
+print(f"Óptimo numérico x*: {x_opt:.6f}")
+print(f"Valor mínimo f(x*): {min_val:.6f}")
+print(f"Iteraciones:        {iters}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Optimización Univariada y Convergencia"
+  questions={[
+    {
+      id: "q_newton_fail",
+      text: "¿Bajo qué condición el método de Newton univariado divergerá o se desplazará hacia un máximo local en lugar de un mínimo?",
+      options: [
+        { id: "a", text: "Cuando la segunda derivada f''(x_k) sea estrictamente negativa o cercana a cero", isCorrect: true, explanation: "Correcto: Si f''(x_k) < 0, la aproximación cuadrática local es cóncava y el paso se dirige hacia el vértice de un máximo local." },
+        { id: "b", text: "Cuando el intervalo sea un conjunto cerrado y conexo", isCorrect: false, explanation: "Los conjuntos compactos favorecen la convergencia de métodos acotados." },
+        { id: "c", text: "Cuando la primera derivada sea idénticamente nula en el óptimo", isCorrect: false, explanation: "f'(x*) = 0 es precisamente la condición necesaria de optimalidad." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,10 @@
+{
+  "title": "Simulación de Sistemas",
+  "slug": "simulacion",
+  "code": "II863",
+  "description": "Modelado y simulación computacional de eventos discretos, generadores pseudoaleatorios, variables estocásticas, métodos de Monte Carlo y análisis de salida con validación estadística.",
+  "credits": 3,
+  "ects": 6,
+  "semester": 8,
+  "isMock": false
+}

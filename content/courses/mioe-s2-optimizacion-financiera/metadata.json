@@ -1,0 +1,7 @@
+{
+  "title": "Optimización Financiera y Gestión de Riesgo",
+  "code": "IO233",
+  "description": "Modelación cuantitativa de inversiones: teoría de cartera media-varianza de Markowitz, deducción matricial de la frontera eficiente, modelo CAPM, métricas de riesgo coherentes (VaR, CVaR) y programación estocástica con apalancamiento.",
+  "slug": "mioe-s2-optimizacion-financiera",
+  "isMock": false
+}

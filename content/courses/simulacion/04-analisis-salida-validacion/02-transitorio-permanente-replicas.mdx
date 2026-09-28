@@ -1,0 +1,179 @@
+---
+title: "Periodo Transitorio, Régimen Permanente y Método de Réplicas"
+order: 2
+description: "Sistemas terminales vs no terminales, eliminación del sesgo de calentamiento con la regla de Welch, y estimación por réplicas independientes."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Por qué se debe descartar el 'periodo de calentamiento' (Warm-up period / fase transitoria) al analizar un sistema en régimen permanente?"
+    options:
+      - "Porque el sistema inicia típicamente vacío y desocupado, sesgando artificialmente hacia abajo las métricas de congestión a largo plazo"
+      - "Porque los generadores pseudoaleatorios no funcionan durante los primeros minutos"
+      - "Para reducir el costo de electricidad del computador"
+      - "Porque las computadoras requieren calentarse antes de ejecutar Python"
+    answer: 0
+    explanation: "Iniciar una simulación con colas vacías no refleja la realidad operativa de un sistema continuo (e.g. un hospital o refinería que opera 24/7). Incluir ese transitorio subestima el tiempo medio en cola real."
+  - question: "¿Qué garantiza el Método de Réplicas Independientes para la construcción de intervalos de confianza válidos en simulación?"
+    options:
+      - "Garantiza que los estimadores promedio de cada réplica sean estadísticamente independientes e idénticamente distribuidos mediante el uso de semillas pseudoaleatorias distintas"
+      - "Garantiza que la varianza dentro de una réplica sea cero"
+      - "Elimina la necesidad de definir el periodo de calentamiento"
+      - "Evita tener que simular más de 1 minuto"
+    answer: 0
+    explanation: "Dado que las observaciones dentro de una misma corrida están altamente autocorrelacionadas serialmente, ejecutar R réplicas independientes con semillas distintas permite aplicar el Teorema del Límite Central sobre los R promedios independientes."
+---
+
+# Introducción
+
+> Ejecutar una simulación estocástica una sola vez y tomar su resultado como verdad absoluta es equivalente a lanzar una moneda una vez, obtener 'Cara' y afirmar que la probabilidad de cara es 100%. Una corrida de simulación es únicamente **una única realización muestral de un proceso estocástico**.
+
+Para obtener conclusiones científicas e intervalos de confianza estadísticamente rigurosos, se requiere gestionar el **periodo de calentamiento** y ejecutar **réplicas independientes**.
+
+<Callout type="info">
+**Sistemas Terminales vs No Terminales:**
+- *Terminales:* Tienen un evento natural de cierre (e.g. un banco que abre a las 8:00 AM y cierra a las 4:00 PM con colas vacías).
+- *No Terminales:* Operan de forma continua sin cierre natural (e.g. un servidor web, una planta petroquímica). Requieren eliminar el transitorio inicial.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Diferenciar entre simulación de sistemas con horizonte terminal y de régimen permanente (Steady-State).
+- Aplicar el procedimiento gráfico de Welch para determinar el tiempo de corte del transitorio ($T_d$).
+- Implementar el Método de Réplicas Independientes con semillas ortogonales.
+- Construir intervalos de confianza del $(1 - \alpha)\%$ para la media del sistema en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### El Procedimiento de Welch para el Warm-up
+
+Para eliminar el sesgo de las condiciones iniciales:
+1. Realizar $R$ réplicas independientes de longitud $m$.
+2. Sea $Y_{ji}$ la observación $i$ de la réplica $j$. Calcular la media promediada sobre las réplicas en cada paso $i$:
+   $$\bar{Y}_i = \frac{1}{R} \sum_{j=1}^R Y_{ji}, \quad i = 1, \dots, m$$
+3. Calcular la media móvil con ventana de suavizado $w$:
+   $$\bar{Y}_i(w) = \frac{1}{2w + 1} \sum_{s=-w}^w \bar{Y}_{i+s}$$
+4. Identificar visualmente el punto de corte $d$ donde la curva se estabiliza horizontalmente y descartar los datos para $i \le d$.
+
+### Intervalo de Confianza por Réplicas Independientes
+
+Sean $\bar{X}_1, \bar{X}_2, \dots, \bar{X}_R$ los promedios calculados en cada una de las $R$ réplicas independientes tras eliminar el warm-up:
+
+$$\bar{\bar{X}} = \frac{1}{R} \sum_{j=1}^R \bar{X}_j$$
+
+$$S^2 = \frac{1}{R - 1} \sum_{j=1}^R (\bar{X}_j - \bar{\bar{X}})^2$$
+
+El intervalo de confianza del $(1 - \alpha)\%$ para el rendimiento en régimen permanente $\mu$ es:
+
+$$\bar{\bar{X}} \pm t_{\alpha/2, R-1} \frac{S}{\sqrt{R}}$$
+
+---
+
+# Laboratorio en Python: Estimación por Réplicas de una Celda de Manufactura
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+def simular_celda(semilla, horizonte=5000, warm_up=1000):
+    """Simula una estación de maquinado y retorna el tiempo medio de ciclo post warm-up"""
+    np.random.seed(semilla)
+    t = 0.0
+    tiempos_espera = []
+    
+    # Llegadas poisson (lambda = 0.8 / min) y servicio exponencial (mu = 1.0 / min)
+    tasa_l = 0.8
+    tasa_m = 1.0
+    
+    t_servidor_libre = 0.0
+    
+    while t < horizonte:
+        inter = np.random.exponential(1.0 / tasa_l)
+        t += inter
+        servicio = np.random.exponential(1.0 / tasa_m)
+        
+        # Inicio y fin de servicio
+        inicio = max(t, t_servidor_libre)
+        espera = inicio - t
+        t_servidor_libre = inicio + servicio
+        
+        # Guardar únicamente observaciones después del periodo de warm-up
+        if t >= warm_up:
+            tiempos_espera.append(espera)
+            
+    return np.mean(tiempos_espera)
+
+# Ejecución de R = 15 réplicas independientes con semillas distintas
+R = 15
+semillas = [100 + i*37 for i in range(R)]
+promedios_replicas = [simular_celda(s) for s in semillas]
+
+promedio_global = np.mean(promedios_replicas)
+desv_replicas = np.std(promedios_replicas, ddof=1)
+error_estandar = desv_replicas / np.sqrt(R)
+
+# Intervalo de confianza al 95% con t-Student
+alpha = 0.05
+t_critico = stats.t.ppf(1.0 - alpha/2.0, df=R - 1)
+margen_error = t_critico * error_estandar
+ic_inf = promedio_global - margen_error
+ic_sup = promedio_global + margen_error
+
+# Valor analítico M/M/1: Wq = lambda / (mu * (mu - lambda)) = 0.8 / (1.0 * (1.0 - 0.8)) = 4.0 minutos
+wq_teorico = 0.8 / (1.0 * (1.0 - 0.8))
+
+df_reporte = pd.DataFrame({
+    'Métrica': [
+        'Número de Réplicas (R)',
+        'Tiempo de Warm-up Descartado',
+        'Media Estimada Wq (minutos)',
+        'Desviación Estándar entre Réplicas (S)',
+        'Error Estándar (SE)',
+        'Intervalo de Confianza 95% Inferior',
+        'Intervalo de Confianza 95% Superior',
+        'Valor Teórico M/M/1'
+    ],
+    'Valor': [
+        f"{R}",
+        "1000 min",
+        f"{promedio_global:.4f}",
+        f"{desv_replicas:.4f}",
+        f"{error_estandar:.4f}",
+        f"{ic_inf:.4f}",
+        f"{ic_sup:.4f}",
+        f"{wq_teorico:.4f}"
+    ]
+})
+
+print("ESTIMACIÓN POR EL MÉTODO DE RÉPLICAS INDEPENDIENTES:")
+print(df_reporte.to_string(index=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Periodo Transitorio y Réplicas"
+  questions={[
+    {
+      id: "q_rep_1",
+      text: "Si las observaciones de tiempo de espera tomadas consecutivamente dentro de una misma corrida de simulación están fuertemente correlacionadas (autocorrelación serial positiva), ¿qué ocurriría si calculáramos el intervalo de confianza ignorando esa correlación?",
+      options: [
+        { id: "a", text: "Subestimaríamos gravemente la varianza real del estimador, obteniendo un intervalo de confianza artificialmente estrecho y engañoso", isCorrect: true, explanation: "La presencia de autocorrelación positiva infla los grados de libertad aparentes y reduce la varianza muestral calculada ingenuamente con S^2 / n." },
+        { id: "b", text: "El intervalo sería infinitamente amplio", isCorrect: false, explanation: "Al contrario, el sesgo es hacia un intervalo peligrosamente estrecho." },
+        { id: "c", text: "El promedio cambiaría de signo", isCorrect: false, explanation: "El promedio muestral permanece insesgado; lo que se distorsiona es la estimación de su error estándar." }
+      ]
+    },
+    {
+      id: "q_rep_2",
+      text: "En un sistema terminal (como una sala de emergencias entre las 6:00 y las 22:00 horas), ¿se debe descartar un periodo de calentamiento?",
+      options: [
+        { id: "a", text: "No, porque las condiciones iniciales del sistema (e.g. empezar vacío a las 6:00) forman parte integral del comportamiento real del sistema", isCorrect: true, explanation: "En sistemas terminales el estado inicial es una condición de contorno real, por lo que toda la trayectoria temporal desde t=0 debe registrarse." },
+        { id: "b", text: "Sí, siempre se deben descartar al menos 1000 minutos", isCorrect: false, explanation: "Descartar datos en un sistema terminal alteraría la ventana de operación real." },
+        { id: "c", text: "Solo si el p-valor es menor a 0.05", isCorrect: false, explanation: "La distinción entre terminal y no terminal es estructural del problema físico, no un test de hipótesis." }
+      ]
+    }
+  ]}
+/>

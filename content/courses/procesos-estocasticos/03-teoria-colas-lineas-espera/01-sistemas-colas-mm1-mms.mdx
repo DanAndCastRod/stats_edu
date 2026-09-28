@@ -1,0 +1,169 @@
+---
+title: "Modelos de Colas M/M/1 y M/M/s con Ley de Little"
+order: 1
+description: "Notación de Kendall, análisis del sistema M/M/1, factor de utilización rho, extensión a M/M/s con fórmula de Erlang-C y fórmulas de Little."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es la formulación matemática de la Ley de Little para un sistema de colas en estado estacionario?"
+    options:
+      - "L = lambda * W (y de forma análoga L_q = lambda * W_q)"
+      - "L = W / lambda"
+      - "L = lambda + W"
+      - "L = rho * W_q"
+    answer: 0
+    explanation: "La Ley de Little (1961) establece que el número promedio de clientes en un sistema en equilibrio (L) es igual a la tasa media de llegada (lambda) multiplicada por el tiempo promedio de permanencia en el sistema (W), con independencia de las distribuciones de llegada o servicio."
+  - question: "¿Cuál es la condición estricta de estabilidad para que un sistema M/M/1 no colapse con una cola de longitud infinita?"
+    options:
+      - "rho = lambda / mu < 1 (la tasa de llegada debe ser estrictamente menor que la tasa de servicio)"
+      - "rho = lambda / mu = 1"
+      - "lambda > mu"
+      - "mu = 0"
+    answer: 0
+    explanation: "Si lambda >= mu, los clientes llegan a un ritmo igual o superior a la capacidad del servidor para atenderlos, provocando que la longitud esperada de la cola tienda a infinito en el tiempo."
+---
+
+# Introducción
+
+> Las colas son inevitables pero costosas. Clientes esperando en ventanilla bancaria, piezas en espera antes de un torno CNC, camiones haciendo fila para descargar granos en un puerto fluvial o paquetes en un router. La **Teoría de Colas** optimiza el balance entre el costo de proveer servicio y el costo de la espera.
+
+Utilizando la **Notación de Kendall** $A/B/s/K/N/D$, donde $A$ es la distribución de arribos, $B$ es la de servicio, $s$ el número de servidores paralelos y $K$ la capacidad del sistema.
+
+<Callout type="info">
+**Notación de Kendall Clásica:** $M/M/1$ denota arribos Markovianos (Poisson), servicio Markoviano (Exponencial), $1$ servidor único, capacidad infinita y disciplina FIFO (*First-In, First-Out*).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Describir la estructura fundamental de un sistema de colas y los supuestos de nacimiento y muerte.
+- Deducir las métricas de rendimiento del modelo $M/M/1$: $L, L_q, W, W_q$ y $P_0$.
+- Aplicar la Ley de Little como puente analítico universal.
+- Modelar sistemas con múltiples servidores en paralelo $M/M/s$ con la fórmula de Erlang-C en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### El Modelo $M/M/1$
+
+Sean:
+- $\lambda$: Tasa media de llegadas (arribos/hora).
+- $\mu$: Tasa media de servicio por servidor (atenciones/hora).
+- $\rho = \frac{\lambda}{\mu}$: Factor de utilización del servidor. Condición de estabilidad: $\rho < 1$.
+
+Probabilidad de encontrar $n$ clientes en el sistema:
+
+$$P_n = (1 - \rho) \rho^n, \quad n = 0, 1, 2, \dots$$
+
+Probabilidad de servidor ocioso: $P_0 = 1 - \rho$.
+
+### Métricas de Rendimiento del $M/M/1$
+
+- Número promedio de clientes en el sistema:
+  $$L = \sum_{n=0}^\infty n P_n = \frac{\rho}{1 - \rho} = \frac{\lambda}{\mu - \lambda}$$
+
+- Número promedio de clientes en la cola (esperando servicio):
+  $$L_q = \frac{\lambda^2}{\mu(\mu - \lambda)} = L - \rho$$
+
+- Tiempo promedio de permanencia en el sistema (espera + servicio):
+  $$W = \frac{L}{\lambda} = \frac{1}{\mu - \lambda}$$
+
+- Tiempo promedio de espera en la cola:
+  $$W_q = \frac{L_q}{\lambda} = \frac{\lambda}{\mu(\mu - \lambda)} = W - \frac{1}{\mu}$$
+
+### El Modelo $M/M/s$ (Servidores Múltiples)
+
+Con $s$ servidores idénticos en paralelo, la utilización global es:
+
+$$\rho = \frac{\lambda}{s \mu} < 1$$
+
+Probabilidad de que el sistema esté completamente vacío ($P_0$):
+
+$$P_0 = \left[ \sum_{n=0}^{s-1} \frac{(\lambda/\mu)^n}{n!} + \frac{(\lambda/\mu)^s}{s! (1 - \rho)} \right]^{-1}$$
+
+Fórmula de Erlang-C (probabilidad de que un cliente que llega deba esperar en cola):
+
+$$P(\text{Espera}) = C(s, \lambda/\mu) = \frac{\frac{(\lambda/\mu)^s}{s! (1 - \rho)} P_0}{1}$$
+
+$$L_q = \frac{P(\text{Espera}) \cdot \rho}{1 - \rho}, \quad W_q = \frac{L_q}{\lambda}, \quad W = W_q + \frac{1}{\mu}, \quad L = \lambda W$$
+
+---
+
+# Laboratorio en Python: Centro de Inspección de Calidad (M/M/1 vs M/M/2)
+
+```python
+import math
+import pandas as pd
+
+def resolver_mm1(tasa_l, tasa_m):
+    rho = tasa_l / tasa_m
+    if rho >= 1.0:
+        return None
+    L = rho / (1.0 - rho)
+    Lq = (tasa_l**2) / (tasa_m * (tasa_m - tasa_l))
+    W = 1.0 / (tasa_m - tasa_l)
+    Wq = W - (1.0 / tasa_m)
+    P0 = 1.0 - rho
+    return {'rho': rho, 'P0': P0, 'L': L, 'Lq': Lq, 'W_min': W*60, 'Wq_min': Wq*60}
+
+def resolver_mms(tasa_l, tasa_m, s):
+    a = tasa_l / tasa_m  # Intensidad de tráfico
+    rho = a / s
+    if rho >= 1.0:
+        return None
+    
+    # Cálculo de P0
+    suma_k = sum((a**n) / math.factorial(n) for n in range(s))
+    termino_s = (a**s) / (math.factorial(s) * (1.0 - rho))
+    P0 = 1.0 / (suma_k + termino_s)
+    
+    # Erlang C
+    erlang_c = termino_s * P0
+    Lq = (erlang_c * rho) / (1.0 - rho)
+    Wq = Lq / tasa_l
+    W = Wq + (1.0 / tasa_m)
+    L = tasa_l * W
+    return {'rho': rho, 'P0': P0, 'L': L, 'Lq': Lq, 'W_min': W*60, 'Wq_min': Wq*60}
+
+# Escenario: Llegadas de lotes lambda = 8 lotes/hora. Capacidad por inspector mu = 10 lotes/hora
+tasa_llegada = 8.0
+tasa_servicio = 10.0
+
+res_mm1 = resolver_mm1(tasa_llegada, tasa_servicio)
+res_mm2 = resolver_mms(tasa_llegada, tasa_servicio, s=2)
+
+df_comparativa = pd.DataFrame([
+    {'Configuracion': '1 Servidor (M/M/1)', **res_mm1},
+    {'Configuracion': '2 Servidores (M/M/2)', **res_mm2}
+])
+
+print("COMPARACIÓN DE DESEMPEÑO DE COLAS M/M/1 VS M/M/2:")
+print(df_comparativa.round(3).to_string(index=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Modelos de Colas M/M/1 y M/M/s"
+  questions={[
+    {
+      id: "q_queue_1",
+      text: "Si en un sistema M/M/1 la tasa de llegada es lambda = 4 clientes/h y la de servicio es mu = 5 clientes/h, ¿cuál es el número promedio de clientes en el sistema L?",
+      options: [
+        { id: "a", text: "4 clientes (L = lambda / (mu - lambda) = 4 / (5 - 4) = 4)", isCorrect: true, explanation: "L = 4 / (5 - 4) = 4 clientes promedio entre los que están en cola y el que está siendo atendido." },
+        { id: "b", text: "0.8 clientes", isCorrect: false, explanation: "0.8 es la utilización rho = 4/5, no el número promedio de clientes." },
+        { id: "c", text: "16 clientes", isCorrect: false, explanation: "16 clientes sería con una utilización muy superior al 94%." }
+      ]
+    },
+    {
+      id: "q_queue_2",
+      text: "¿Qué impacto inmediato tiene duplicar los servidores de s = 1 a s = 2 en un sistema con utilización moderada?",
+      options: [
+        { id: "a", text: "Reduce drásticamente el tiempo de espera en cola Wq a menos de una cuarta parte del valor original", isCorrect: true, explanation: "La relación entre utilización y espera en colas es altamente no lineal. Al añadir un segundo canal, la probabilidad de encontrar ambos ocupados cae drásticamente." },
+        { id: "b", text: "El tiempo de espera se reduce exactamente a la mitad lineal", isCorrect: false, explanation: "El comportamiento de las colas es fuertemente no lineal, reduciéndose en mucho más del 50%." },
+        { id: "c", text: "No tiene ningún efecto si la tasa de llegadas es constante", isCorrect: false, explanation: "Aumentar la capacidad instalada siempre reduce la congestión estocástica." }
+      ]
+    }
+  ]}
+/>

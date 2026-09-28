@@ -1,0 +1,158 @@
+---
+title: "Modelos de Medición y Optimización de la Productividad Total"
+order: 2
+description: "Modelos de productividad parcial, multifactorial y total (Craig-Harris y Sumanth), índices de productividad y análisis de variaciones."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cómo se define formalmente el concepto macroeconómico y de ingeniería de la 'Productividad'?"
+    options:
+      - "La razón matemática entre los productos (Outputs) generados y los recursos (Inputs) consumidos: Productividad = Salidas / Entradas"
+      - "La cantidad absoluta de piezas fabricadas en un turno sin importar el costo de los insumos"
+      - "El número total de horas trabajadas por el personal"
+      - "La diferencia entre ingresos por ventas y costo de ventas"
+    answer: 0
+    explanation: "La productividad es una medida de eficiencia técnica y económica que evalúa qué tan productivamente se transforman los insumos (mano de obra, capital, energía, materiales) en bienes o servicios terminados."
+  - question: "¿Cuál es el riesgo gerencial de evaluar a una planta únicamente mediante indicadores de 'Productividad Parcial' (como unidades por hora-hombre)?"
+    options:
+      - "Que se puede inflar artificialmente la productividad laboral comprando maquinaria hipercostosa o automatizada que destruye la productividad total y la rentabilidad global"
+      - "Que las horas de trabajo no se pueden medir en números decimales"
+      - "Que el gobierno prohíbe calcular la productividad laboral"
+      - "Que la productividad laboral siempre es constante"
+    answer: 0
+    explanation: "Una métrica parcial ignora las sustituciones entre factores. Si se reemplazan 10 obreros por un robot millonario, las piezas/hombre suben, pero la productividad del capital y los costos totales de depreciación pueden deteriorarse."
+---
+
+# Introducción
+
+> La productividad no lo es todo en la economía, pero a largo plazo lo es casi todo. La capacidad de una empresa para elevar los salarios reales de sus trabajadores, reducir los precios al consumidor y expandir sus márgenes de utilidad depende exclusivamente de su tasa de crecimiento de la **Productividad Total de los Factores (PTF)**.
+
+Medir con exactitud científica la productividad separa a las empresas competitivas de aquellas que simplemente 'trabajan duro pero consumen recursos en exceso'.
+
+<Callout type="info">
+**Producción vs Productividad:**
+- *Producción:* Volumen físico total elaborado (e.g. 50,000 pares de calzado).
+- *Productividad:* Eficiencia de conversión (e.g. 2.5 pares por hora-hombre o 1.20 USD de calzado por cada USD gastado en insumos totales).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Distinguir entre Productividad Parcial, Productividad Multifactorial y Productividad Total.
+- Aplicar el Modelo de Productividad Total de David Sumanth y el Modelo de Craig-Harris.
+- Calcular Índices de Productividad temporal ($IP = P_t / P_0$) desinflando precios mediante deflactores económicos.
+- Desarrollar un sistema de contabilidad de productividad con Pandas en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Clasificación de Modelos de Productividad
+
+1. **Productividad Parcial ($P_{\text{parcial}}$):**
+   Relaciona la producción total con una única clase de insumo:
+   $$P_{\text{Mano de Obra}} = \frac{\text{Producción Total}}{\text{Horas-Hombre}}, \quad P_{\text{Materiales}} = \frac{\text{Producción Total}}{\text{Kg de Materia Prima}}$$
+
+2. **Productividad Multifactorial ($P_{\text{multi}}$):**
+   Relaciona la producción con un subconjunto relevante de insumos (ej. Trabajo + Capital):
+   $$P_{\text{multi}} = \frac{\text{Output Total}}{\text{Mano de Obra} + \text{Capital}}$$
+
+3. **Productividad Total (Modelo de David Sumanth):**
+   Relaciona el valor de la producción total terminada ($O_{\text{total}}$) con la suma monetaria de todos los recursos tangibles consumidos ($I_{\text{total}}$) en un periodo base o deflactado:
+   $$P_{\text{total}} = \frac{O_{\text{total}}}{I_{\text{Mano Obra}} + I_{\text{Materiales}} + I_{\text{Capital}} + I_{\text{Energía}} + I_{\text{Otros Servicios}}}$$
+
+### Índice de Productividad ($IP$)
+
+Compara la productividad del periodo analizado $t$ con un periodo de referencia o base $0$:
+
+$$IP_t = \frac{P_t}{P_0} \times 100$$
+
+- $IP_t > 100$: Mejora neta en la eficiencia productiva de los factores.
+- $IP_t < 100$: Deterioro o despilfarro de insumos en comparación con el periodo base.
+
+---
+
+# Laboratorio en Python: Modelo de Productividad Total de Sumanth
+
+```python
+import pandas as pd
+import numpy as np
+
+# Evaluación de Productividad Anual de una Planta Química (Años 2024 vs 2025)
+# Todos los valores monetarios expresados a precios constantes del año base (deflactados)
+datos_prod = pd.DataFrame({
+    'Rubro': [
+        'Producción Terminada Total (Output)',
+        'Insumo: Mano de Obra (L)',
+        'Insumo: Materias Primas Químicas (M)',
+        'Insumo: Capital (Depreciación + Interés) (K)',
+        'Insumo: Energía Eléctrica y Vapor (E)',
+        'Insumo: Otros Gastos Operativos (X)'
+    ],
+    'Año_2024_USD': [1_200_000, 250_000, 480_000, 180_000, 75_000, 45_000],
+    'Año_2025_USD': [1_450_000, 270_000, 520_000, 210_000, 80_000, 50_000]
+})
+
+out_2024 = datos_prod.loc[0, 'Año_2024_USD']
+out_2025 = datos_prod.loc[0, 'Año_2025_USD']
+
+in_tot_2024 = datos_prod.loc[1:, 'Año_2024_USD'].sum()
+in_tot_2025 = datos_prod.loc[1:, 'Año_2025_USD'].sum()
+
+# Productividad Total de Sumanth
+pt_2024 = out_2024 / in_tot_2024
+pt_2025 = out_2025 / in_tot_2025
+
+# Índice de Productividad Total
+ip_total = (pt_2025 / pt_2024) * 100.0
+
+# Productividades Parciales
+prod_parciales = []
+for i in range(1, len(datos_prod)):
+    insumo = datos_prod.loc[i, 'Rubro'].split(':')[1].split('(')[0].strip()
+    p_24 = out_2024 / datos_prod.loc[i, 'Año_2024_USD']
+    p_25 = out_2025 / datos_prod.loc[i, 'Año_2025_USD']
+    ip = (p_25 / p_24) * 100.0
+    prod_parciales.append({
+        'Insumo': insumo,
+        'Prod_2024': p_24,
+        'Prod_2025': p_25,
+        'Indice_IP_%': ip,
+        'Crecimiento_%': ip - 100.0
+    })
+
+df_parciales = pd.DataFrame(prod_parciales)
+
+print("=== REPORTE DE MEDICIÓN DE PRODUCTIVIDAD TOTAL Y PARCIAL ===")
+print(f"Productividad Total 2024: USD {pt_2024:.4f} producto / USD insumo")
+print(f"Productividad Total 2025: USD {pt_2025:.4f} producto / USD insumo")
+print(f"Índice de Productividad Total: {ip_total:.2f}% (Crecimiento global de +{ip_total - 100:.2f}%)\n")
+print("DESGLOSE DE PRODUCTIVIDADES PARCIALES:")
+print(df_parciales.round(2).to_string(index=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Medición y Modelos de Productividad"
+  questions={[
+    {
+      id: "q_prod_1",
+      text: "Si el valor de la producción terminada es de $500,000 USD y los insumos totales suman $400,000 USD, ¿cuál es la Productividad Total de la empresa?",
+      options: [
+        { id: "a", text: "1.25 USD de producto por cada 1.00 USD de insumos consumidos (500000 / 400000 = 1.25)", isCorrect: true, explanation: "La Productividad Total de Sumanth es el cociente Output / Input = 500,000 / 400,000 = 1.25." },
+        { id: "b", text: "0.80", isCorrect: false, explanation: "0.80 es la inversa (costo de insumos por dólar de producto)." },
+        { id: "c", text: "$100,000 USD", isCorrect: false, explanation: "$100,000 es la utilidad neta en valor absoluto, no el ratio de productividad." }
+      ]
+    },
+    {
+      id: "q_prod_2",
+      text: "¿Por qué es obligatorio utilizar precios constantes (deflactados) al comparar la productividad de dos años consecutivos?",
+      options: [
+        { id: "a", text: "Para aislar los efectos de la inflación de precios y medir el cambio genuino en la eficiencia física y técnica de transformación", isCorrect: true, explanation: "Si los precios de venta suben un 20% por inflación pero la fábrica produce las mismas unidades físicas con los mismos insumos, la productividad técnica no ha crecido." },
+        { id: "b", text: "Porque la ley tributaria exige no usar decimales", isCorrect: false, explanation: "Es un principio de economía analítica e ingeniería, no una restricción fiscal." },
+        { id: "c", text: "Para evitar tener que calcular la productividad de la energía", isCorrect: false, explanation: "Todos los insumos deben registrarse a precios constantes del periodo base." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,158 @@
+---
+title: "Modelo Holt-Winters y Métricas de Error (MAD, MSE, MAPE)"
+order: 2
+description: "Suavizamiento de Holt para tendencia lineal, modelo Holt-Winters para estacionalidad multiplicativa, métricas de error y Tracking Signal."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué ecuaciones componen el modelo de Suavizamiento Exponencial Doble de Holt para series con tendencia?"
+    options:
+      - "Una ecuación para el nivel base L_t (con parámetro alfa) y una ecuación para la pendiente de tendencia T_t (con parámetro beta)"
+      - "Dos ecuaciones idénticas para duplicar el valor de la demanda"
+      - "Una ecuación cuadrática y una función trigonométrica seno"
+      - "Una regresión lineal simple ordinaria"
+    answer: 0
+    explanation: "El método de Holt desacopla la estimación del nivel base L_t = alfa * Y_t + (1 - alfa)(L_{t-1} + T_{t-1}) y de la tasa de cambio o tendencia T_t = beta(L_t - L_{t-1}) + (1 - beta) T_{t-1}."
+  - question: "¿Qué alerta emite una Señal de Rastreo (Tracking Signal / TS) que supera el umbral de +4.0 o -4.0?"
+    options:
+      - "Alerta que el modelo de pronóstico tiene un sesgo sistemático (subestima o sobreestima continuamente la demanda real) y debe ser recalibrado"
+      - "Que el pronóstico tiene un 100% de precisión perfecta"
+      - "Que la demanda se ha vuelto constante"
+      - "Que el inventario de seguridad es cero"
+    answer: 0
+    explanation: "El Tracking Signal TS = RSFE / MAD mide la suma acumulada de errores de pronóstico dividida por la MAD. Valores |TS| > 4 evidencian que el error no es aleatorio de media cero, sino un sesgo persistente."
+---
+
+# Introducción
+
+> La demanda de cervezas o helados no solo tiene una tendencia de crecimiento anual por expansión demográfica, sino picos estacionales masivos en verano y valles en invierno. Un modelo de promedio simple o SES colapsaría estrepitosamente en este entorno.
+
+Charles Holt y Peter Winters desarrollaron la familia de **Suavizamiento Exponencial Triple (Holt-Winters)**, capaz de rastrear simultáneamente el nivel del proceso, la pendiente de la tendencia y los factores estacionales periódicos.
+
+<Callout type="info">
+**Modelos Aditivos vs Multiplicativos:**
+- *Aditivo:* La amplitud de las oscilaciones estacionales es constante en el tiempo ($Y_t = L_t + S_{t-s}$).
+- *Multiplicativo:* La amplitud estacional crece proporcionalmente con el nivel de la serie ($Y_t = (L_t + T_t \cdot m) \cdot S_{t-s+m}$), siendo el más frecuente en la industria.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Formular el modelo de Holt para series temporales con tendencia lineal.
+- Aplicar el modelo Holt-Winters multiplicativo con parámetros $\alpha, \beta, \gamma$.
+- Calcular e interpretar las métricas clásicas de error: MAD, MSE, RMSE, MAPE.
+- Monitorear la estabilidad del pronóstico mediante la Señal de Rastreo (*Tracking Signal*).
+
+---
+
+# Fundamentos Teóricos
+
+### Métricas de Precisión de Pronóstico
+
+Sea $e_t = Y_t - F_t$ el error en el periodo $t$ para $n$ periodos evaluados:
+1. **Desviación Absoluta Media (MAD):**
+   $$\text{MAD} = \frac{1}{n} \sum_{t=1}^n |e_t|$$
+2. **Error Cuadrático Medio (MSE) y RMSE:**
+   $$\text{MSE} = \frac{1}{n} \sum_{t=1}^n e_t^2, \quad \text{RMSE} = \sqrt{\text{MSE}}$$
+3. **Error Porcentual Absoluto Medio (MAPE):**
+   $$\text{MAPE} = \frac{1}{n} \sum_{t=1}^n \left| \frac{Y_t - F_t}{Y_t} \right| \times 100\%$$
+4. **Señal de Rastreo (Tracking Signal):**
+   $$\text{TS}_t = \frac{\sum_{i=1}^t e_i}{\text{MAD}_t} = \frac{\text{RSFE}_t}{\text{MAD}_t}$$
+   Límites de control recomendados: $-4 \le \text{TS}_t \le +4$.
+
+### Modelo de Holt (Tendencia Lineal)
+
+- **Actualización del Nivel ($L_t$):**
+  $$L_t = \alpha Y_t + (1 - \alpha)(L_{t-1} + T_{t-1})$$
+- **Actualización de la Tendencia ($T_t$):**
+  $$T_t = \beta (L_t - L_{t-1}) + (1 - \beta) T_{t-1}$$
+- **Pronóstico a $p$ periodos futuros:**
+  $$\hat{Y}_{t+p} = L_t + p \cdot T_t$$
+
+---
+
+# Laboratorio en Python: Modelo de Holt y Auditoría de Errores
+
+```python
+import numpy as np
+import pandas as pd
+
+# Serie de demanda con tendencia lineal (10 meses)
+demanda = np.array([100, 115, 128, 140, 155, 168, 185, 198, 215, 230])
+n = len(demanda)
+
+# Parámetros del modelo de Holt
+alfa = 0.40
+beta = 0.30
+
+# Inicialización
+L = np.zeros(n)
+T = np.zeros(n)
+F = np.zeros(n)
+
+L[0] = demanda[0]
+T[0] = demanda[1] - demanda[0]
+F[0] = np.nan
+
+for t in range(1, n):
+    F[t] = L[t - 1] + T[t - 1]
+    L[t] = alfa * demanda[t] + (1.0 - alfa) * (L[t - 1] + T[t - 1])
+    T[t] = beta * (L[t] - L[t - 1]) + (1.0 - beta) * T[t - 1]
+
+# Cálculo de Métricas de Error
+errores = demanda[1:] - F[1:]
+mad = np.mean(np.abs(errores))
+mse = np.mean(errores**2)
+rmse = np.sqrt(mse)
+mape = np.mean(np.abs(errores / demanda[1:])) * 100.0
+
+# Tracking Signal acumulado
+rsfe = np.cumsum(errores)
+mads_acum = [np.mean(np.abs(errores[:i+1])) for i in range(len(errores))]
+tracking_signal = rsfe / mads_acum
+
+df_holt = pd.DataFrame({
+    'Mes': range(1, n + 1),
+    'Demanda': demanda,
+    'Nivel_L': L,
+    'Tendencia_T': T,
+    'Pronostico_F': F
+})
+
+# Proyección para meses 11 y 12
+F_11 = L[-1] + 1 * T[-1]
+F_12 = L[-1] + 2 * T[-1]
+
+print("MODELO DE HOLT CON TENDENCIA LINEAL:")
+print(df_holt.round(1).to_string(index=False))
+print(f"\nEVALUACIÓN DE EXACTITUD:")
+print(f"MAD: {mad:.2f} unidades | RMSE: {rmse:.2f} | MAPE: {mape:.2f}%")
+print(f"Tracking Signal final: {tracking_signal[-1]:.2f} (Dentro de límites [-4, 4])")
+print(f"\nProyecciones Futuras: Mes 11 = {F_11:.1f} | Mes 12 = {F_12:.1f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Holt-Winters y Métricas de Error"
+  questions={[
+    {
+      id: "q_hw_1",
+      text: "¿Por qué el MAPE (Error Porcentual Absoluto Medio) es el indicador preferido por la alta gerencia para comparar líneas de producto dispares?",
+      options: [
+        { id: "a", text: "Porque es una métrica relativa adimensional expresada en porcentaje, permitiendo comparar productos caros y masivos en igualdad de condiciones", isCorrect: true, explanation: "Un error de 10 unidades en turbinas millonarias es un éxito total, mientras que en botellas plásticas es un desastre. El MAPE normaliza el error respecto a la escala real de cada producto." },
+        { id: "b", text: "Porque siempre es igual a cero", isCorrect: false, explanation: "El MAPE refleja la magnitud real del error porcentual." },
+        { id: "c", text: "Porque no requiere datos de demanda pasada", isCorrect: false, explanation: "Requiere comparar la demanda observada con la pronosticada." }
+      ]
+    },
+    {
+      id: "q_hw_2",
+      text: "Si el Tracking Signal TS de un producto asciende a +5.2 durante 3 meses continuos, ¿qué diagnóstico debe formular el planificador de producción?",
+      options: [
+        { id: "a", text: "Existe un sesgo positivo severo: la demanda real supera sistemáticamente al pronóstico, lo que provocará quiebres de inventario si no se ajusta el nivel base al alza", isCorrect: true, explanation: "Un TS positivo elevado significa que los errores positivos (demanda > pronóstico) se están acumulando sin ser compensados, señal inequívoca de subestimación crónica." },
+        { id: "b", text: "El almacén tiene exceso masivo de inventario", isCorrect: false, explanation: "La subestimación genera desabastecimiento, no exceso de inventario." },
+        { id: "c", text: "El modelo está en perfecto equilibrio", isCorrect: false, explanation: "Valores fuera del rango [-4, 4] alertan descalibración crítica." }
+      ]
+    }
+  ]}
+/>

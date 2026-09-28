@@ -1,0 +1,109 @@
+---
+title: "Álgebra del Simplex Revisado y Factorización Eta"
+order: 2
+description: "Operación eficiente sobre bases invertidas, vectores multiplicadores simplex, matrices elementales Eta y actualización computacional."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 70
+quiz:
+  - question: "En el método Simplex Revisado, ¿por qué se utiliza la actualización de matrices elementales Eta E_k en lugar de reinvertir la base B en cada iteración?"
+    options:
+      - "Porque la actualización Eta reduce el costo computacional de O(m^3) a O(m^2) operaciones por iteración y preserva la esparsidad."
+      - "Porque elimina por completo la necesidad de almacenar el vector de costos."
+      - "Porque transforma el problema en una ecuación cuadrática continua."
+      - "Porque evita el uso de números racionales."
+    answer: 0
+    explanation: "Al reemplazar una sola columna de la base B en cada paso, la nueva inversa B_{k+1}^(-1) = E_k B_k^(-1) se obtiene multiplicando por una matriz Eta elemental (la identidad modificada en una columna), requiriendo solo O(m^2) o menos con estructuras esparsas."
+---
+
+# Álgebra del Simplex Revisado y Factorización Eta
+
+> En problemas lineales industriales con decenas de miles de restricciones, reinvertir la matriz básica $\mathbf{B}$ con costo $O(m^3)$ en cada pivoteo es inviable. El **Simplex Revisado con matrices Eta** actualiza la inversa con complejidad $O(m^2)$ preservando esparsidad.
+
+---
+
+## 1. El Algoritmo Simplex Revisado
+
+En cada iteración:
+1. **Calcular multiplicador dual (BSTEP):**
+   Resolver para $\boldsymbol{\pi}$:
+   $$\mathbf{B}^\top \boldsymbol{\pi} = \mathbf{c}_B \implies \boldsymbol{\pi}^\top = \mathbf{c}_B^\top \mathbf{B}^{-1}$$
+2. **Elegir variable entrante $x_q$ (PRICING):**
+   $$r_q = c_q - \boldsymbol{\pi}^\top \mathbf{A}_{\cdot q} = \min_{j \in N} \{ c_j - \boldsymbol{\pi}^\top \mathbf{A}_{\cdot j} \}$$
+   Si $r_q \ge 0$, la base actual es óptima.
+3. **Calcular vector de dirección en la base (FSTEP):**
+   Resolver para $\mathbf{d}$:
+   $$\mathbf{B} \mathbf{d} = \mathbf{A}_{\cdot q} \implies \mathbf{d} = \mathbf{B}^{-1} \mathbf{A}_{\cdot q}$$
+4. **Regla del cociente mínimo (RSTEP):**
+   $$\theta^* = \min_{i : d_i > 0} \frac{x_{B,i}}{d_i} = \frac{x_{B,p}}{d_p}$$
+   La variable básica $p$-ésima sale de la base.
+5. **Actualización de base (UPSTEP):**
+   La nueva base $\mathbf{B}_{new}$ difiere de $\mathbf{B}$ únicamente en que su columna $p$-ésima es reemplazada por $\mathbf{A}_{\cdot q}$.
+
+---
+
+## 2. Matrices Elementales Eta ($E$)
+
+La nueva inversa satisface:
+$$\mathbf{B}_{new}^{-1} = \mathbf{E}_k \mathbf{B}^{-1}$$
+donde $\mathbf{E}_k$ es una matriz idéntica a la identidad $\mathbf{I}_m$, excepto en su columna $p$-ésima:
+$$\mathbf{E}_k = \begin{bmatrix} 1 & & \eta_1 & & \\ & \ddots & \vdots & & \\ & & \eta_p & & \\ & & \vdots & \ddots & \\ & & \eta_m & & 1 \end{bmatrix}, \quad \text{con } \eta_p = \frac{1}{d_p}, \quad \eta_i = -\frac{d_i}{d_p} \, (i \neq p)$$
+
+---
+
+## 3. Implementación en Python
+
+```python
+import numpy as np
+
+def update_eta(B_inv, d, p):
+    """Actualiza B_inv multiplicando por la matriz elemental Eta E."""
+    m = len(d)
+    eta = np.zeros(m)
+    eta[p] = 1.0 / d[p]
+    for i in range(m):
+        if i != p:
+            eta[i] = -d[i] / d[p]
+            
+    # Construcción de la matriz Eta
+    E = np.eye(m)
+    E[:, p] = eta
+    
+    # Nueva inversa
+    B_inv_new = E @ B_inv
+    return B_inv_new, E
+
+# Demostración numérica
+B_inv_old = np.array([
+    [1.0, 0.0],
+    [-2.0, 1.0]
+])
+# Vector de columna transformada d = B^(-1) @ A_{.q}
+d_vec = np.array([2.0, 4.0])
+p_pivot = 0 # Sale la fila 0
+
+B_inv_next, E_mat = update_eta(B_inv_old, d_vec, p_pivot)
+print("Matriz Eta E:")
+print(E_mat)
+print("
+Nueva inversa B_inv_new:")
+print(B_inv_next)
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Simplex Revisado y Matrices Eta"
+  questions={[
+    {
+      id: "q_eta_chain",
+      text: "En implementaciones comerciales como CPLEX o Gurobi, ¿por qué periódicamente se 'reinvierten' las bases tras un número fijado de iteraciones (ej. cada 50 iteraciones)?",
+      options: [
+        { id: "a", text: "Para evitar la acumulación de errores de redondeo numérico en la cadena de factores Eta y purgar el llenado (fill-in) de no ceros", isCorrect: true, explanation: "Correcto: Tras muchas iteraciones, la cadena de matrices Eta B^(-1) = E_k ... E_1 B_0^(-1) consume memoria y propaga errores de punto flotante. La refactorización LU restaura la precisión." },
+        { id: "b", text: "Porque el algoritmo olvida el óptimo alcanzado", isCorrect: false, explanation: "La base define unívocamente la solución." },
+        { id: "c", text: "Para cambiar la función objetivo a un modelo no lineal", isCorrect: false, explanation: "El modelo permanece lineal." }
+      ]
+    }
+  ]}
+/>

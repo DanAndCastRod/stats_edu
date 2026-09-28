@@ -1,0 +1,136 @@
+---
+title: "Generadores Congruenciales Lineales (GCL)"
+order: 1
+description: "Algoritmos congruenciales mixtos y multiplicativos, Teorema de Hull-Dobell para periodo completo y propiedades estadísticas de secuencias U(0,1)."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué condiciones exige el Teorema de Hull-Dobell para que un Generador Congruencial Lineal mixto X_{i+1} = (a * X_i + c) mod m tenga periodo completo igual a m?"
+    options:
+      - "1. c y m son coprimos; 2. (a - 1) es divisible por todos los factores primos de m; 3. Si m es divisible por 4, (a - 1) es divisible por 4"
+      - "1. a = 1; 2. c = 0; 3. m es un número primo"
+      - "1. a > m; 2. c < 0; 3. Semilla X_0 = 0"
+      - "1. m debe ser una potencia de 10"
+    answer: 0
+    explanation: "El Teorema de Hull-Dobell (1962) proporciona las condiciones necesarias y suficientes para que el GCL mixto recorra los m residuos módulo m antes de repetirse, maximizando el ciclo de generación."
+  - question: "¿Por qué los números producidos por una computadora se denominan 'pseudoaleatorios'?"
+    options:
+      - "Porque provienen de algoritmos matemáticos determinísticos completamente reproducibles, aunque superan con éxito pruebas estadísticas de aleatoriedad"
+      - "Porque contienen errores aritméticos de coma flotante"
+      - "Porque siempre son números enteros pares"
+      - "Porque solo pueden usarse en simulaciones pedagógicas"
+    answer: 0
+    explanation: "Dada la semilla inicial X_0, la secuencia está 100% determinada y se puede replicar con exactitud; no obstante, su distribución y correlación imitan el comportamiento de variables U(0,1) independientes."
+---
+
+# Introducción
+
+> En el corazón de toda simulación estocástica reside una paradoja: las computadoras son máquinas determinísticas diseñadas para jamás equivocarse, pero la simulación exige incertidumbre. Para resolver esto, recurrimos a **números pseudoaleatorios**.
+
+Un generador confiable debe producir números en el intervalo $[0, 1)$ que sean indistinguibles de una secuencia de variables aleatorias independientes e idénticamente distribuidas con distribución $\mathcal{U}(0, 1)$.
+
+<Callout type="info">
+**Periodo de un Generador:** Dado que la memoria de un computador es finita, toda secuencia recursiva de números pseudoaleatorios tarde o temprano se repite en un ciclo cerrado. La longitud de este ciclo antes de repetirse es el **periodo**.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comprender la formulación de los Generadores Congruenciales Lineales (GCL).
+- Aplicar el Teorema de Hull-Dobell para garantizar periodo completo en generadores mixtos.
+- Diferenciar entre generadores multiplicativos ($c = 0$) y mixtos ($c > 0$).
+- Implementar un generador GCL y evaluar el efecto de la semilla en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Ecuación de Recurrencia del GCL
+
+Propuesto por Derrick Lehmer en 1951, el GCL genera una secuencia de enteros no negativos $\{X_i\}$ mediante:
+
+$$X_{i+1} = (a X_i + c) \pmod m$$
+
+Donde:
+- $m$: Módulo ($m > 0$). Define el límite superior estricto del periodo.
+- $a$: Multiplicador ($0 < a < m$).
+- $c$: Constante aditiva o incremento ($0 \le c < m$). Si $c = 0$, es multiplicativo; si $c > 0$, es mixto.
+- $X_0$: Semilla inicial ($0 \le X_0 < m$).
+
+El número pseudoaleatorio normalizado en el intervalo $[0, 1)$ se obtiene como:
+
+$$R_i = \frac{X_i}{m}$$
+
+### Teorema de Hull-Dobell (Periodo Completo)
+
+Un GCL mixto tiene periodo completo igual a $m$ para cualquier semilla $X_0$ si y solo si:
+1. $\gcd(c, m) = 1$ (el incremento $c$ y el módulo $m$ son primos relativos).
+2. Para todo número primo $p$ que divida a $m$, $(a - 1)$ es múltiplo de $p$ ($(a - 1) \equiv 0 \pmod p$).
+3. Si $m$ es divisible por 4, entonces $(a - 1)$ debe ser divisible por 4 ($(a - 1) \equiv 0 \pmod 4$).
+
+---
+
+# Laboratorio en Python: Implementación y Análisis de un GCL
+
+```python
+import numpy as np
+import pandas as pd
+
+def gcl_generador(semilla, a, c, m, n):
+    """Generador Congruencial Lineal X_{i+1} = (a * X_i + c) mod m"""
+    X = semilla
+    valores_X = []
+    valores_R = []
+    
+    for _ in range(n):
+        X = (a * X + c) % m
+        valores_X.append(X)
+        valores_R.append(X / m)
+        
+    return valores_X, valores_R
+
+# Caso 1: Generador Pobre (periodo corto por malos parámetros)
+# m = 16, a = 5, c = 3 (Hull-Dobell: m=16=2^4, p=2, a-1=4 divisible por 4? Sí. c=3 coprimo con 16? Sí) -> Periodo = 16
+X_1, R_1 = gcl_generador(semilla=7, a=5, c=3, m=16, n=20)
+
+# Caso 2: Parámetros del estándar MINSTD de Park & Miller (multiplicativo c=0)
+# m = 2^31 - 1 = 2147483647 (primo de Mersenne), a = 7^5 = 16807
+m_minstd = 2**31 - 1
+a_minstd = 16807
+X_2, R_2 = gcl_generador(semilla=123456, a=a_minstd, c=0, m=m_minstd, n=5)
+
+print("CASO 1: GCL PEQUEÑO (m=16, a=5, c=3, Semilla=7):")
+df_peq = pd.DataFrame({'Paso': range(1, 21), 'X_i': X_1, 'R_i': R_1})
+print(df_peq.head(18).to_string(index=False))
+print(f"\nSe observa que en el paso 17 se repite el valor inicial X_1={X_1[0]} (Periodo = 16).")
+
+print("\nCASO 2: GCL ESTÁNDAR PARK-MILLER (5 primeras muestras normalizadas U(0,1)):")
+for i, r in enumerate(R_2, 1):
+    print(f"  R_{i}: {r:.8f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Generadores Congruenciales Lineales"
+  questions={[
+    {
+      id: "q_gcl_1",
+      text: "Si se diseña un GCL con módulo m = 64 y constante c = 0 (multiplicativo), ¿cuál es el periodo máximo alcanzable?",
+      options: [
+        { id: "a", text: "m / 4 = 16 (los generadores multiplicativos con m = 2^k tienen un periodo máximo de m/4)", isCorrect: true, explanation: "En generadores puramente multiplicativos con potencias de 2, el periodo máximo teórico no puede superar m/4 = 16." },
+        { id: "b", text: "64", isCorrect: false, explanation: "Un generador multiplicativo nunca puede alcanzar periodo completo m porque X_i = 0 es un punto fijo absorbente." },
+        { id: "c", text: "63", isCorrect: false, explanation: "El periodo m - 1 solo se alcanza si m es un número primo." }
+      ]
+    },
+    {
+      id: "q_gcl_2",
+      text: "¿Por qué el generador Mersenne Twister (MT19937) es el estándar actual en NumPy y Python moderno frente a los GCL tradicionales?",
+      options: [
+        { id: "a", text: "Posee un periodo gigantesco de 2^{19937} - 1 y garantiza equidistribución hasta en 623 dimensiones", isCorrect: true, explanation: "Los GCL sufren del teorema de Marsaglia (los puntos caen en hiperplanos). Mersenne Twister supera estas limitaciones estructurales para simulación científica." },
+        { id: "b", text: "Porque utiliza números negativos para simular mejor el azar", isCorrect: false, explanation: "Las variables U(0,1) son estrictamente no negativas." },
+        { id: "c", text: "Porque no requiere una semilla inicial", isCorrect: false, explanation: "Todo generador pseudoaleatorio algorítmico requiere un estado o semilla inicial." }
+      ]
+    }
+  ]}
+/>

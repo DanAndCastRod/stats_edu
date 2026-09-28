@@ -1,0 +1,83 @@
+---
+title: "Valor en Riesgo (VaR) y Conditional Value at Risk (CVaR)"
+order: 1
+description: "Axiomas de medidas de riesgo coherentes de Artzner, no subaditividad del VaR, formulación lineal de Rockafellar-Uryasev para CVaR."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 75
+quiz:
+  - question: "¿Cuál es la deficiencia matemática fundamental del Valor en Riesgo (VaR) por la cual NO clasifica como una Medida de Riesgo Coherente en el sentido de Artzner?"
+    options:
+      - "Viola el axioma de Subaditividad: el VaR de una cartera diversificada puede ser mayor que la suma de los VaR individuales, desincentivando la diversificación."
+      - "No puede calcularse en distribuciones continuas."
+      - "Siempre es un número estrictamente negativo."
+      - "Requiere conocer el futuro con certeza determinista."
+    answer: 0
+    explanation: "El axioma de subaditividad rho(X + Y) <= rho(X) + rho(Y) formaliza matemáticamente que 'diversificar reduce el riesgo'. El VaR puede violar este axioma en distribuciones no normales o colas pesadas, mientras que el CVaR (Expected Shortfall) sí es rigurosamente coherente y convexo."
+---
+
+# Medidas de Riesgo Coherente: VaR y Conditional Value at Risk (CVaR)
+
+> Tras las crisis financieras globales, regular el riesgo mediante la varianza (que penaliza simétricamente ganancias y pérdidas) o el **VaR** (que ignora la severidad de las pérdidas en la cola extrema) fue sustituido por el **CVaR** o *Expected Shortfall*.
+
+---
+
+## 1. Axiomas de Medidas de Riesgo Coherente (Artzner et al., 1999)
+
+Una medida de riesgo $\rho: \mathcal{L} \to \mathbb{R}$ es **coherente** si satisface 4 axiomas:
+1. **Subaditividad (La diversificación protege):**
+   $$\rho(X + Y) \le \rho(X) + \rho(Y)$$
+2. **Homogeneidad Positiva (Escala):**
+   $$\rho(\lambda X) = \lambda \rho(X), \quad \forall \lambda \ge 0$$
+3. **Monotonicidad:**
+   $$\text{Si } X \le Y \text{ casi seguramente} \implies \rho(X) \ge \rho(Y)$$
+4. **Invarianza ante Traslaciones (Efectivo sin riesgo):**
+   $$\rho(X + c) = \rho(X) - c, \quad \forall c \in \mathbb{R}$$
+
+---
+
+## 2. Definición Formal de VaR y CVaR
+
+Sea la función de pérdida $L(\mathbf{w}, \mathbf{r}) = -\mathbf{w}^\top \mathbf{r}$.
+Para un nivel de confianza $\alpha \in (0, 1)$ (ej. $\alpha = 0.95$):
+
+### Valor en Riesgo (VaR):
+$$\operatorname{VaR}_\alpha(\mathbf{w}) = \min \{ \gamma \in \mathbb{R} : P(L(\mathbf{w}, \mathbf{r}) \le \gamma) \ge \alpha \}$$
+
+### Conditional Value at Risk (CVaR / Expected Shortfall):
+Es el valor esperado de las pérdidas condicional a haber superado el umbral del VaR:
+$$\operatorname{CVaR}_\alpha(\mathbf{w}) = \mathbb{E}[L(\mathbf{w}, \mathbf{r}) \mid L(\mathbf{w}, \mathbf{r}) \ge \operatorname{VaR}_\alpha(\mathbf{w})]$$
+
+---
+
+## 3. Teorema de Linealización Convexa de Rockafellar y Uryasev (2000)
+
+R. T. Rockafellar y S. Uryasev demostraron que el CVaR puede optimizarse mediante una función auxiliar convexa sin calcular previamente el VaR:
+$$F_\alpha(\mathbf{w}, \gamma) = \gamma + \frac{1}{1-\alpha} \mathbb{E}\left[ \max(0, -\mathbf{w}^\top \mathbf{r} - \gamma) \right]$$
+
+Dado un conjunto de $S$ escenarios históricos o generados por Monte Carlo con probabilidad $p_s = 1/S$:
+$$\min_{\mathbf{w}, \gamma, \mathbf{u}} \quad \gamma + \frac{1}{(1-\alpha)S} \sum_{s=1}^S u_s$$
+$$\begin{aligned}
+\text{sujeto a} \quad & u_s \ge -\mathbf{w}^\top \mathbf{r}_s - \gamma, \quad \forall s=1,\dots,S \\
+& u_s \ge 0, \quad \forall s=1,\dots,S \\
+& \mathbf{w}^\top \mathbf{1} = 1, \, \mathbf{w} \ge \mathbf{0}
+\end{aligned}$$
+¡Esto transforma un problema de riesgo de colas complejas en un **Programa Lineal estándar** resoluble a escala masiva!
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: VaR vs CVaR"
+  questions={[
+    {
+      id: "q_cvar_linear",
+      text: "¿Cuál es la ventaja computacional crucial de la formulación de Rockafellar-Uryasev para la optimización de carteras?",
+      options: [
+        { id: "a", text: "Convierte el problema de minimizar CVaR en un problema de programación lineal convexa, garantizando óptimos globales con solvers como HiGHS o CPLEX", isCorrect: true, explanation: "Correcto: A diferencia del VaR (que genera superficies no convexas y discontinuas con múltiples mínimos locales), el CVaR formulado con variables auxiliares de holgura u_s es perfectamente lineal y convexo." },
+        { id: "b", text: "Elimina la necesidad de contar con datos de rendimiento", isCorrect: false, explanation: "Requiere escenarios de rendimiento r_s." },
+        { id: "c", text: "Asume que todas las pérdidas son cero", isCorrect: false, explanation: "Modela la severidad exacta de las colas de pérdida." }
+      ]
+    }
+  ]}
+/>

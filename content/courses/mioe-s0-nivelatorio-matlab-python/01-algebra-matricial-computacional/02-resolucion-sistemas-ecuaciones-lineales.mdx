@@ -1,0 +1,103 @@
+---
+title: "Resolución de Grandes Sistemas de Ecuaciones Lineales y Factorización"
+order: 2
+description: "Descomposición LU, Cholesky, QR, condicionamiento numérico y estabilidad computacional de sistemas lineales."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 60
+quiz:
+  - question: "En un sistema lineal Ax = b, si el número de condición kappa(A) = ||A|| * ||A^(-1)|| es del orden de 10^12 en aritmética de doble precisión (float64), ¿qué ocurre con la solución calculada?"
+    options:
+      - "Se pierden aproximadamente 12 de los 16 dígitos significativos de precisión por amplificación de errores."
+      - "El sistema no tiene solución bajo ninguna circunstancia matemática."
+      - "La solución siempre es idénticamente cero."
+      - "El algoritmo Simplex requiere infinitas iteraciones para converger."
+    answer: 0
+    explanation: "El número de condición actúa como un factor de amplificación de perturbaciones relativas: ||Delta x||/||x|| <= kappa(A) * (||Delta b||/||b||). Con kappa(A) = 10^12 y una precisión de máquina eps = 10^(-16), solo quedan ~4 dígitos significativos confiables."
+---
+
+# Grandes Sistemas de Ecuaciones Lineales y Factorización Matricial
+
+> Resolver $\mathbf{A}\mathbf{x} = \mathbf{b}$ con $\mathbf{A} \in \mathbb{R}^{n \times n}$ es el núcleo numérico de cada iteración del método Simplex, de los métodos de puntos interiores y del ajuste de modelos econométricos multivariados. Invertir explícitamente $\mathbf{A}^{-1}$ es un error conceptual y numérico severo que debe evitarse a nivel de posgrado.
+
+---
+
+## 1. Descomposiciones Fundamentales
+
+### A. Factorización LU con Pivoteo Parcial ($P A = L U$)
+Cualquier matriz invertible $\mathbf{A}$ puede descomponerse como:
+$$\mathbf{P}\mathbf{A} = \mathbf{L}\mathbf{U}$$
+donde $\mathbf{P}$ es una matriz de permutación ortogonal, $\mathbf{L}$ es triangular inferior con unos en la diagonal (*unitriangular*), y $\mathbf{U}$ es triangular superior.
+- **Costo algorítmico:** $\frac{2}{3}n^3$ operaciones de punto flotante (FLOPs).
+- **Resolución:** $\mathbf{L}\mathbf{y} = \mathbf{P}\mathbf{b}$ (sustitución progresiva, $n^2$ FLOPs), seguido de $\mathbf{U}\mathbf{x} = \mathbf{y}$ (sustitución regresiva, $n^2$ FLOPs).
+
+### B. Factorización de Cholesky ($A = L L^\top$)
+Si $\mathbf{A}$ es **simétrica y estrictamente definida positiva** (SPSD/SPD, como las matrices de covarianza y matrices hessianas en mínimos locales):
+$$\mathbf{A} = \mathbf{L}\mathbf{L}^\top$$
+donde $\mathbf{L}$ es triangular inferior con entradas diagonales estrictamente positivas $l_{ii} > 0$.
+- **Costo algorítmico:** $\frac{1}{3}n^3$ FLOPs (el doble de rápido que LU y numéricamente incondicionalmente estable, sin requerir pivoteo).
+
+### C. Factorización QR (Householder / Gram-Schmidt modificado)
+$$\mathbf{A} = \mathbf{Q}\mathbf{R}$$
+donde $\mathbf{Q}$ es ortogonal ($\mathbf{Q}^\top \mathbf{Q} = \mathbf{I}$) y $\mathbf{R}$ es triangular superior. Es el método por excelencia para problemas de mínimos cuadrados $\min \|\mathbf{A}\mathbf{x} - \mathbf{b}\|_2$.
+
+---
+
+## 2. Número de Condición y Estabilidad Numérica
+
+El **número de condición** de una matriz no singular respecto a la norma inducida se define como:
+$$\kappa(\mathbf{A}) = \|\mathbf{A}\| \cdot \|\mathbf{A}^{-1}\|$$
+Para la norma euclidiana $L_2$:
+$$\kappa_2(\mathbf{A}) = \frac{\sigma_{\max}(\mathbf{A})}{\sigma_{\min}(\mathbf{A})}$$
+
+Si el vector del término independiente sufre una perturbación $\mathbf{b} \to \mathbf{b} + \delta \mathbf{b}$, el error relativo en la solución $\mathbf{x}$ satisface la cota rigurosa:
+$$\frac{\|\delta \mathbf{x}\|}{\|\mathbf{x}\|} \le \kappa(\mathbf{A}) \frac{\|\delta \mathbf{b}\|}{\|\mathbf{b}\|}$$
+
+---
+
+## 3. Implementación Numérica Rigurosa en SciPy
+
+```python
+import numpy as np
+import scipy.linalg as la
+
+# Generación de un sistema simétrico definido positivo mal condicionado (tipo Hilbert)
+n = 8
+H = la.hilbert(n)
+x_true = np.ones(n)
+b = H @ x_true
+
+# 1. Cálculo del número de condición espectral
+kappa_H = np.linalg.cond(H)
+print(f"Condicionamiento kappa_2(H): {kappa_H:.2e}")
+
+# 2. Factorización de Cholesky: H = L @ L.T
+c, lower = la.cho_factor(H)
+x_chol = la.cho_solve((c, lower), b)
+
+# 3. Factorización LU con pivoteo parcial: P @ H = L @ U
+lu, piv = la.lu_factor(H)
+x_lu = la.lu_solve((lu, piv), b)
+
+print(f"Error relativo Cholesky: {la.norm(x_chol - x_true) / la.norm(x_true):.2e}")
+print(f"Error relativo LU:       {la.norm(x_lu - x_true) / la.norm(x_true):.2e}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Factorización y Condicionamiento Numérico"
+  questions={[
+    {
+      id: "q_cholesky_req",
+      text: "¿Cuál es el requisito indispensable para aplicar la descomposición de Cholesky A = L L^T a una matriz A?",
+      options: [
+        { id: "a", text: "Que A sea simétrica y estrictamente definida positiva (x^T A x > 0 para todo x != 0)", isCorrect: true, explanation: "Correcto: Si A no es definida positiva, los términos diagonales l_ii involucrarían raíces cuadradas de números negativos o ceros." },
+        { id: "b", text: "Que A sea triangular estrictamente superior", isCorrect: false, explanation: "Una matriz simétrica no puede ser triangular superior a menos que sea diagonal." },
+        { id: "c", text: "Que todos los elementos de A sean números enteros pares", isCorrect: false, explanation: "La propiedad es espectral y algebraica, no de paridad numérica." },
+        { id: "d", text: "Que el determinante sea negativo", isCorrect: false, explanation: "Una matriz definida positiva tiene determinante estrictamente positivo." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,113 @@
+---
+title: "Diseños Factoriales 2^k, Efectos Principales e Interacciones"
+order: 1
+description: "Modelos lineales de efectos fijos, cálculo de contrastes ortogonales, suma de cuadrados de Yates y gráficas de probabilidad normal de efectos."
+bloomLevel: "APPLY"
+estimatedMinutes: 65
+quiz:
+  - question: "En un diseño factorial 2^k con n réplicas, ¿cuál es la fórmula analítica para calcular la Suma de Cuadrados (SS) asociada a cualquier efecto o interacción a partir de su contraste ortogonal C?"
+    options:
+      - "SS = (Contraste)^2 / (n * 2^k)"
+      - "SS = Contraste / (n * k)"
+      - "SS = (Contraste)^2 / (2 * k)"
+      - "SS = sqrt(Contraste) * n"
+    answer: 0
+    explanation: "Debido a la ortogonalidad perfecta de los vectores de signos (+1 y -1) en un diseño factorial 2^k, cada efecto tiene 1 grado de libertad y su suma de cuadrados es exactamente el cuadrado del contraste dividido entre el número total de corridas N = n * 2^k."
+---
+
+# Diseños Factoriales 2^k, Efectos Principales e Interacciones
+
+> En la experimentación industrial, variar un factor a la vez (*One-Factor-At-A-Time - OFAT*) es un grave error metodológico que ignora las **interacciones** entre factores. Los diseños $2^k$ evalúan simultáneamente $k$ factores en 2 niveles (bajo $-1$ y alto $+1$) con máxima eficiencia estadística.
+
+---
+
+## 1. El Modelo Matemático Factorial
+
+Para un diseño con 3 factores ($A, B, C$):
+$$y_{ijkm} = \mu + \tau_i^A + \tau_j^B + \tau_k^C + (\tau\tau)_{ij}^{AB} + (\tau\tau)_{ik}^{AC} + (\tau\tau)_{jk}^{BC} + (\tau\tau\tau)_{ijk}^{ABC} + \epsilon_{ijkm}$$
+
+Los factores son normalizados a variables codificadas $x_i \in \{-1, +1\}$:
+$$x = \frac{\text{Valor Real} - \text{Centro}}{\text{Semirango}}$$
+
+---
+
+## 2. Contrastes Ortogonales y Estimación de Efectos
+
+El vector de signos para cualquier interacción se obtiene multiplicando término a término las columnas de los factores componentes:
+$$\mathbf{c}_{AB} = \mathbf{c}_A \odot \mathbf{c}_B$$
+
+Dado el contraste ortogonal $C = \mathbf{c}^\top \mathbf{y}$:
+1. **Efecto Promedio del Factor:**
+   $$\text{Efecto} = \frac{C}{n 2^{k-1}}$$
+2. **Suma de Cuadrados (con 1 grado de libertad):**
+   $$SS = \frac{C^2}{n 2^k}$$
+
+<Callout type="info">
+**Gráfico de Probabilidad Normal de Efectos (C. Daniel, 1959):** Cuando se realiza una única réplica ($n=1$), no existe estimación de error puro en el ANOVA. Al graficar los efectos estimados sobre papel de probabilidad normal, los efectos no significativos (ruido blanco) se alinean a lo largo de una línea recta, mientras que los efectos activos reales se desvían ostensiblemente.
+</Callout>
+
+---
+
+## 3. Script en Python
+
+```python
+import numpy as np
+import pandas as pd
+
+# Matriz de diseño factorial 2^3 en orden estándar
+# Columnas: A, B, C
+X = np.array([
+    [-1, -1, -1],
+    [ 1, -1, -1],
+    [-1,  1, -1],
+    [ 1,  1, -1],
+    [-1, -1,  1],
+    [ 1, -1,  1],
+    [-1,  1,  1],
+    [ 1,  1,  1]
+])
+
+# Rendimiento observado de un reactor químico (unidades de producto)
+y = np.array([55.0, 72.0, 60.0, 84.0, 57.0, 76.0, 63.0, 95.0])
+
+# Cálculo de efectos principales e interacciones
+efectos = {}
+k = 3
+N = 2**k
+
+# Efectos principales
+for idx, name in enumerate(["A", "B", "C"]):
+    contraste = np.dot(X[:, idx], y)
+    efecto = contraste / (N / 2)
+    ss = (contraste ** 2) / N
+    efectos[name] = (efecto, ss)
+
+# Interacción AB
+c_AB = X[:, 0] * X[:, 1]
+contraste_AB = np.dot(c_AB, y)
+efectos["AB"] = (contraste_AB / (N / 2), (contraste_AB**2) / N)
+
+print(f"{'Factor/Interacción':<18} | {'Efecto Estimado':<16} | {'Suma Cuadrados (SS)':<16}")
+print("-" * 55)
+for k_name, (ef, ss) in efectos.items():
+    print(f"{k_name:<18} | {ef:<16.2f} | {ss:<16.2f}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Diseños Factoriales 2^k"
+  questions={[
+    {
+      id: "q_yates_ortho",
+      text: "¿Por qué los coeficientes de regresión beta_i del modelo ajustado y_hat = beta_0 + sum beta_i x_i son exactamente la mitad de los efectos principales calculados?",
+      options: [
+        { id: "a", text: "Porque el efecto mide el cambio total al pasar de -1 a +1 (un salto de 2 unidades), mientras que beta_i es la pendiente por unidad de cambio", isCorrect: true, explanation: "Correcto: El efecto representa Delta y sobre Delta x = (+1) - (-1) = 2. Por ende, beta_i = Efecto / 2." },
+        { id: "b", text: "Porque se aplica una penalización de Tikhonov por defecto", isCorrect: false, explanation: "No se trata de regularización, sino de la definición geométrica del rango unitario codificado." },
+        { id: "c", text: "Porque los grados de libertad se dividen entre 2", isCorrect: false, explanation: "Los grados de libertad de cada efecto en 2^k son exactamente 1." }
+      ]
+    }
+  ]}
+/>

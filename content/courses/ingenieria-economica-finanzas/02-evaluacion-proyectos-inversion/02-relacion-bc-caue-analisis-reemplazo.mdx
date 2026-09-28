@@ -1,0 +1,149 @@
+---
+title: "Relación Beneficio/Costo (B/C) y Costo Anual Uniforme Equivalente (CAUE)"
+order: 2
+description: "Evaluación de alternativas de servicio sin ingresos con CAUE, relación Beneficio/Costo para obras públicas y análisis de reposición de activos de capital."
+bloomLevel: "EVALUATE"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Por qué el criterio del Costo Anual Uniforme Equivalente (CAUE / EUAC) es la herramienta predilecta para comparar alternativas tecnológicas de ingeniería que solo generan costos?"
+    options:
+      - "Permite comparar de forma directa alternativas de servicio idéntico que poseen vidas útiles diferentes sin necesidad de forzar un horizonte temporal común gigantesco"
+      - "Elimina la tasa de interés de los cálculos"
+      - "Solo es válido si los costos son constantes"
+      - "Garantiza que el valor de salvamento sea cero"
+    answer: 0
+    explanation: "El CAUE anualiza los costos de capital y operativos a lo largo de la vida útil de cada equipo, permitiendo comparar válidamente máquinas de 4 años de vida vs máquinas de 7 años bajo el supuesto de repetibilidad idéntica."
+  - question: "¿Cuál es la regla de decisión en la evaluación de proyectos públicos de infraestructura mediante la Relación Beneficio/Costo (B/C)?"
+    options:
+      - "Aceptar si la relación B/C es mayor a 1.0 (el valor presente de beneficios sociales supera al valor presente de los costos de inversión y mantenimiento)"
+      - "Aceptar si B/C = 0"
+      - "Rechazar si los beneficios superan a los costos"
+      - "Aceptar solo si el costo es cero"
+    answer: 0
+    explanation: "Una relación B/C > 1.0 indica que por cada peso o dólar invertido por la comunidad en la obra pública, se generan más de un dólar en beneficios sociales netos descontados."
+---
+
+# Introducción
+
+> En el sector productivo y en la gestión de infraestructura pública, muchas decisiones no involucran ingresos directos de ventas: comprar una caldera de gas natural vs una eléctrica, sustituir un camión de recolección de residuos o reemplazar un torno desgastado por uno nuevo.
+
+Para estos casos, la ingeniería económica desarrolló el **Costo Anual Uniforme Equivalente (CAUE / EUAC)**, la **Relación Beneficio/Costo ($B/C$)** y los modelos de **Vida Económica de Reemplazo**.
+
+<Callout type="info">
+**Vida Económica de un Activo:** Es el número de años $n^*$ en que el CAUE total del activo es estrictamente mínimo. Mantener un activo más allá de su vida económica incrementa el costo anual de la empresa debido al crecimiento exponencial de los gastos de mantenimiento y paradas imprevistas.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comparar alternativas de servicio con vidas útiles desiguales utilizando el método del CAUE.
+- Incorporar el Valor de Salvamento ($VS$) mediante el método del fondo de amortización de salvamento.
+- Aplicar el análisis incremental $\Delta B / \Delta C$ para selección de proyectos públicos.
+- Calcular la vida económica óptima de un activo y diseñar políticas de reemplazo con Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Métodos de Cálculo del CAUE
+
+Sea $P$ la inversión inicial del equipo, $VS$ su valor de rescate o salvamento al final del año $n$, y $COA$ los costos de operación anuales.
+
+#### Método del Fondo de Amortización de Salvamento
+
+$$\text{CAUE} = P(A/P, i, n) - VS(A/F, i, n) + COA$$
+
+Reordenando mediante la identidad $(A/F, i, n) = (A/P, i, n) - i$:
+
+$$\text{CAUE} = (P - VS)(A/P, i, n) + VS \cdot i + COA$$
+
+El término $(P - VS)(A/P, i, n)$ es la amortización anualizada del capital depreciable, y $VS \cdot i$ es el costo de oportunidad del capital retenido en el activo.
+
+### Relación Beneficio/Costo ($B/C$)
+
+Para proyectos del sector público:
+
+$$\frac{B}{C} = \frac{VP(\text{Beneficios para la sociedad})}{VP(\text{Costos de inversión y operación del Estado})}$$
+
+$$\frac{B}{C} > 1.0 \implies \text{Proyecto Socialmente Deseable}$$
+
+---
+
+# Laboratorio en Python: CAUE de Alternativas y Vida Económica de Reemplazo
+
+```python
+import numpy as np
+import pandas as pd
+
+# Comparación CAUE de dos montacargas industriales (Tasa TMAR = 10% anual)
+# Alternativa 1 (Eléctrico): Inversión alta, larga vida útil, bajo costo operativo
+# Alternativa 2 (Combustión Diésel): Inversión moderada, vida útil más corta, mayor costo combustible
+i = 0.10
+
+def calcular_caue(P, VS, n, COA_anual):
+    factor_AP = (i * (1 + i)**n) / ((1 + i)**n - 1)
+    factor_AF = i / ((1 + i)**n - 1)
+    caue_capital = P * factor_AP - VS * factor_AF
+    return caue_capital + COA_anual
+
+caue_electrico = calcular_caue(P=65_000, VS=12_000, n=8, COA_anual=6_000)
+caue_diesel = calcular_caue(P=40_000, VS=8_000, n=5, COA_anual=11_500)
+
+df_caue = pd.DataFrame([
+    {'Tecnología': 'Montacargas Eléctrico', 'Inversión': 65_000, 'Vida_Años': 8, 'COA': 6_000, 'CAUE_Anual': caue_electrico},
+    {'Tecnología': 'Montacargas Diésel', 'Inversión': 40_000, 'Vida_Años': 5, 'COA': 11_500, 'CAUE_Anual': caue_diesel}
+])
+
+# Análisis de Vida Económica de Reemplazo para un Activo Existente:
+# Inversión P = $30,000, Valor de Salvamento cae, Mantenimiento sube año a año
+valores_salvamento = [18000, 12000, 8000, 5000, 3000, 1500]
+costos_mant_ano = [2500, 3800, 5500, 7800, 11000, 15000]
+P_inicial = 30_000.0
+
+vida_economica = []
+for k in range(1, 7):
+    # Valor Presente de Mantenimiento hasta el año k
+    vp_mant = sum(costos_mant_ano[t-1] / (1 + i)**t for t in range(1, k + 1))
+    factor_AP_k = (i * (1 + i)**k) / ((1 + i)**k - 1)
+    factor_AF_k = i / ((1 + i)**k - 1)
+    
+    caue_k = P_inicial * factor_AP_k - valores_salvamento[k-1] * factor_AF_k + vp_mant * factor_AP_k
+    vida_economica.append({'Año_Retiro (k)': k, 'CAUE_Total': caue_k})
+
+df_vida = pd.DataFrame(vida_economica)
+k_optimo = df_vida.loc[df_vida['CAUE_Total'].idxmin(), 'Año_Retiro (k)']
+
+print("COMPARACIÓN DE ALTERNATIVAS POR CAUE:")
+print(df_caue.round(2).to_string(index=False))
+print(f"\n--> ELECCIÓN ÓPTIMA: {df_caue.loc[df_caue['CAUE_Anual'].idxmin(), 'Tecnología']} (Menor costo anual uniforme)")
+
+print("\nANÁLISIS DE VIDA ECONÓMICA DE REEMPLAZO:")
+print(df_vida.round(2).to_string(index=False))
+print(f"\n--> VIDA ECONÓMICA ÓPTIMA DE REEMPLAZO: Año {int(k_optimo)} (CAUE Mínimo = USD {df_vida['CAUE_Total'].min():,.2f})")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: CAUE y Análisis de Reemplazo"
+  questions={[
+    {
+      id: "q_caue_1",
+      text: "Si la Máquina A tiene una vida útil de 3 años y la Máquina B tiene una vida de 5 años, ¿por qué es válido compararlas mediante el CAUE?",
+      options: [
+        { id: "a", text: "Porque el CAUE asume que cada máquina se reemplazará por una réplica idéntica de costos y rendimientos equivalentes al término de su ciclo de vida", isCorrect: true, explanation: "El supuesto de repetibilidad permite comparar costos anualizados sin necesidad de forzar un horizonte común artificial del mínimo común múltiplo (15 años)." },
+        { id: "b", text: "Porque el CAUE transforma los años en meses", isCorrect: false, explanation: "El CAUE opera en unidades de tiempo homogéneas (típicamente años)." },
+        { id: "c", text: "Solo es válido si la tasa de interés es negativa", isCorrect: false, explanation: "La tasa de interés es una tasa positiva estándar de costo de capital." }
+      ]
+    },
+    {
+      id: "q_caue_2",
+      text: "¿Qué define a la 'Vida Económica' de un activo frente a su 'Vida Física' o 'Vida Contable'?",
+      options: [
+        { id: "a", text: "La vida económica es el periodo de posesión en el cual el costo anual uniforme equivalente (CAUE) global se minimiza", isCorrect: true, explanation: "Un equipo puede seguir funcionando físicamente durante 20 años, pero su vida económica puede ser de 5 años si a partir de entonces los costos crecientes de reparación superan la depreciación de una máquina nueva." },
+        { id: "b", text: "El número de años fijado por el código tributario para depreciación", isCorrect: false, explanation: "Esa es la vida fiscal o contable, que suele ser una convención legal sin base en costos reales." },
+        { id: "c", text: "El tiempo hasta que el chasis de la máquina se rompe", isCorrect: false, explanation: "Esa es la vida física o vida útil destructiva del activo." }
+      ]
+    }
+  ]}
+/>

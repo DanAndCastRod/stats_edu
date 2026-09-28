@@ -1,0 +1,114 @@
+---
+title: "Modelado Matemático Formal y Espacios de Decisión"
+order: 1
+description: "Construcción rigurosa de modelos lineales, conjuntos convexos de decisión, funciones cóncavas/convexas y geometría de la frontera."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+quiz:
+  - question: "En la teoría de optimización convexa, ¿por qué cualquier mínimo local de un programa lineal es garantizadamente un mínimo global?"
+    options:
+      - "Porque la función objetivo es lineal (convexa y cóncava simultáneamente) y la región factible es un poliedro convexo."
+      - "Porque el número de variables de decisión siempre es menor que el número de restricciones."
+      - "Porque la matriz de coeficientes A siempre tiene determinante unitario."
+      - "Porque las variables de decisión están forzadas a valores discretos enteros."
+    answer: 0
+    explanation: "En un problema de optimización convexo (minimizar una función convexa sobre un conjunto convexo), el teorema fundamental de convexidad garantiza que todo mínimo local es también un mínimo global."
+---
+
+# Modelado Matemático Formal y Geometría de la Programación Lineal
+
+> Un modelo de optimización lineal formaliza matemáticamente la asignación óptima de recursos limitados entre actividades competitivas, garantizando consistencia dimensional y rigor axiomático.
+
+---
+
+## 1. Formulación Matricial Estándar
+
+Un problema general de Programación Lineal (PL) en su forma estándar se define como:
+$$\begin{aligned}
+\min_{\mathbf{x} \in \mathbb{R}^n} \quad & \mathbf{c}^\top \mathbf{x} \\
+\text{sujeto a} \quad & \mathbf{A}\mathbf{x} = \mathbf{b} \\
+& \mathbf{x} \ge \mathbf{0}
+\end{aligned}$$
+
+donde:
+- $\mathbf{x} \in \mathbb{R}^n$ es el vector de variables de decisión.
+- $\mathbf{c} \in \mathbb{R}^n$ es el vector de costos unitarios.
+- $\mathbf{A} \in \mathbb{R}^{m \times n}$ es la matriz de coeficientes tecnológicos con $\operatorname{rango}(\mathbf{A}) = m < n$.
+- $\mathbf{b} \in \mathbb{R}^m$ es el vector de disponibilidad de recursos (lado derecho), con $\mathbf{b} \ge \mathbf{0}$.
+
+---
+
+## 2. Geometría de los Espacios de Decisión: Poliedros Convexos
+
+El conjunto de soluciones factibles define un **poliedro convexo**:
+$$\mathcal{P} = \{ \mathbf{x} \in \mathbb{R}^n : \mathbf{A}\mathbf{x} = \mathbf{b}, \, \mathbf{x} \ge \mathbf{0} \}$$
+
+### Definiciones Clave:
+1. **Conjunto Convexo:** Un conjunto $C \subseteq \mathbb{R}^n$ es convexo si para cualesquiera $\mathbf{x}, \mathbf{y} \in C$ y todo $\alpha \in [0, 1]$:
+   $$\alpha \mathbf{x} + (1-\alpha) \mathbf{y} \in C$$
+2. **Punto Extremo (Vértice):** Un punto $\mathbf{x} \in \mathcal{P}$ es un punto extremo si no puede expresarse como combinación convexa propia de dos puntos distintos de $\mathcal{P}$:
+   $$\mathbf{x} = \alpha \mathbf{y} + (1-\alpha) \mathbf{z}, \quad \alpha \in (0, 1) \implies \mathbf{x} = \mathbf{y} = \mathbf{z}$$
+
+<Callout type="info">
+**Teorema Fundamental de la Programación Lineal:** Si el poliedro $\mathcal{P}$ tiene al menos un punto extremo y la función objetivo está acotada inferiormente en $\mathcal{P}$, entonces existe una solución óptima que es un punto extremo de $\mathcal{P}$.
+</Callout>
+
+---
+
+## 3. Formulación Compacta Indexada en Python
+
+```python
+import pulp
+
+# Definición de conjuntos e índices
+PRODUCTOS = ["P1", "P2", "P3"]
+RECURSOS = ["Corte", "Ensamble", "Acabado"]
+
+c = {"P1": 45.0, "P2": 60.0, "P3": 50.0}
+b = {"Corte": 120.0, "Ensamble": 180.0, "Acabado": 100.0}
+
+A = {
+    ("Corte", "P1"): 1.5, ("Corte", "P2"): 2.0, ("Corte", "P3"): 1.0,
+    ("Ensamble", "P1"): 2.0, ("Ensamble", "P2"): 3.0, ("Ensamble", "P3"): 2.5,
+    ("Acabado", "P1"): 1.0, ("Acabado", "P2"): 1.0, ("Acabado", "P3"): 1.5,
+}
+
+# Modelo de Maximización
+model = pulp.LpProblem("Plan_Produccion_Formal", pulp.LpMaximize)
+
+# Variables de decisión continuas no negativas
+x = pulp.LpVariable.dicts("Prod", PRODUCTOS, lowBound=0, cat=pulp.LpContinuous)
+
+# Función Objetivo
+model += pulp.lpSum([c[j] * x[j] for j in PRODUCTOS]), "Utilidad_Total"
+
+# Restricciones de capacidad
+for i in RECURSOS:
+    model += pulp.lpSum([A[(i, j)] * x[j] for j in PRODUCTOS]) <= b[i], f"Capacidad_{i}"
+
+# Resolución
+model.solve(pulp.PULP_CBC_CMD(msg=False))
+print(f"Estado del solver: {pulp.LpStatus[model.status]}")
+for j in PRODUCTOS:
+    print(f"Producción {j}: {x[j].varValue:.2f} unidades")
+print(f"Utilidad Óptima Z*: ${pulp.value(model.objective):.2f}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Geometría y Poliedros Convexos"
+  questions={[
+    {
+      id: "q_poly_extreme",
+      text: "En un poliedro convexo P = {x : Ax = b, x >= 0}, ¿cuál es el número máximo teórico de puntos extremos que puede poseer?",
+      options: [
+        { id: "a", text: "A lo sumo el coeficiente binomial C(n, m) = n! / (m! (n-m)!)", isCorrect: true, explanation: "Correcto: Corresponde al número de formas de elegir m columnas linealmente independientes de la matriz A (bases B) entre las n columnas disponibles." },
+        { id: "b", text: "Infinitos vértices no numerables", isCorrect: false, explanation: "Un poliedro definido por un número finito de semiespacios tiene un número finito de vértices." },
+        { id: "c", text: "Exactamente n * m vértices", isCorrect: false, explanation: "La relación es combinatoria sobre las bases, no el producto de dimensiones." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,10 @@
+{
+  "title": "Estadística III",
+  "slug": "estadistica-iii",
+  "code": "II6A2",
+  "description": "Modelos lineales múltiples en notación matricial, multicolinealidad, diseño de experimentos industriales (ANOVA, DBCA, factoriales 2^k) y control estadístico de la calidad.",
+  "credits": 2,
+  "ects": 6,
+  "semester": 6,
+  "isMock": false
+}

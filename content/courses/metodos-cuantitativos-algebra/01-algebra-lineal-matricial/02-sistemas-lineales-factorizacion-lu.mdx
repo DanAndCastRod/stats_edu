@@ -1,0 +1,154 @@
+---
+title: "Sistemas de Ecuaciones Lineales Ax = b y Factorización LU"
+order: 2
+description: "Teorema de Rouché-Capelli, eliminación de Gauss-Jordan, descomposición matricial LU (A = LU) con sustitución progresiva y regresiva, y Cholesky."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Cuál es la principal ventaja algorítmica de descomponer una matriz en A = L * U para resolver Ax = b frente a la eliminación gaussiana directa?"
+    options:
+      - "Permite resolver múltiples sistemas con la misma matriz A y diferentes vectores b con costo O(n^2) en lugar de repetir la eliminación O(n^3) en cada corrida"
+      - "Elimina la necesidad de realizar sumas y multiplicaciones"
+      - "Solo funciona si b es el vector nulo"
+      - "Garantiza que la matriz sea diagonal"
+    answer: 0
+    explanation: "Una vez factorizada A = L U (costo O(2/3 n^3)), cualquier nuevo vector de demanda o carga b se resuelve en dos pasos ultrarrápidos de sustitución: L y = b (progresiva) y U x = y (regresiva), con costo O(n^2)."
+  - question: "¿Qué teorema establece la clasificación formal de existencia y unicidad de soluciones de un sistema lineal según los rangos matriciales?"
+    options:
+      - "Teorema de Rouché-Capelli (o Rouché-Frobenius)"
+      - "Teorema de Pitágoras"
+      - "Teorema del Límite Central"
+      - "Teorema de Bayes"
+    answer: 0
+    explanation: "El Teorema de Rouché-Capelli postula: si rango(A) = rango([A|b]) = n, solución única (compatible determinado); si rango(A) = rango([A|b]) < n, infinitas soluciones; si rango(A) < rango([A|b]), incompatible (sin solución)."
+---
+
+# Introducción
+
+> Resolver el balance de energía de una planta química o las fuerzas en una estructura reticular de almacén requiere hallar el vector de incógnitas $x$ que satisface simultáneamente el sistema de ecuaciones lineales $Ax = b$.
+
+Aunque la regla de Cramer es didáctica en bachillerato, su costo factorial $\mathcal{O}((n+1)!)$ la hace inservible: resolver un sistema de 30 variables con Cramer tomaría más tiempo que la edad del universo. La **Eliminación Gaussiana** y la **Factorización LU** son los motores numéricos de alto rendimiento de la ingeniería.
+
+<Callout type="info">
+**Factorización $LU$:** Descompone la matriz cuadrada $A$ en el producto de una matriz triangular inferior unitaria $L$ (*Lower*) y una matriz triangular superior $U$ (*Upper*): $A = LU$.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Clasificar sistemas de ecuaciones lineales mediante el Teorema de Rouché-Capelli.
+- Comprender el algoritmo de Eliminación de Gauss con pivoteo parcial.
+- Deducir y aplicar la Descomposición Matricial $LU$ ($A = LU$) y el método de Cholesky ($A = L L^T$).
+- Implementar la resolución de sistemas lineales de gran escala en Python con SciPy.
+
+---
+
+# Fundamentos Teóricos
+
+### El Teorema de Rouché-Capelli
+
+Sea el sistema lineal de $m$ ecuaciones con $n$ incógnitas:
+
+$$Ax = b$$
+
+Sea $[A \mid b]$ la matriz aumentada.
+1. **Sistema Incompatible (Sin solución):**
+   $$\text{rango}(A) < \text{rango}([A \mid b])$$
+2. **Sistema Compatible Determinado (Solución única):**
+   $$\text{rango}(A) = \text{rango}([A \mid b]) = n$$
+3. **Sistema Compatible Indeterminado (Infinitas soluciones, $n - r$ grados de libertad):**
+   $$\text{rango}(A) = \text{rango}([A \mid b]) = r < n$$
+
+### Algoritmo de Factorización $LU$
+
+Dada $A \in \mathbb{R}^{n \times n}$ (con pivoteo $P A = L U$):
+
+$$A = L U$$
+
+$$\begin{bmatrix} a_{11} & a_{12} & a_{13} \\ a_{21} & a_{22} & a_{23} \\ a_{31} & a_{32} & a_{33} \end{bmatrix} = \begin{bmatrix} 1 & 0 & 0 \\ l_{21} & 1 & 0 \\ l_{31} & l_{32} & 1 \end{bmatrix} \begin{bmatrix} u_{11} & u_{12} & u_{13} \\ 0 & u_{22} & u_{23} \\ 0 & 0 & u_{33} \end{bmatrix}$$
+
+Para resolver $Ax = b$:
+1. Se sustituye $A = LU$: $L(Ux) = b$.
+2. Se define el vector intermedio $y = Ux$ y se resuelve por **sustitución progresiva** (de arriba hacia abajo):
+   $$Ly = b$$
+3. Se resuelve para $x$ por **sustitución regresiva** (de abajo hacia arriba):
+   $$Ux = y$$
+
+---
+
+# Laboratorio en Python: Factorización LU y Descomposición de Cholesky
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import linalg
+
+# Sistema de distribución de cargas en una red logística (3 nodos):
+# 3 x_1 + 2 x_2 -   x_3 = 10
+# 2 x_1 - 2 x_2 + 4 x_3 = -2
+# -x_1 + 0.5 x_2 - x_3 = 0
+
+A = np.array([
+    [ 3.0,  2.0, -1.0],
+    [ 2.0, -2.0,  4.0],
+    [-1.0,  0.5, -1.0]
+])
+
+b = np.array([10.0, -2.0, 0.0])
+
+# 1. Factorización LU con Pivoteo: P @ A = L @ U
+P, L, U = linalg.lu(A)
+
+print("MATRIZ L (Triangular Inferior Unitaria):")
+print(np.round(L, 3))
+print("\nMATRIZ U (Triangular Superior):")
+print(np.round(U, 3))
+
+# 2. Resolución en dos pasos: L y = P @ b  -->  U x = y
+y = linalg.solve_triangular(L, P @ b, lower=True)
+x = linalg.solve_triangular(U, y, lower=False)
+
+# Verificación con solver directo de SciPy
+x_directo = np.linalg.solve(A, b)
+
+print(f"\nSolución Vectorial x calculada vía LU: {np.round(x, 4)}")
+print(f"Solución Vectorial vía np.linalg.solve: {np.round(x_directo, 4)}")
+print(f"Error residual ||Ax - b||: {np.linalg.norm(A @ x - b):.2e}")
+
+# 3. Factorización de Cholesky (para matrices Simétricas y Definidas Positivas): A_sym = L @ L.T
+A_sym = np.array([
+    [4.0, 2.0, 1.0],
+    [2.0, 5.0, 3.0],
+    [1.0, 3.0, 6.0]
+])
+L_cholesky = linalg.cholesky(A_sym, lower=True)
+print("\nFACTORIZACIÓN DE CHOLESKY (A_sym = L @ L^T):")
+print(np.round(L_cholesky, 3))
+print("Verificación Cholesky:", np.allclose(L_cholesky @ L_cholesky.T, A_sym))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Sistemas Lineales y Factorización LU"
+  questions={[
+    {
+      id: "q_lu_1",
+      text: "Si la matriz aumentada [A|b] de un sistema de 4 variables tiene rango(A) = 3 y rango([A|b]) = 4, ¿qué nos dice el Teorema de Rouché-Capelli?",
+      options: [
+        { id: "a", text: "El sistema es Incompatible: no existe ninguna combinación de variables que satisfaga las ecuaciones simultáneamente", isCorrect: true, explanation: "Cuando el rango de la matriz de coeficientes es menor que el rango de la matriz aumentada, existe al menos una contradicción matemática (e.g. 0 = 5)." },
+        { id: "b", text: "El sistema tiene solución única", isCorrect: false, explanation: "Requiere que ambos rangos sean iguales a 4." },
+        { id: "c", text: "El sistema tiene infinitas soluciones con 1 grado de libertad", isCorrect: false, explanation: "Requiere que ambos rangos sean iguales a 3." }
+      ]
+    },
+    {
+      id: "q_lu_2",
+      text: "¿Bajo qué condición matemática puede aplicarse la Descomposición de Cholesky A = L L^T en lugar de la factorización LU ordinaria?",
+      options: [
+        { id: "a", text: "La matriz A debe ser estrictamente Simétrica y Definida Positiva (x^T A x > 0 para todo x != 0)", isCorrect: true, explanation: "Cholesky aprovecha la simetría y definición positiva para calcular una única matriz triangular L, reduciendo a la mitad el tiempo de cómputo y el uso de memoria respecto a LU." },
+        { id: "b", text: "La matriz debe tener todos sus elementos iguales a 1", isCorrect: false, explanation: "Esa matriz sería singular de rango 1." },
+        { id: "c", text: "Solo aplica para matrices con determinante negativo", isCorrect: false, explanation: "Toda matriz definida positiva tiene determinante estrictamente positivo." }
+      ]
+    }
+  ]}
+/>

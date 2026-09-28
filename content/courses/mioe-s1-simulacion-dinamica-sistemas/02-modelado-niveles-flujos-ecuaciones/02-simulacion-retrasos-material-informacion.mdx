@@ -1,0 +1,107 @@
+---
+title: "Retrasos de Material e Información y Efecto Látigo (Bullwhip)"
+order: 2
+description: "Funciones de retardo exponencial de primer y tercer orden, desajustes en cadenas de suministro y simulación numérica en Python."
+bloomLevel: "CREATE"
+estimatedMinutes: 75
+quiz:
+  - question: "En la teoría de control y dinámica de sistemas, ¿cuál es la diferencia matemática esencial entre un retraso de información y un retraso de material?"
+    options:
+      - "El retraso de material conserva estrictamente la masa física en tránsito (lo que entra debe salir), mientras que el de información es un suavizamiento exponencial de una señal de percepción."
+      - "El retraso de información solo opera con números primos."
+      - "El retraso de material siempre es instantáneo con retardo cero."
+      - "No existe ninguna diferencia algebraica entre ambos."
+    answer: 0
+    explanation: "Un retraso de material almacena inventario físico en tránsito conservando la materia (pipeline). Un retraso de información es un filtro pasa-bajos que pondera exponencialmente observaciones pasadas para formar expectativas de pronóstico."
+---
+
+# Retrasos de Material e Información y el Efecto Látigo (Bullwhip)
+
+> Los desajustes más severos en logística y cadenas de suministro industriales se originan en la presencia de **retrasos temporales** de información y transporte. El célebre **Efecto Látigo** (*Bullwhip Effect*) demuestra cómo pequeñas variaciones en la demanda del consumidor final provocan oscilaciones catastróficas en los fabricantes aguas arriba.
+
+---
+
+## 1. Retrasos de Información: Suavizamiento Exponencial
+
+Para una señal de entrada $u(t)$, la percepción retrasada de información $x(t)$ sigue una ecuación diferencial de retardo de primer orden con constante de tiempo $\tau$:
+$$\frac{dx}{dt} = \frac{u(t) - x(t)}{\tau}$$
+Su respuesta en el dominio de Laplace es:
+$$H(s) = \frac{X(s)}{U(s)} = \frac{1}{\tau s + 1}$$
+
+---
+
+## 2. Retrasos de Material de Orden Superior (Erlang)
+
+Un retardo de material de orden $n$ (como una línea de transporte en etapas sucesivas) se modela encadenando $n$ tanques en serie con tiempo de residencia $\tau/n$ cada uno:
+$$\frac{d x_1}{dt} = \text{In}(t) - \frac{n}{\tau} x_1$$
+$$\frac{d x_i}{dt} = \frac{n}{\tau} x_{i-1} - \frac{n}{\tau} x_i, \quad (i=2,\dots,n)$$
+Para $n=3$, la función de transferencia es un filtro de tercer orden:
+$$H(s) = \frac{1}{\left(\frac{\tau}{3}s + 1\right)^3}$$
+A diferencia del retraso de 1er orden (que responde instantáneamente en $t=0^+$), el retardo de 3er orden exhibe una curva en 'S' con un retraso efectivo real antes de que el flujo de salida comience a emerger.
+
+---
+
+## 3. Demostración del Efecto Látigo en Python
+
+```python
+import numpy as np
+from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+
+# Simulación de una cadena de 3 eslabones: Minorista, Mayorista, Fábrica
+def cadena_suministro(t, y):
+    I_ret, I_who, I_fac = y[:3]   # Inventarios
+    D_perc_ret, D_perc_who = y[3:] # Demandas percibidas
+    
+    # Demanda final del cliente: pulso transitorio de +20% entre t=10 y t=15
+    demanda_cliente = 100.0 + (20.0 if 10 <= t <= 15 else 0.0)
+    
+    # Eslabón 1: Minorista
+    tau_info = 4.0
+    dD_ret = (demanda_cliente - D_perc_ret) / tau_info
+    pedido_ret = max(0, D_perc_ret + (200.0 - I_ret) / 2.0)
+    
+    # Eslabón 2: Mayorista
+    dD_who = (pedido_ret - D_perc_who) / tau_info
+    pedido_who = max(0, D_perc_who + (300.0 - I_who) / 2.0)
+    
+    # Eslabón 3: Fábrica
+    produccion_fac = max(0, pedido_who + (400.0 - I_fac) / 2.0)
+    
+    # Dinámica de inventarios
+    dI_ret = pedido_ret - demanda_cliente
+    dI_who = pedido_who - pedido_ret
+    dI_fac = produccion_fac - pedido_who
+    
+    return [dI_ret, dI_who, dI_fac, dD_ret, dD_who]
+
+sol = solve_ivp(cadena_suministro, (0, 50), [200.0, 300.0, 400.0, 100.0, 100.0], t_eval=np.linspace(0, 50, 500))
+
+# Evaluación de la amplificación
+amp_cliente = 20.0 # Perturbación inicial
+# Se observa la sobreoscilación en los pedidos aguas arriba
+print("--- EFECTO LÁTIGO SIMULADO ---")
+print(f"Perturbación en cliente final:  +{amp_cliente:.1f}%")
+print(f"Inventario mín Minorista:       {np.min(sol.y[0]):.1f}")
+print(f"Inventario mín Mayorista:       {np.min(sol.y[1]):.1f}")
+print(f"Inventario mín Fábrica:         {np.min(sol.y[2]):.1f}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Retrasos y Bullwhip"
+  questions={[
+    {
+      id: "q_bullwhip_mitigation",
+      text: "¿Cuál es la contramedida estructural de mayor apalancamiento para eliminar el efecto látigo en una cadena logística moderna?",
+      options: [
+        { id: "a", text: "Compartir los datos del punto de venta final (POS) en tiempo real con todos los eslabones (VMI / CPFR), eliminando el retraso de información distorsionada", isCorrect: true, explanation: "Correcto: Si todos los eslabones planifican sobre la demanda real del cliente final en vez de sobre los pedidos inflados del eslabón adyacente, se erradica la amplificación de variabilidad." },
+        { id: "b", text: "Aumentar el tiempo de espera de entrega a 6 meses", isCorrect: false, explanation: "Aumentar los retrasos amplifica la inestabilidad del sistema." },
+        { id: "c", text: "Eliminar todos los inventarios de seguridad dejando la planta desprotegida", isCorrect: false, explanation: "Generaría rupturas de stock masivas ante la primera fluctuación." }
+      ]
+    }
+  ]}
+/>

@@ -1,0 +1,150 @@
+---
+title: "Valor del Dinero en el Tiempo: Interés Compuesto y Tasas Efectivas"
+order: 1
+description: "Principio de equivalencia financiera temporal, capitalización periódica y continua, conversión entre tasas nominales y efectivas anuales (TEA) e inflación."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Por qué un peso o dólar recibido hoy vale más que el mismo peso recibido dentro de un año?"
+    options:
+      - "Por el costo de oportunidad del capital (capacidad de generar rendimiento por inversión) y la pérdida de poder adquisitivo por inflación y riesgo"
+      - "Porque el papel moneda se deteriora físicamente con el tiempo"
+      - "Porque los bancos cobran comisiones fijas mensuales"
+      - "Solo es válido si la tasa de interés es negativa"
+    answer: 0
+    explanation: "El principio del valor del dinero en el tiempo postula que una suma monetaria presente tiene mayor valor económico que la misma suma futura debido a su capacidad de generar intereses mediante reinversión y al riesgo de inflación."
+  - question: "¿Cuál es la tasa efectiva anual (TEA) equivalente a una tasa nominal del 24% anual capitalizable mensualmente (2% periódico mensual)?"
+    options:
+      - "TEA = (1 + 0.02)^12 - 1 = 26.82% anual"
+      - "TEA = 24.00% anual exacta"
+      - "TEA = 2% anual"
+      - "TEA = 28.50% anual"
+    answer: 0
+    explanation: "Por la fórmula de capitalización compuesta TEA = (1 + r/m)^m - 1 = (1 + 0.24/12)^12 - 1 = (1.02)^12 - 1 = 0.26824 (26.82%). El interés compuesto genera intereses sobre los intereses acumulados de cada mes."
+---
+
+# Introducción
+
+> En ingeniería, ningún proyecto existe en un vacío temporal. Una inversión de $500,000 USD hoy para automatizar una línea de empaque que ahorrará $120,000 USD anuales durante 5 años parece atractiva a simple vista ($120,000 \times 5 = 600,000 > 500,000$). Sin embargo, si la tasa de costo de capital de la empresa es del 15% anual, el proyecto destruye riqueza y genera pérdidas financieras netas.
+
+El **Valor del Dinero en el Tiempo (TVM - Time Value of Money)** y el principio de **Equivalencia Financiera** constituyen la base analítica de toda decisión de asignación de capital.
+
+<Callout type="info">
+**Tasa Nominal vs Efectiva:** La tasa nominal $r$ es una tasa de referencia anualizada simple que ignora la reinversión de intereses intra-anuales. La **Tasa Efectiva Anual (TEA)** refleja el verdadero costo o rendimiento financiero incorporando el efecto de la capitalización compuesta.
+</Callout>
+
+## Objetivos de Aprendizaje
+- Dominar el concepto de equivalencia financiera temporal y diagramas de flujo de caja.
+- Deducir las fórmulas fundamentales de pago único: Valor Futuro dado un Presente $(F/P, i, n)$ y Valor Presente dado un Futuro $(P/F, i, n)$.
+- Convertir con precisión matemática entre tasas nominales, periódicas y efectivas anuales.
+- Incorporar el efecto de la inflación mediante la Ecuación de Fisher para tasas reales.
+
+---
+
+# Fundamentos Teóricos
+
+### Deducción del Interés Compuesto
+
+Si se invierte un capital inicial $P$ a una tasa periódica $i$ durante $n$ periodos:
+- Periodo 1: $F_1 = P + Pi = P(1 + i)$
+- Periodo 2: $F_2 = F_1(1 + i) = P(1 + i)^2$
+- Periodo $n$:
+  $$F = P(1 + i)^n \iff (F/P, i, n)$$
+
+El factor de descuento o valor presente de una suma futura es:
+
+$$P = F(1 + i)^{-n} = \frac{F}{(1 + i)^n} \iff (P/F, i, n)$$
+
+### Conversión de Tasas de Interés
+
+Sea $r$ la tasa nominal anual liquidable $m$ veces al año (frecuencia de capitalización):
+- Tasa periódica por periodo de capitalización:
+  $$i_p = \frac{r}{m}$$
+- Tasa Efectiva Anual (TEA):
+  $$\text{TEA} = (1 + i_p)^m - 1 = \left(1 + \frac{r}{m}\right)^m - 1$$
+- Capitalización continua ($m \to \infty$):
+  $$\text{TEA}_{\text{continua}} = e^r - 1$$
+
+### Inflación y Ecuación de Fisher
+
+Sea $i$ la tasa de interés de mercado (nominal/corriente), $f$ la tasa de inflación y $i'$ la tasa de interés real en poder adquisitivo constante:
+
+$$(1 + i) = (1 + i')(1 + f) \implies i' = \frac{i - f}{1 + f}$$
+
+---
+
+# Laboratorio en Python: Conversor de Tasas y Equivalencia Temporal
+
+```python
+import numpy as np
+import pandas as pd
+
+# Módulo de Matemáticas Financieras: Conversor de Tasas
+def convertir_tasas(tasa_nominal_anual, m_capitalizaciones):
+    i_periodica = tasa_nominal_anual / m_capitalizaciones
+    tea = (1.0 + i_periodica)**m_capitalizaciones - 1.0
+    tea_continua = np.exp(tasa_nominal_anual) - 1.0
+    return {
+        'Nominal_Anual_%': tasa_nominal_anual * 100,
+        'Periodos_Ano (m)': m_capitalizaciones,
+        'Tasa_Periodica_%': i_periodica * 100,
+        'TEA_%': tea * 100,
+        'TEA_Continua_%': tea_continua * 100
+    }
+
+# Comparar una tasa nominal del 18% anual bajo diferentes frecuencias de capitalización:
+# m=1 (Anual), m=2 (Semestral), m=4 (Trimestral), m=12 (Mensual), m=365 (Diaria)
+frecuencias = [
+    ('Anual', 1),
+    ('Semestral', 2),
+    ('Trimestral', 4),
+    ('Mensual', 12),
+    ('Diaria', 365)
+]
+
+tabla_tasas = [
+    {'Frecuencia': nom, **convertir_tasas(0.18, m)} for nom, m in frecuencias
+]
+
+df_tasas = pd.DataFrame(tabla_tasas)
+
+# Cálculo de Valor Presente y Futuro:
+# P = $50,000 USD a una TEA del 12% durante n = 5 años
+P = 50_000.0
+tea_ejemplo = 0.12
+n_anos = 5
+F = P * (1.0 + tea_ejemplo)**n_anos
+
+print("IMPACTO DE LA FRECUENCIA DE CAPITALIZACIÓN EN LA TEA (r = 18% nominal):")
+print(df_tasas.round(3).to_string(index=False))
+print(f"\nValor Presente: USD {P:,.2f}")
+print(f"Valor Futuro acumulado en {n_anos} años al 12% TEA: USD {F:,.2f}")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Valor del Dinero y Tasas"
+  questions={[
+    {
+      id: "q_fin_1",
+      text: "Si la tasa de interés corriente de un pagaré es del 15.5% anual y la inflación esperada del país es del 5.0% anual, ¿cuál es la tasa de interés real i' obtenida por el inversionista según la ecuación de Fisher?",
+      options: [
+        { id: "a", text: "10.00% anual (i' = (0.155 - 0.05) / (1 + 0.05) = 0.105 / 1.05 = 0.10)", isCorrect: true, explanation: "La ecuación exacta de Fisher es i' = (i - f) / (1 + f). Restar simplemente 15.5% - 5.0% = 10.5% es una aproximación que ignora la pérdida inflacionaria sobre los intereses mismos." },
+        { id: "b", text: "10.50% anual", isCorrect: false, explanation: "10.5% es la aproximación burda que no descuenta el denominador inflacionario." },
+        { id: "c", text: "20.50% anual", isCorrect: false, explanation: "La inflación deteriora el rendimiento, nunca lo amplifica." }
+      ]
+    },
+    {
+      id: "q_fin_2",
+      text: "¿Qué ocurre con el Valor Presente P de un flujo futuro F cuando la tasa de interés de descuento i se incrementa?",
+      options: [
+        { id: "a", text: "El Valor Presente P disminuye monótonamente", isCorrect: true, explanation: "P = F / (1 + i)^n. Al aumentar el denominador (tasa de descuento), el valor actual de los flujos futuros cae." },
+        { id: "b", text: "El Valor Presente P se incrementa", isCorrect: false, explanation: "A mayor tasa de descuento, menor valor presente de una promesa futura." },
+        { id: "c", text: "Permanece estrictamente constante", isCorrect: false, explanation: "El valor presente es inversamente dependiente de la tasa i." }
+      ]
+    }
+  ]}
+/>

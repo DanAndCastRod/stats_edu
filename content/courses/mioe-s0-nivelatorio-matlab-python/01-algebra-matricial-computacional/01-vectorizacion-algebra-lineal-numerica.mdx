@@ -1,0 +1,107 @@
+---
+title: "Vectorización y Fundamentos de Álgebra Lineal Numérica"
+order: 1
+description: "Operaciones tensoriales, producto interno, normas matriciales inducidas y eficiencia computacional por vectorización."
+bloomLevel: "APPLY"
+estimatedMinutes: 60
+quiz:
+  - question: "¿Cuál es la principal ventaja algorítmica de la vectorización frente a bucles iterativos for en Python/MATLAB?"
+    options:
+      - "Aprovecha las subrutinas optimizadas de bajo nivel BLAS/LAPACK y ejecución SIMD en la CPU."
+      - "Reduce la precisión de punto flotante a enteros de 8 bits para acelerar el cálculo."
+      - "Convierte automáticamente cualquier matriz dispersa en densa sin costo en memoria."
+      - "Garantiza convergencia cuadrática en problemas no lineales no convexos."
+    answer: 0
+    explanation: "La vectorización delega las operaciones a bibliotecas nativas compiladas en C/Fortran (BLAS y LAPACK), ejecutando instrucciones vectoriales SIMD (Single Instruction, Multiple Data) y reduciendo el overhead del intérprete de Python."
+---
+
+# Vectorización y Álgebra Lineal Numérica en Posgrado
+
+> En el modelado cuantitativo de operaciones y estadística multivariada, los algoritmos operan sobre tensores y matrices de alta dimensionalidad. Reemplazar bucles escalares tradicionales por operaciones vectorizadas no es solo una convención estética: es un requisito de viabilidad computacional.
+
+## 1. Fundamentos Matemáticos: Espacios Vectoriales y Normas Inducidas
+
+Consideremos un espacio vectorial euclidiano $\mathbb{R}^n$ equipado con el producto interno canónico:
+$$\langle \mathbf{x}, \mathbf{y} \rangle = \mathbf{x}^\top \mathbf{y} = \sum_{i=1}^n x_i y_i$$
+
+Para una matriz $\mathbf{A} \in \mathbb{R}^{m \times n}$, la **norma matricial inducida** (u operatorial) por la norma vectorial $p$ se define formalmente como:
+$$\|\mathbf{A}\|_p = \sup_{\mathbf{x} \neq \mathbf{0}} \frac{\|\mathbf{A}\mathbf{x}\|_p}{\|\mathbf{x}\|_p} = \max_{\|\mathbf{x}\|_p = 1} \|\mathbf{A}\mathbf{x}\|_p$$
+
+Las tres normas inducidas más relevantes en optimización son:
+1. **Norma 1 (Máxima suma de columnas):**
+   $$\|\mathbf{A}\|_1 = \max_{1 \le j \le n} \sum_{i=1}^m |a_{ij}|$$
+2. **Norma Espectral / Norma 2 (Valor singular máximo):**
+   $$\|\mathbf{A}\|_2 = \sqrt{\lambda_{\max}(\mathbf{A}^\top \mathbf{A})} = \sigma_{\max}(\mathbf{A})$$
+3. **Norma Infinito (Máxima suma de filas):**
+   $$\|\mathbf{A}\|_\infty = \max_{1 \le i \le m} \sum_{j=1}^n |a_{ij}|$$
+
+Adicionalmente, la **norma de Frobenius** (no inducida, pero de álgebra tensorial Hilbert-Schmidt):
+$$\|\mathbf{A}\|_F = \sqrt{\sum_{i=1}^m \sum_{j=1}^n a_{ij}^2} = \sqrt{\operatorname{tr}(\mathbf{A}^\top \mathbf{A})}$$
+
+<Callout type="info">
+**Propiedad de Submultiplicatividad:** Para cualquier norma matricial inducida y matrices compatibles $\mathbf{A}$ y $\mathbf{B}$, se cumple rigurosamente que $\|\mathbf{A}\mathbf{B}\| \le \|\mathbf{A}\| \|\mathbf{B}\|$.
+</Callout>
+
+---
+
+## 2. Paradigma de Vectorización vs. Bucles Escalares
+
+En lenguajes interpretados como Python y MATLAB, un bucle `for` incurre en *overhead* de interpretación por cada iteración, comprobación dinámica de tipos y saltos de memoria en caché. La vectorización traslada el cómputo a núcleos optimizados de **BLAS** (Basic Linear Algebra Subprograms) y **LAPACK**, aprovechando registros vectoriales AVX-512 de la CPU.
+
+```python
+import numpy as np
+import time
+
+n = 2000
+A = np.random.randn(n, n)
+x = np.random.randn(n)
+
+# 1. Enfoque escalar con bucle for (Ineficiente)
+t0 = time.perf_counter()
+y_scalar = np.zeros(n)
+for i in range(n):
+    total = 0.0
+    for j in range(n):
+        total += A[i, j] * x[j]
+    y_scalar[i] = total
+t_scalar = time.perf_counter() - t0
+
+# 2. Enfoque vectorizado BLAS (np.dot / A @ x)
+t0 = time.perf_counter()
+y_vectorized = A @ x
+t_vectorized = time.perf_counter() - t0
+
+print(f"Tiempo bucle escalar:    {t_scalar:.4f} s")
+print(f"Tiempo BLAS vectorizado: {t_vectorized:.6f} s")
+print(f"Aceleración alcanzada:   {t_scalar / t_vectorized:.1f}x")
+np.testing.assert_allclose(y_scalar, y_vectorized, atol=1e-8)
+```
+
+---
+
+## 3. Broadcasting y Producto de Kronecker
+
+En optimización multietapa y modelos estocásticos, con frecuencia se requiere acoplar sistemas de variables mediante el **Producto de Kronecker** $\mathbf{A} \otimes \mathbf{B}$:
+$$\mathbf{A} \otimes \mathbf{B} = \begin{bmatrix} a_{11}\mathbf{B} & \cdots & a_{1n}\mathbf{B} \\ \vdots & \ddots & \vdots \\ a_{m1}\mathbf{B} & \cdots & a_{mn}\mathbf{B} \end{bmatrix}$$
+
+El broadcasting en NumPy permite aplicar operaciones binarias sobre matrices de dimensiones compatibles sin duplicación redundante de memoria física, reduciendo la huella de asignación en memoria RAM.
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz Conceptual: Vectorización y Normas Matriciales"
+  questions={[
+    {
+      id: "q_norm_spec",
+      text: "Si la matriz A es simétrica definida positiva, ¿cuál es la relación entre su norma espectral ||A||_2 y sus valores propios lambda_i?",
+      options: [
+        { id: "a", text: "||A||_2 es igual al valor propio de mayor magnitud |lambda_max|", isCorrect: true, explanation: "Correcto: Para matrices simétricas, los valores singulares sigma_i coinciden con los valores absolutos de los valores propios |lambda_i|." },
+        { id: "b", text: "||A||_2 es igual a la traza de la matriz dividida por n", isCorrect: false, explanation: "La traza es la suma de los valores propios, no el valor máximo." },
+        { id: "c", text: "||A||_2 es el determinante de A elevado a la 1/n", isCorrect: false, explanation: "Eso corresponde a la media geométrica de los valores propios." },
+        { id: "d", text: "||A||_2 siempre es igual a 1 independientemente de la escala", isCorrect: false, explanation: "La norma depende de la magnitud de la transformación lineal." }
+      ]
+    }
+  ]}
+/>

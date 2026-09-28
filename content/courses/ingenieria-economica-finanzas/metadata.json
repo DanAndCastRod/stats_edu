@@ -1,0 +1,10 @@
+{
+  "title": "Ingeniería Económica y Finanzas",
+  "slug": "ingenieria-economica-finanzas",
+  "code": "II543",
+  "description": "Principios del valor del dinero en el tiempo, equivalencia financiera, evaluación económica de proyectos de inversión mediante VPN, TIR, B/C y CAUE, y análisis de reposición de activos de capital.",
+  "credits": 3,
+  "ects": 6,
+  "semester": 5,
+  "isMock": false
+}

@@ -1,0 +1,110 @@
+---
+title: "Análisis Discriminante Lineal (LDA) y Clasificación Multivariante"
+order: 2
+description: "Criterio de Fisher de maximización de dispersión entre clases vs intra clases, regla de clasificación de Bayes y fronteras lineales."
+bloomLevel: "APPLY"
+estimatedMinutes: 70
+quiz:
+  - question: "En el criterio del discriminante lineal de Fisher, ¿cuál es la función objetivo que maximiza el vector de proyección w para separar dos clases?"
+    options:
+      - "El cociente de Rayleigh J(w) = (w^T S_B w) / (w^T S_W w), maximizando la separación entre medias y minimizando la dispersión interna."
+      - "La suma de los elementos de la diagonal de la matriz identidad."
+      - "El valor absoluto del determinante de la matriz de confusión."
+      - "La entropía cruzada evaluada en el centroide global."
+    answer: 0
+    explanation: "Fisher formuló LDA maximizando el cociente entre la dispersión inter-clases (S_B) y la dispersión intra-clases (S_W). La solución óptima es proporcional a w proportional to S_W^(-1) (mu_1 - mu_2)."
+---
+
+# Análisis Discriminante Lineal (LDA) y Clasificación
+
+> Mientras que PCA es una técnica **no supervisada** que busca máxima varianza global, el **Análisis Discriminante Lineal de Fisher (LDA)** es un método **supervisado** diseñado para proyectar los datos a un subespacio de máxima separabilidad entre clases.
+
+---
+
+## 1. El Criterio de Dispersión de Fisher
+
+Consideremos $K$ clases con medias $\boldsymbol{\mu}_k$ y tamaños $N_k$.
+Definimos:
+1. **Matriz de Dispersión Intra-Clases (*Within-class Scatter*):**
+   $$\mathbf{S}_W = \sum_{k=1}^K \sum_{\mathbf{x} \in C_k} (\mathbf{x} - \boldsymbol{\mu}_k)(\mathbf{x} - \boldsymbol{\mu}_k)^\top$$
+2. **Matriz de Dispersión Inter-Clases (*Between-class Scatter*):**
+   $$\mathbf{S}_B = \sum_{k=1}^K N_k (\boldsymbol{\mu}_k - \boldsymbol{\mu})(\boldsymbol{\mu}_k - \boldsymbol{\mu})^\top$$
+   donde $\boldsymbol{\mu}$ es la media global ponderada.
+
+El vector óptimo de proyección $\mathbf{w}$ maximiza el **Cociente de Rayleigh generalizado**:
+$$J(\mathbf{w}) = \frac{\mathbf{w}^\top \mathbf{S}_B \mathbf{w}}{\mathbf{w}^\top \mathbf{S}_W \mathbf{w}}$$
+
+Derivando respecto a $\mathbf{w}$ e igualando a cero:
+$$\mathbf{S}_W^{-1} \mathbf{S}_B \mathbf{w} = \lambda \mathbf{w}$$
+Los vectores directores óptimos corresponden a los vectores propios de la matriz $\mathbf{S}_W^{-1} \mathbf{S}_B$. Como el rango de $\mathbf{S}_B$ es a lo sumo $K-1$, el número máximo de funciones discriminantes es $\min(p, K-1)$.
+
+---
+
+## 2. Regla de Clasificación Bayesiana y Frontera Lineal
+
+Bajo el supuesto de que cada clase sigue una distribución $\mathcal{N}_p(\boldsymbol{\mu}_k, \boldsymbol{\Sigma})$ con **matriz de covarianza idéntica** $\boldsymbol{\Sigma}$, la regla de máxima verosimilitud a posteriori (MAP) asigna una nueva observación $\mathbf{x}$ a la clase que maximiza la función discriminante lineal:
+$$\delta_k(\mathbf{x}) = \mathbf{x}^\top \boldsymbol{\Sigma}^{-1} \boldsymbol{\mu}_k - \frac{1}{2} \boldsymbol{\mu}_k^\top \boldsymbol{\Sigma}^{-1} \boldsymbol{\mu}_k + \ln(\pi_k)$$
+donde $\pi_k = P(C_k)$ es la probabilidad a priori de la clase $k$.
+
+<Callout type="info">
+**Frontera Lineal vs Cuadrática (QDA):** Si las matrices de covarianza de las clases no son idénticas ($\boldsymbol{\Sigma}_j \neq \boldsymbol{\Sigma}_k$), los términos cuadráticos $\mathbf{x}^\top \boldsymbol{\Sigma}_k^{-1} \mathbf{x}$ no se cancelan, originando el **Análisis Discriminante Cuadrático (QDA)** con fronteras hiperbólicas o parabólicas.
+</Callout>
+
+---
+
+## 3. Implementación en Python con Scikit-Learn
+
+```python
+import numpy as np
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+# Generación de datos sintéticos de 3 tipos de fallas industriales
+np.random.seed(42)
+n_samples = 40
+# 3 variables: vibración, temperatura, presión
+mu_falla1 = [10.0, 80.0, 5.0]
+mu_falla2 = [25.0, 85.0, 4.2]
+mu_falla3 = [15.0, 110.0, 7.8]
+Sigma_comun = np.eye(3) * 2.0
+
+X1 = np.random.multivariate_normal(mu_falla1, Sigma_comun, n_samples)
+X2 = np.random.multivariate_normal(mu_falla2, Sigma_comun, n_samples)
+X3 = np.random.multivariate_normal(mu_falla3, Sigma_comun, n_samples)
+
+X = np.vstack([X1, X2, X3])
+y = np.array([0]*n_samples + [1]*n_samples + [2]*n_samples)
+
+# Ajuste de LDA
+lda = LinearDiscriminantAnalysis(n_components=2)
+X_lda = lda.fit_transform(X, y)
+
+print("--- REPORTE LDA ---")
+print(f"Razón de varianza explicada por los 2 ejes: {lda.explained_variance_ratio_}")
+print(f"Precisión de ajuste: {lda.score(X, y)*100:.2f}%")
+
+# Clasificación de una nueva observación en planta
+nueva_lectura = np.array([[22.0, 84.0, 4.5]])
+prediccion = lda.predict(nueva_lectura)
+probabilidades = lda.predict_proba(nueva_lectura)
+print(f"Falla diagnosticada: Clase {prediccion[0]}")
+print(f"Probabilidades posteriores: {np.round(probabilidades, 4)}")
+```
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: LDA y Fronteras de Decisión"
+  questions={[
+    {
+      id: "q_lda_qda_choice",
+      text: "¿En qué circunstancia práctica es obligatorio optar por QDA (Quadratic Discriminant Analysis) en lugar de LDA?",
+      options: [
+        { id: "a", text: "Cuando las pruebas de homogeneidad de matrices de covarianza (como el test M de Box) demuestran que las clases poseen matrices de covarianza significativamente distintas", isCorrect: true, explanation: "Correcto: Si Sigma_i != Sigma_j, el supuesto fundacional de LDA se viola y la frontera de decisión óptima es necesariamente cuadrática." },
+        { id: "b", text: "Cuando el número de variables p es menor que 2", isCorrect: false, explanation: "LDA funciona perfectamente en cualquier dimensión p >= 1." },
+        { id: "c", text: "Cuando todas las probabilidades a priori son exactamente iguales", isCorrect: false, explanation: "Las probabilidades a priori iguales simplifican la constante, pero no alteran la linealidad de la frontera." }
+      ]
+    }
+  ]}
+/>

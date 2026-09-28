@@ -1,0 +1,153 @@
+---
+title: "Confiabilidad en Configuraciones Serie, Paralelo y k-de-n"
+order: 1
+description: "Modelado de confiabilidad R(t), configuraciones en serie, redundancia en paralelo activa y pasiva, y sistemas k-de-n."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "En un sistema industrial compuesto por n componentes independientes conectados en SERIE, ¿cuál es la confiabilidad global del sistema R_s(t)?"
+    options:
+      - "El producto de las confiabilidades individuales: R_s(t) = prod_{i=1}^n R_i(t)"
+      - "La suma de las confiabilidades: R_s(t) = sum_{i=1}^n R_i(t)"
+      - "La máxima confiabilidad: R_s(t) = max_i R_i(t)"
+      - "1 - prod_{i=1}^n (1 - R_i(t))"
+    answer: 0
+    explanation: "En un sistema serie, para que el sistema funcione es estrictamente necesario que todos sus componentes funcionen simultáneamente. Por independencia probabilística, la probabilidad de la intersección es el producto."
+  - question: "¿Qué caracteriza a un sistema de redundancia 'k-de-n'?"
+    options:
+      - "El sistema opera exitosamente si al menos k de los n componentes disponibles están funcionando"
+      - "El sistema falla tan pronto como falle el componente k-ésimo"
+      - "El sistema solo funciona cuando exactamente k componentes fallan"
+    answer: 0
+    explanation: "Una configuración k-de-n es una arquitectura de redundancia modular donde el sistema sigue operativo mientras al menos k de sus n componentes sobrevivan (e.g. un avión cuatrimotor que requiere al menos 2 motores para volar es un sistema 2-de-4)."
+---
+
+# Introducción
+
+> "Una cadena es tan fuerte como su eslabón más débil". Este adagio popular es el principio fundacional de la ingeniería de confiabilidad en configuraciones serie. Sin embargo, en la industria aeroespacial, nuclear y médica, la vida de las personas no puede depender de un único eslabón: se requiere **redundancia en paralelo**.
+
+La **Confiabilidad** $R(t)$ es la probabilidad de que un equipo o sistema cumpla satisfactoriamente su función prevista durante un tiempo especificado $t$ bajo condiciones ambientales y operativas estandarizadas.
+
+<Callout type="info">
+**Efecto de la Configuración Serie:** Si un sistema serie consta de 10 componentes idénticos, cada uno con una confiabilidad del 99% ($R_i = 0.99$), la confiabilidad global del sistema cae a $R_s = (0.99)^{10} = 0.904$ (más del 9.5% de riesgo de fallo).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Definir la función de confiabilidad $R(t) = 1 - F(t)$ y la probabilidad acumulada de falla.
+- Deducir y calcular la confiabilidad de sistemas en **serie** y en **paralelo**.
+- Evaluar arquitecturas con redundancia modular de votación mayoritaria **$k$-de-$n$**.
+- Resolver esquemas complejos mixtos serie-paralelo con Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Conceptos Fundamentales
+
+Sea $T \ge 0$ una variable aleatoria continua que representa el tiempo transcurrido hasta la falla del componente:
+- Función de distribución acumulada de falla: $F(t) = \mathbb{P}(T \le t)$.
+- Función de confiabilidad (supervivencia):
+  $$R(t) = \mathbb{P}(T > t) = 1 - F(t) = \int_t^\infty f(u) du$$
+
+### Sistema en Serie
+
+El sistema falla si falla cualquiera de sus $n$ componentes:
+
+$$R_s(t) = \mathbb{P}(T_1 > t \cap T_2 > t \cap \dots \cap T_n > t)$$
+
+Por independencia estocástica:
+
+$$R_s(t) = \prod_{i=1}^n R_i(t)$$
+
+Nótese que $R_s(t) \le \min(R_1(t), \dots, R_n(t))$.
+
+### Sistema en Paralelo Activo
+
+El sistema funciona si al menos uno de los $n$ componentes opera:
+
+$$F_p(t) = \mathbb{P}(\text{Todos fallan antes de } t) = \prod_{i=1}^n F_i(t) = \prod_{i=1}^n (1 - R_i(t))$$
+
+$$R_p(t) = 1 - \prod_{i=1}^n (1 - R_i(t))$$
+
+Nótese que $R_p(t) \ge \max(R_1(t), \dots, R_n(t))$.
+
+### Sistema $k$-de-$n$ con Componentes Idénticos
+
+Si los $n$ componentes son independientes e idénticos, cada uno con confiabilidad $R(t)$, el número de componentes sobrevivientes $X$ sigue una distribución $\text{Binomial}(n, R(t))$:
+
+$$R_{k/n}(t) = \sum_{j=k}^n \binom{n}{j} [R(t)]^j [1 - R(t)]^{n-j}$$
+
+---
+
+# Laboratorio en Python: Evaluación de un Sistema de Bombeo de Emergencia
+
+```python
+import math
+import numpy as np
+import pandas as pd
+
+# Módulo de refrigeración de reactor:
+# 3 bombas de agua en paralelo activo (se requiere que al menos 1 funcione)
+# Conectadas en serie con 2 válvulas de alivio en serie (ambas deben abrir)
+# Confiabilidad individual al cabo de 5000 horas:
+# Bomba: R_b = 0.92 cada una
+# Válvula: R_v = 0.98 cada una
+
+R_bomba = 0.92
+R_valvula = 0.98
+
+# 1. Subsistema de bombas en paralelo (3 bombas)
+R_bombas_paralelo = 1.0 - (1.0 - R_bomba)**3
+
+# 2. Subsistema de válvulas en serie (2 válvulas)
+R_valvulas_serie = R_valvula * R_valvula
+
+# 3. Sistema global (Bombas en serie con Válvulas)
+R_sistema_global = R_bombas_paralelo * R_valvulas_serie
+
+# 4. Evaluación de sistema redundante k-de-n:
+# 4 motores eléctricos donde se requiere que funcionen al menos 2 (2-de-4)
+n = 4
+k = 2
+R_motor = 0.90
+R_2_de_4 = sum(math.comb(n, j) * (R_motor**j) * ((1.0 - R_motor)**(n - j)) for j in range(k, n + 1))
+
+df_res = pd.DataFrame([
+    {'Subsistema': 'Bomba Individual', 'Confiabilidad': R_bomba},
+    {'Subsistema': '3 Bombas en Paralelo Activo', 'Confiabilidad': R_bombas_paralelo},
+    {'Subsistema': '2 Válvulas en Serie', 'Confiabilidad': R_valvulas_serie},
+    {'Subsistema': 'Sistema Completo Bombas + Válvulas', 'Confiabilidad': R_sistema_global},
+    {'Subsistema': 'Redundancia 2-de-4 Motores (R=0.90)', 'Confiabilidad': R_2_de_4}
+])
+
+print("ANÁLISIS DE CONFIABILIDAD DE TOPOLOGÍAS INDUSTRIALES:")
+print(df_res.to_string(index=False))
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Topologías de Confiabilidad"
+  questions={[
+    {
+      id: "q_rel_1",
+      text: "Si se instalan 3 generadores idénticos en paralelo, cada uno con confiabilidad R = 0.80, ¿cuál es la confiabilidad del banco de energía?",
+      options: [
+        { id: "a", text: "1 - (1 - 0.80)^3 = 1 - (0.20)^3 = 1 - 0.008 = 0.992", isCorrect: true, explanation: "El sistema paralelo solo falla si los tres generadores fallan a la vez: F_p = 0.20^3 = 0.008, por lo que R_p = 0.992." },
+        { id: "b", text: "0.80^3 = 0.512", isCorrect: false, explanation: "0.512 es la confiabilidad si estuvieran conectados en SERIE, no en paralelo." },
+        { id: "c", text: "0.80", isCorrect: false, explanation: "La redundancia en paralelo incrementa estrictamente la confiabilidad por encima del componente individual." }
+      ]
+    },
+    {
+      id: "q_rel_2",
+      text: "¿Por qué en sistemas serie la falla de componentes con confiabilidades altas (ej. 99%) sigue degradando sensiblemente la confiabilidad conforme aumenta n?",
+      options: [
+        { id: "a", text: "Porque la multiplicación acumulativa de factores menores a 1 decrece exponencialmente con el número de componentes", isCorrect: true, explanation: "Con n = 50 componentes de R = 0.99, R_s = 0.99^50 = 0.605, reduciendo la confiabilidad al 60.5%." },
+        { id: "b", text: "Porque los componentes se sobrecalientan mutuamente por fricción", isCorrect: false, explanation: "Es una consecuencia matemática de la regla del producto probabilístico para eventos independientes." },
+        { id: "c", text: "Porque el tiempo medio entre fallas se vuelve negativo", isCorrect: false, explanation: "El MTBF es una magnitud estrictamente positiva." }
+      ]
+    }
+  ]}
+/>

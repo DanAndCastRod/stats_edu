@@ -1,0 +1,64 @@
+---
+title: "Búsqueda Tabú y Gestión de Memoria Adaptativa"
+order: 2
+description: "Lista tabú de corto plazo, criterio de aspiración, memoria de mediano plazo (intensificación) y largo plazo (diversificación)."
+bloomLevel: "ANALYZE"
+estimatedMinutes: 70
+quiz:
+  - question: "En el marco de la Búsqueda Tabú (Fred Glover), ¿cuál es la función del Criterio de Aspiración?"
+    options:
+      - "Permite anular el estatus 'tabú' de un movimiento prohibido si este conduce a una solución estrictamente mejor que la mejor solución histórica encontrada hasta el momento."
+      - "Acelera el paso de integración numérica en ecuaciones diferenciales."
+      - "Obliga a visitar todas las ciudades en orden ascendente."
+      - "Reinicia las variables continuas a cero."
+    answer: 0
+    explanation: "La lista tabú prohíbe atributos de movimientos para evitar ciclar entre soluciones ya visitadas. Sin embargo, si un movimiento clasificado como tabú bate el récord histórico de aptitud, es imposible que forme parte de un ciclo vicioso previo, por lo que se acepta prioritariamente."
+---
+
+# Búsqueda Tabú y Estructuras de Memoria Adaptativa
+
+> Ideada por Fred Glover en 1986, la **Búsqueda Tabú (Tabu Search)** sustituye el azar del Recocido Simulado por el uso explícito de estructuras de **memoria adaptativa flexible** para guiar la exploración combinatoria.
+
+---
+
+## 1. Memoria de Corto Plazo: La Lista Tabú
+
+Para evitar ciclos infinitos entre soluciones vecinas recientes ($s \leftrightarrow s'$), los atributos de los últimos movimientos ejecutados se declaran **prohibidos (Tabú)** durante un número determinado de iteraciones, denominado **Tabu Tenure** ($T_t$).
+
+### Operación:
+En cada iteración $k$, se evalúa la vecindad completa $\mathcal{N}(s)$ y se selecciona el **mejor movimiento disponible**, incluso si deteriora la función objetivo, siempre que no esté en la Lista Tabú $\mathcal{T}$.
+
+---
+
+## 2. Criterio de Aspiración
+
+Una restricción tabú puede ser revocada si el movimiento satisface el **Criterio de Aspiración por Defecto**:
+$$\text{Si } f(s') < f(s_{\text{best}}), \quad \text{entonces } s' \text{ es aceptada aunque esté catalogada como Tabú.}$$
+
+---
+
+## 3. Memorias de Mediano y Largo Plazo
+
+<Callout type="info">
+1. **Memoria de Mediano Plazo (Intensificación):** Registra los atributos más frecuentes de las mejores soluciones históricas de alta aptitud, forzando a la búsqueda a explorar a fondo esas regiones promisorias.
+2. **Memoria de Largo Plazo (Diversificación):** Penaliza los atributos que han sido visitados con demasiada frecuencia a lo largo de toda la historia, expulsando la búsqueda hacia regiones inexploradas del espacio de soluciones.
+</Callout>
+
+---
+
+# Autoevaluación Formativa
+
+<Quiz
+  title="Quiz: Búsqueda Tabú"
+  questions={[
+    {
+      id: "q_tabu_tenure_impact",
+      text: "¿Cuál es el riesgo de fijar un Tabu Tenure (longitud de la lista tabú) excesivamente grande?",
+      options: [
+        { id: "a", text: "Restringe en exceso la vecindad accesible, impidiendo el paso por caminos que conectan con soluciones de alta calidad", isCorrect: true, explanation: "Correcto: Un tenure muy largo acota drásticamente las opciones viables y puede asfixiar la búsqueda, mientras que uno muy corto no previene los ciclos cerrados." },
+        { id: "b", text: "Convierte el problema en un sistema determinista lineal", isCorrect: false, explanation: "El problema subyacente sigue siendo combinatorio." },
+        { id: "c", text: "Provoca que la memoria RAM se agote instantáneamente", isCorrect: false, explanation: "El tenure típicamente oscila entre 7 y 20 elementos, ocupando bytes despreciables." }
+      ]
+    }
+  ]}
+/>

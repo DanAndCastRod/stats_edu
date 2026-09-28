@@ -1,0 +1,7 @@
+{
+  "title": "Programación No Lineal",
+  "code": "IO213",
+  "description": "Optimización continua no lineal: caracterización de convexidad, métodos de descenso de gradiente con búsqueda de línea de Armijo, métodos Cuasi-Newton (BFGS), condiciones KKT, dualidad lagrangiana y métodos de penalización/barrera.",
+  "slug": "mioe-s2-programacion-no-lineal",
+  "isMock": false
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Administración Industrial",
+  "slug": "administracion-industrial",
+  "code": "II143",
+  "description": "Evolución del pensamiento administrativo en la manufactura y servicios, diseño y modelamiento de procesos con BPMN, gestión estratégica de la productividad y cuadros de mando integral.",
+  "credits": 3,
+  "ects": 6,
+  "semester": 3,
+  "isMock": false
+}

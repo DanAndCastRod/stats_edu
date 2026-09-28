@@ -1,0 +1,152 @@
+---
+title: "Proceso de Poisson Homogéneo e Inter-arribos Exponenciales"
+order: 1
+description: "Postulados formales del proceso de Poisson con tasa lambda, distribución de tiempos entre arribos, pérdida de memoria y propiedades de agregación."
+bloomLevel: "APPLY"
+estimatedMinutes: 50
+quiz:
+  - question: "¿Qué propiedad matemática única caracteriza a la distribución exponencial de los tiempos entre arribos en un proceso de Poisson?"
+    options:
+      - "Pérdida de memoria (falta de envejecimiento): P(T > s + t | T > s) = P(T > t)"
+      - "Simetría perfecta alrededor de la media muestral"
+      - "Varianza idéntica a cero"
+      - "Soporte acotado en el intervalo [0, 1]"
+    answer: 0
+    explanation: "La distribución exponencial es la única distribución continua con la propiedad de pérdida de memoria, lo que significa que el tiempo restante hasta el próximo evento es independiente del tiempo ya transcurrido."
+  - question: "Si dos procesos de Poisson independientes N_1(t) y N_2(t) tienen tasas lambda_1 = 3 clientes/hora y lambda_2 = 5 clientes/hora, ¿cuál es el proceso resultante al fusionar ambos flujos de llegada?"
+    options:
+      - "Un proceso de Poisson de tasa agregada lambda = lambda_1 + lambda_2 = 8 clientes/hora"
+      - "Un proceso con distribución normal de media 15"
+      - "Un proceso determinístico con llegadas cada 15 minutos"
+      - "Un proceso binomial con n = 8"
+    answer: 0
+    explanation: "Por el teorema de superposición de Poisson, la suma de procesos de Poisson independientes es un proceso de Poisson con tasa igual a la suma de las tasas individuales."
+---
+
+# Introducción
+
+> En un centro logístico, las órdenes de despacho arriban de forma impredecible a lo largo de la jornada laboral. En una red de telecomunicaciones, los paquetes de datos fluyen continuamente. El **Proceso de Poisson** es el modelo probabilístico estándar para contar eventos raros e independientes que ocurren en un continuo temporal.
+
+Un proceso de conteo $\{N(t), t \ge 0\}$ registra el número acumulado de eventos ocurridos en el intervalo $[0, t]$.
+
+<Callout type="info">
+**Dualidad Fundamental:** El número de eventos en un intervalo de longitud fija sigue una **distribución de Poisson** (discreta), mientras que el tiempo transcurrido entre dos eventos consecutivos sigue una **distribución exponencial** (continua).
+</Callout>
+
+## Objetivos de Aprendizaje
+- Comprender los tres axiomas infinitesimales que definen el proceso de Poisson homogéneo.
+- Deducir la distribución exponencial de los tiempos entre arribos $T_k$.
+- Explotar la propiedad de pérdida de memoria en modelos de fiabilidad y atención.
+- Aplicar las propiedades de superposición (fusión) y descomposición (splitting) de Poisson en Python.
+
+---
+
+# Fundamentos Teóricos
+
+### Axiomas Infinitesimales del Proceso
+
+Un proceso de conteo $\{N(t), t \ge 0\}$ con tasa constante $\lambda > 0$ es un **Proceso de Poisson Homogéneo** si:
+1. $N(0) = 0$.
+2. Posee **incrementos independientes:** Para cualquier conjunto disjunto de instantes $t_1 < t_2 < t_3 < t_4$, el número de eventos $N(t_2) - N(t_1)$ es independiente de $N(t_4) - N(t_3)$.
+3. Posee **incrementos estacionarios:** La distribución de $N(t + h) - N(t)$ depende solo de la duración $h$, no del tiempo $t$.
+4. Condiciones de orden infinitesimal cuando $h \to 0$:
+   $$\mathbb{P}(N(t + h) - N(t) = 1) = \lambda h + o(h)$$
+   $$\mathbb{P}(N(t + h) - N(t) \ge 2) = o(h)$$
+
+### Distribución de Poisson
+
+A partir de estos axiomas, el número de eventos en un intervalo de duración $t$ sigue una distribución de Poisson con parámetro $\lambda t$:
+
+$$\mathbb{P}(N(t) = k) = \frac{(\lambda t)^k e^{-\lambda t}}{k!}, \quad k = 0, 1, 2, \dots$$
+
+$$\mathbb{E}[N(t)] = \lambda t, \quad \text{Var}(N(t)) = \lambda t$$
+
+### Tiempos Entre Arribos
+
+Sean $T_1, T_2, \dots$ las variables aleatorias que representan el tiempo transcurrido entre eventos sucesivos.
+
+$$\mathbb{P}(T_1 > t) = \mathbb{P}(N(t) = 0) = e^{-\lambda t}$$
+
+$$F_T(t) = \mathbb{P}(T_1 \le t) = 1 - e^{-\lambda t}, \quad t \ge 0$$
+
+$$f_T(t) = \lambda e^{-\lambda t}, \quad t \ge 0$$
+
+Por tanto, los tiempos entre arribos son variables aleatorias independientes e idénticamente distribuidas (i.i.d.) con distribución $\text{Exponencial}(\lambda)$, con:
+
+$$\mathbb{E}[T] = \frac{1}{\lambda}, \quad \text{Var}(T) = \frac{1}{\lambda^2}$$
+
+---
+
+# Laboratorio en Python: Simulación y Verificación de Flujo de Pedidos
+
+```python
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# Parámetro: tasa de arribo lambda = 4 pedidos por hora
+tasa_lambda = 4.0  # eventos/hora
+tiempo_simulacion = 10.0  # horas de operación
+
+np.random.seed(42)
+
+# 1. Generación de tiempos entre arribos exponenciales
+tiempos_inter = []
+tiempo_acum = 0.0
+while tiempo_acum < tiempo_simulacion:
+    dt = np.random.exponential(scale=1.0/tasa_lambda)
+    tiempo_acum += dt
+    if tiempo_acum <= tiempo_simulacion:
+        tiempos_inter.append(dt)
+
+n_eventos = len(tiempos_inter)
+tiempos_arribo = np.cumsum(tiempos_inter)
+
+print(f"Total de pedidos simulados en {tiempo_simulacion} horas: {n_eventos}")
+print(f"Media teórica de arribos: {tasa_lambda * tiempo_simulacion:.1f}")
+print(f"Tiempo medio entre arribos observado: {np.mean(tiempos_inter):.4f} horas ({np.mean(tiempos_inter)*60:.1f} min)")
+print(f"Tiempo medio teórico: {1.0/tasa_lambda:.4f} horas ({60.0/tasa_lambda:.1f} min)")
+
+# 2. Partición por horas para verificar distribución de Poisson
+horas = np.floor(tiempos_arribo).astype(int)
+conteo_por_hora = pd.Series(horas).value_counts().reindex(range(int(tiempo_simulacion)), fill_value=0)
+
+media_obs = conteo_por_hora.mean()
+var_obs = conteo_por_hora.var()
+
+print(f"\nConteo horario medio observado: {media_obs:.2f}")
+print(f"Varianza observada (Poisson teórica Media=Var={tasa_lambda}): {var_obs:.2f}")
+
+# 3. Superposición de dos fuentes de pedidos: Nacionales (lambda=3) y Exportación (lambda=1)
+# Probabilidad de que el próximo arribo sea de Exportación: lambda_exp / (lambda_nac + lambda_exp)
+prob_exp = 1.0 / (3.0 + 1.0)
+print(f"\nProbabilidad de que el próximo pedido sea de exportación: {prob_exp*100:.1f}%")
+```
+
+---
+
+# Autoevaluación
+
+<Quiz
+  title="Quiz: Proceso de Poisson Homogéneo"
+  questions={[
+    {
+      id: "q_poi_1",
+      text: "Si los camiones llegan a una tolva según un proceso de Poisson con tasa lambda = 6 camiones/hora, ¿cuál es la probabilidad de que no llegue ningún camión en los próximos 20 minutos (1/3 de hora)?",
+      options: [
+        { id: "a", text: "e^(-2) = 0.1353 (ya que lambda * t = 6 * (1/3) = 2)", isCorrect: true, explanation: "P(N(1/3) = 0) = (2^0 * e^(-2)) / 0! = e^(-2) approx 0.1353." },
+        { id: "b", text: "e^(-6) = 0.0025", isCorrect: false, explanation: "6 corresponde a una hora completa, no a 20 minutos." },
+        { id: "c", text: "1 - 1/3 = 0.6667", isCorrect: false, explanation: "La probabilidad exponencial de cero eventos es e^(-lambda*t), no lineal." }
+      ]
+    },
+    {
+      id: "q_poi_2",
+      text: "Un operario lleva esperando 15 minutos la llegada de una orden en un proceso de Poisson. La probabilidad de que deba esperar al menos 10 minutos adicionales es:",
+      options: [
+        { id: "a", text: "Exactamente igual a la probabilidad de esperar al menos 10 minutos desde cero (por pérdida de memoria)", isCorrect: true, explanation: "La propiedad de pérdida de memoria establece P(T > 15 + 10 | T > 15) = P(T > 10). El proceso no tiene memoria del tiempo transcurrido." },
+        { id: "b", text: "Cero, porque ya superó el tiempo promedio", isCorrect: false, explanation: "La distribución exponencial tiene soporte infinito y no presenta cota superior estricta." },
+        { id: "c", text: "El doble de la probabilidad original", isCorrect: false, explanation: "La probabilidad condicional no se amplifica." }
+      ]
+    }
+  ]}
+/>

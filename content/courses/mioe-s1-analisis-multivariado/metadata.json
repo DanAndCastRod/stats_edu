@@ -1,0 +1,7 @@
+{
+  "title": "Análisis Multivariado",
+  "code": "IO123",
+  "description": "Modelado probabilístico en R^p, distribución normal multivariante, contrastes de hipótesis vectoriales de Hotelling, PCA, análisis factorial y discriminante.",
+  "slug": "mioe-s1-analisis-multivariado",
+  "isMock": false
+}
