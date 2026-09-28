@@ -10,7 +10,7 @@ const AVAILABLE_COURSES = [
     {
         id: "estadistica-i",
         title: "Estadística I",
-        code: "511-23",
+        code: "II4D3",
         slug: "estadistica-i",
         description: "Fundamentos de Estadística Descriptiva y Probabilidad para la toma de decisiones basada en datos.",
         isMock: false,
@@ -18,7 +18,7 @@ const AVAILABLE_COURSES = [
     {
         id: "estadistica-ii",
         title: "Estadística II",
-        code: "511-24",
+        code: "II5A3",
         slug: "estadistica-ii",
         description: "Inferencia estadística avanzada, intervalos de confianza, pruebas de hipótesis y ANOVA.",
         isMock: false,
@@ -26,7 +26,7 @@ const AVAILABLE_COURSES = [
     {
         id: "investigacion-operaciones-i",
         title: "Investigación de Operaciones I",
-        code: "511-31",
+        code: "II7D3",
         slug: "investigacion-operaciones-i",
         description: "Programación lineal, método simplex, teoría de la dualidad, análisis de sensibilidad y optimización.",
         isMock: false,
@@ -34,7 +34,7 @@ const AVAILABLE_COURSES = [
     {
         id: "investigacion-operaciones-ii",
         title: "Investigación de Operaciones II",
-        code: "511-32",
+        code: "II8B3",
         slug: "investigacion-operaciones-ii",
         description: "Programación dinámica, cadenas de Markov, teoría de colas, inventarios probabilísticos y simulación.",
         isMock: false,

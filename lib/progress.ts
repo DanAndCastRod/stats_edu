@@ -55,3 +55,67 @@ export async function submitQuizResult(topicId: string, score: number) {
 export function getAllUserProgress(): Record<string, TopicProgress> {
     return getStorage()
 }
+
+export interface StudentProfile {
+    name: string
+    email: string
+    studentCode: string
+    career: string
+    semester: string
+}
+
+const PROFILE_KEY = "stats_edu_student_profile_v1"
+
+export function getStudentProfile(): StudentProfile {
+    if (typeof window === "undefined") {
+        return { name: "Estudiante UTP", email: "estudiante@utp.edu.co", studentCode: "", career: "Ingeniería Industrial", semester: "4" }
+    }
+    try {
+        const raw = localStorage.getItem(PROFILE_KEY)
+        if (raw) return JSON.parse(raw)
+    } catch {
+        // ignore
+    }
+    return { name: "Estudiante UTP", email: "estudiante@utp.edu.co", studentCode: "", career: "Ingeniería Industrial", semester: "4" }
+}
+
+export function saveStudentProfile(profile: Partial<StudentProfile>): StudentProfile {
+    const current = getStudentProfile()
+    const updated = { ...current, ...profile }
+    if (typeof window !== "undefined") {
+        try {
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(updated))
+        } catch {
+            // ignore
+        }
+    }
+    return updated
+}
+
+export function exportProgressBackup(): string {
+    const data = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        profile: getStudentProfile(),
+        progress: getAllUserProgress()
+    }
+    return JSON.stringify(data, null, 2)
+}
+
+export function importProgressBackup(jsonString: string): boolean {
+    try {
+        const parsed = JSON.parse(jsonString)
+        if (parsed && typeof parsed === "object") {
+            if (parsed.profile) {
+                saveStudentProfile(parsed.profile)
+            }
+            if (parsed.progress && typeof parsed.progress === "object") {
+                saveStorage(parsed.progress)
+            }
+            return true
+        }
+    } catch {
+        return false
+    }
+    return false
+}

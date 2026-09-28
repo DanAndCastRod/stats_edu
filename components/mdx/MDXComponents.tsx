@@ -5,6 +5,8 @@ import { PythonEditor } from "@/components/widgets/PythonEditor"
 import { Quiz } from "@/components/widgets/Quiz"
 import { StatsChart } from "./StatsChart"
 import { VarianceExplainer } from "@/components/interactive/VarianceExplainer"
+import { LinearProgrammingVisualizer } from "@/components/interactive/LinearProgrammingVisualizer"
+import { HypothesisTestingVisualizer } from "@/components/interactive/HypothesisTestingVisualizer"
 import {
     CLTSimulation,
     DraggableScatter,
@@ -148,6 +150,8 @@ export const components = {
     Quiz,
     StatsChart,
     VarianceExplainer,
+    LinearProgrammingVisualizer,
+    HypothesisTestingVisualizer,
     // Interactive Chart Components
     CLTSimulation,
     DraggableScatter,

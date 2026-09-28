@@ -7,15 +7,15 @@ import { AuthProvider } from "@/components/AuthProvider"
 const inter = Inter({ subsets: ["latin"] });
 
 export const viewport: Viewport = {
-  themeColor: "#2563EB",
+  themeColor: "#1E3A8A",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
 }
 
 export const metadata: Metadata = {
-  title: "Stats.edu - Aprende Estadística",
-  description: "Plataforma de Estadística e Investigación de Operaciones de la UTP. Aprende con simulaciones interactivas.",
+  title: "StatsEdu UTP — Portal Académico de Estadística e Investigación de Operaciones",
+  description: "Facultad de Ingeniería Industrial — Universidad Tecnológica de Pereira. Cátedra digital, computación científica en Python Wasm, modelación matemática y laboratorio interactivo GEIO.",
   manifest: "/manifest.json",
   icons: {
     apple: "/icons/icon-192x192.png",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Stats.edu",
+    title: "StatsEdu UTP",
   },
 };
 
@@ -37,8 +37,8 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <AuthProvider>

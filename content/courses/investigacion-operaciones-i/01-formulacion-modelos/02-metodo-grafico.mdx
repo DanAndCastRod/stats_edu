@@ -45,7 +45,19 @@ graph TD
 
 ---
 
-# 3. Código en Python para Trazar la Región Factible
+# 3. Laboratorio Visual: Explorador Interactivo del Método Gráfico (UTP)
+
+Explora a continuación el comportamiento de un modelo clásico de programación lineal en 2D. Desplaza el deslizador de ganancia $Z$ para observar cómo la recta de isoganancia avanza sobre la región factible y alcanza el vértice óptimo en el punto extremo $C(20, 60)$.
+
+<LinearProgrammingVisualizer />
+
+<Callout type="note">
+**Análisis de Sensibilidad y Holguras:** Al hacer clic en cada vértice factible, revisa las variables de holgura ($s_1, s_2, s_3$). Las restricciones con holgura nula ($s_i = 0$) representan los cuellos de botella de la planta. Un aumento en la disponibilidad horaria de estos talleres desplazaría la frontera y aumentaría el valor óptimo de $Z^*$.
+</Callout>
+
+---
+
+# 4. Código en Python para Trazar la Región Factible
 
 ```python
 import numpy as np

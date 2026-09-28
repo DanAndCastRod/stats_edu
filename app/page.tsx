@@ -1,9 +1,27 @@
 import { Navbar } from "@/components/shared/PublicNavbar"
 import { HeroSection } from "@/components/landing/HeroSection"
+import { InteractiveLabDemo } from "@/components/landing/InteractiveLabDemo"
+import { CurriculumSection } from "@/components/landing/CurriculumSection"
 import { FeaturesSection } from "@/components/landing/FeaturesSection"
 import { CoursePreviewSection } from "@/components/landing/CoursePreviewSection"
+import { GraduateProgramBanner } from "@/components/landing/GraduateProgramBanner"
+import { GeioLabSection } from "@/components/landing/GeioLabSection"
+import { StudentGuideSection } from "@/components/landing/StudentGuideSection"
 import Link from "next/link"
-import { BarChart3, GraduationCap, Github, ArrowRight, BookOpen, LayoutDashboard, Terminal, CheckCircle2 } from "lucide-react"
+import {
+    GraduationCap,
+    BookOpen,
+    Building2,
+    FlaskConical,
+    Github,
+    ExternalLink,
+    MapPin,
+    Mail,
+    Phone,
+    ShieldCheck,
+    FileText,
+    LayoutDashboard
+} from "lucide-react"
 
 export default function Home() {
     return (
@@ -11,152 +29,186 @@ export default function Home() {
             <Navbar />
             <main className="flex-1 overflow-x-hidden">
                 <HeroSection />
+                <InteractiveLabDemo />
+                <CurriculumSection />
                 <FeaturesSection />
                 <CoursePreviewSection />
-
-                {/* Academic Callout / Pre-Footer CTA */}
-                <section className="py-20 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900/60 border-t border-slate-200/80 dark:border-slate-800/80">
-                    <div className="container mx-auto px-4">
-                        <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-950 text-white p-8 sm:p-12 md:p-16 relative overflow-hidden shadow-2xl border border-blue-800/40">
-                            {/* Ambient background glow */}
-                            <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
-                            <div className="absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
-
-                            <div className="relative z-10 text-center max-w-3xl mx-auto">
-                                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold text-blue-200 backdrop-blur-md border border-white/10 mb-6">
-                                    <GraduationCap className="h-4 w-4 text-blue-300" />
-                                    <span>Formación Universitaria de Excelencia</span>
-                                </div>
-
-                                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-6 leading-tight">
-                                    Impulsa tus decisiones con analítica e ingeniería
-                                </h2>
-
-                                <p className="text-base sm:text-lg text-slate-300 mb-8 leading-relaxed">
-                                    Aprende con simulaciones interactivas, código Python en tiempo real y evaluaciones formativas con retroalimentación inmediata.
-                                </p>
-
-                                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                    <Link
-                                        href="/courses"
-                                        className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 px-8 text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/30 active:scale-95 group"
-                                    >
-                                        <span>Explorar los 4 Cursos</span>
-                                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                                    </Link>
-                                    <Link
-                                        href="/courses/estadistica-i"
-                                        className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 px-8 text-sm font-semibold text-white transition-all backdrop-blur-md active:scale-95"
-                                    >
-                                        <span>Iniciar con Estadística I (511-23)</span>
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <GraduateProgramBanner />
+                <GeioLabSection />
+                <StudentGuideSection />
             </main>
 
-            {/* Platform Footer */}
-            <footer className="border-t border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-400 py-16 transition-colors">
+            {/* Academic Institutional Footer */}
+            <footer className="border-t border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-300 dark:bg-slate-950 dark:text-slate-400 py-16 transition-colors">
                 <div className="container mx-auto px-4 max-w-6xl">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-                        {/* Brand Column */}
-                        <div className="md:col-span-2">
-                            <div className="flex items-center gap-2.5 mb-4">
-                                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-2 rounded-xl shadow-md shadow-blue-500/20">
-                                    <BarChart3 className="h-5 w-5" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+                        {/* Col 1: Institutional Identity */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2.5">
+                                <div className="bg-blue-800 text-white p-2 rounded-xl shadow-xs">
+                                    <GraduationCap className="h-5 w-5" />
                                 </div>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="font-extrabold text-2xl text-white tracking-tight">stats</span>
-                                    <span className="font-extrabold text-2xl text-amber-400 tracking-tight">edu</span>
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-950/80 px-1.5 py-0.5 rounded border border-blue-800/80 ml-1.5">
-                                        UTP
+                                <div>
+                                    <span className="font-extrabold text-lg text-white tracking-tight block">
+                                        StatsEdu UTP
+                                    </span>
+                                    <span className="text-[11px] text-blue-300 font-semibold block">
+                                        Cátedra Digital Universitaria
                                     </span>
                                 </div>
                             </div>
-                            <p className="text-sm text-slate-300 max-w-sm leading-relaxed mb-5">
-                                Plataforma educativa interactiva de Estadística e Investigación de Operaciones de la Universidad Tecnológica de Pereira.
+
+                            <p className="text-xs text-slate-400 leading-relaxed">
+                                Plataforma formativa del <span className="text-slate-200 font-semibold">Área de Investigación de Operaciones y Estadística</span> de la <span className="text-slate-200 font-semibold">Facultad de Ingeniería Industrial</span> en la Universidad Tecnológica de Pereira.
                             </p>
-                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                                <GraduationCap className="h-4 w-4 text-blue-400 shrink-0" />
-                                <span>Facultad de Ingeniería Industrial • Pereira, Risaralda, Colombia</span>
+
+                            <div className="space-y-2 text-xs text-slate-400">
+                                <div className="flex items-start gap-2">
+                                    <Building2 className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+                                    <span>Campus La Julita, Edificio 5 — Fac. de Ingeniería Industrial</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <MapPin className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                                    <span>Pereira, Risaralda, Colombia</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Cursos Oficiales Column */}
-                        <div>
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-4">
-                                Cursos Oficiales
+                        {/* Col 2: Pregrado Cursos Oficiales */}
+                        <div className="space-y-3">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 pb-1 border-b border-slate-800">
+                                Asignaturas de Pregrado
                             </h4>
-                            <ul className="space-y-2.5 text-sm">
+                            <ul className="space-y-2 text-xs">
                                 <li>
                                     <Link href="/courses/estadistica-i" className="hover:text-white transition-colors flex items-center justify-between group">
                                         <span>Estadística I</span>
-                                        <span className="font-mono text-[10px] text-blue-400 font-bold">511-23</span>
+                                        <span className="font-mono text-[10px] text-blue-400 font-bold bg-blue-950 px-1.5 py-0.5 rounded border border-blue-900">
+                                            II4D3
+                                        </span>
                                     </Link>
                                 </li>
                                 <li>
                                     <Link href="/courses/estadistica-ii" className="hover:text-white transition-colors flex items-center justify-between group">
                                         <span>Estadística II</span>
-                                        <span className="font-mono text-[10px] text-indigo-400 font-bold">511-24</span>
+                                        <span className="font-mono text-[10px] text-indigo-400 font-bold bg-indigo-950 px-1.5 py-0.5 rounded border border-indigo-900">
+                                            II5A3
+                                        </span>
                                     </Link>
                                 </li>
                                 <li>
                                     <Link href="/courses/investigacion-operaciones-i" className="hover:text-white transition-colors flex items-center justify-between group">
-                                        <span>Inv. Operaciones I</span>
-                                        <span className="font-mono text-[10px] text-amber-400 font-bold">511-31</span>
+                                        <span>Investigación de Operaciones I</span>
+                                        <span className="font-mono text-[10px] text-sky-400 font-bold bg-sky-950 px-1.5 py-0.5 rounded border border-sky-900">
+                                            II7D3
+                                        </span>
                                     </Link>
                                 </li>
                                 <li>
                                     <Link href="/courses/investigacion-operaciones-ii" className="hover:text-white transition-colors flex items-center justify-between group">
-                                        <span>Inv. Operaciones II</span>
-                                        <span className="font-mono text-[10px] text-emerald-400 font-bold">511-32</span>
+                                        <span>Investigación de Operaciones II</span>
+                                        <span className="font-mono text-[10px] text-emerald-400 font-bold bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-900">
+                                            II8B3
+                                        </span>
                                     </Link>
                                 </li>
                             </ul>
                         </div>
 
-                        {/* Plataforma Column */}
-                        <div>
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-4">
-                                Plataforma
+                        {/* Col 3: Posgrado & Laboratorio */}
+                        <div className="space-y-3">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 pb-1 border-b border-slate-800">
+                                Posgrado & Laboratorio
                             </h4>
-                            <ul className="space-y-2.5 text-sm">
+                            <ul className="space-y-2 text-xs">
                                 <li>
-                                    <Link href="/courses" className="hover:text-white transition-colors flex items-center gap-2">
-                                        <BookOpen className="h-3.5 w-3.5 text-blue-400" />
-                                        <span>Catálogo de Lecciones</span>
+                                    <Link href="/#posgrado" className="hover:text-white transition-colors flex items-center gap-1.5">
+                                        <FlaskConical className="h-3.5 w-3.5 text-indigo-400" />
+                                        <span>Maestría en IO y Estadística</span>
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/dashboard" className="hover:text-white transition-colors flex items-center gap-2">
-                                        <LayoutDashboard className="h-3.5 w-3.5 text-indigo-400" />
-                                        <span>Panel del Estudiante</span>
+                                    <Link href="/#laboratorio-geio" className="hover:text-white transition-colors flex items-center gap-1.5">
+                                        <Building2 className="h-3.5 w-3.5 text-emerald-400" />
+                                        <span>Laboratorio GEIO</span>
                                     </Link>
+                                </li>
+                                <li>
+                                    <Link href="/#curriculo" className="hover:text-white transition-colors flex items-center gap-1.5">
+                                        <BookOpen className="h-3.5 w-3.5 text-amber-400" />
+                                        <span>Malla Curricular UTP</span>
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/dashboard" className="hover:text-white transition-colors flex items-center gap-1.5">
+                                        <LayoutDashboard className="h-3.5 w-3.5 text-blue-400" />
+                                        <span>Seguimiento del Estudiante</span>
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Col 4: Enlaces Institucionales */}
+                        <div className="space-y-3">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 pb-1 border-b border-slate-800">
+                                Enlaces Institucionales
+                            </h4>
+                            <ul className="space-y-2 text-xs">
+                                <li>
+                                    <a
+                                        href="https://www.utp.edu.co"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="hover:text-white transition-colors flex items-center justify-between"
+                                    >
+                                        <span>Portal Oficial UTP</span>
+                                        <ExternalLink className="h-3 w-3 text-slate-500" />
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="https://industrial.utp.edu.co"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="hover:text-white transition-colors flex items-center justify-between"
+                                    >
+                                        <span>Fac. de Ingeniería Industrial</span>
+                                        <ExternalLink className="h-3 w-3 text-slate-500" />
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="https://biblioteca.utp.edu.co"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="hover:text-white transition-colors flex items-center justify-between"
+                                    >
+                                        <span>Biblioteca Jorge Roa Martínez</span>
+                                        <ExternalLink className="h-3 w-3 text-slate-500" />
+                                    </a>
                                 </li>
                                 <li>
                                     <a
                                         href="https://github.com/DanAndCastRod/stats_edu"
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="hover:text-white transition-colors inline-flex items-center gap-2"
+                                        className="hover:text-white transition-colors flex items-center gap-1.5"
                                     >
-                                        <Github className="h-3.5 w-3.5 text-slate-300" />
-                                        <span>Repositorio GitHub</span>
+                                        <Github className="h-3.5 w-3.5 text-slate-400" />
+                                        <span>Repositorio en GitHub</span>
                                     </a>
                                 </li>
                             </ul>
                         </div>
                     </div>
 
-                    {/* Bottom strip */}
-                    <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-4">
+                    {/* Footer bottom bar */}
+                    <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 gap-4">
                         <div>
-                            &copy; {new Date().getFullYear()} Universidad Tecnológica de Pereira. Excelencia Académica e Innovación Pedagógica.
+                            &copy; {new Date().getFullYear()} Universidad Tecnológica de Pereira. Facultad de Ingeniería Industrial. Área de Investigación de Operaciones y Estadística.
                         </div>
-                        <div className="flex flex-wrap items-center gap-3 text-slate-400 font-mono text-[11px]">
-                            <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">Next.js 15</span>
+                        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-400">
+                            <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">Next.js 15 Static Export</span>
                             <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">Pyodide Wasm</span>
                             <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">KaTeX</span>
                             <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">Tailwind CSS</span>
