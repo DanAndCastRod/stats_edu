@@ -166,3 +166,105 @@
       * `node ./node_modules/typescript/bin/tsc --noEmit`: 0 errores.
 - **Estado Consolidado**: Subagente A (Pregrado), Subagente B (Posgrado MIOE) y Subagente C (Herramientas `/tools`) completados al 100% con éxito y verificados en build estático.
 
+---
+
+### Sesión 4: 2026-09-28 — Corrección del Bug "Semana 1", Catálogo Avanzado, Certificación en PDF, Búsqueda Global y Exportación Científica
+- **Objetivo**:
+  1. Corregir el bug por el cual todas las lecciones mostraban estáticamente "Semana 1" en sus cabeceras.
+  2. Implementar todas las mejoras de alto impacto solicitadas por el usuario:
+     - Catálogo de Cursos avanzado (`/courses`) con pestañas por ciclo formativo (Pregrado vs Posgrado MIOE), filtros por área y búsqueda instantánea.
+     - Dashboard enriquecido con las 21 asignaturas y Generador de Certificados y Reporte Oficial de Notas en PDF imprimible/descargable (`components/dashboard/AcademicCertificateModal.tsx`).
+     - Buscador Global Inteligente tipo Command Palette (`Cmd + K` / `Ctrl + K`) que indexe cursos, lecciones y herramientas.
+     - Exportación a CSV / Excel estructurado y copia de informes en la suite de herramientas interactivas (`/tools`).
+     - Componente de ejecución de código Python interactivo en el navegador (`PyodideRunner`).
+- **Diagnóstico del Bug "Semana 1"**:
+  - En `lib/courses.ts`, la función `getCourseData` inicializaba por defecto el campo `weeks` de cada módulo con un objeto estático `{ number: 1 }`. En `app/courses/[slug]/[topicSlug]/page.tsx`, la cabecera consumía este valor directamente.
+  - **Solución**: Calcular la numeración cronológica real de las semanas a lo largo del semestre (`currentWeekNum++`) y estructurar el badge como `Módulo {moduleOrder} • Semana {weekNumber}`.
+- **Orquestación de Subagentes**:
+  - **Subagente 1 (`Catalog & Dashboard Enhancer`)**:
+    * **Estado:** ✅ Completado al 100%.
+    * **Acciones Ejecutadas**:
+      1. **Corrección del Bug 'Semana 1'**:
+         - En `lib/courses.ts`, se refactorizó `getCourseData` para ordenar los módulos cronológicamente por `modOrder` y calcular el número de semana secuencial a lo largo de todo el curso (`currentWeekNumber++`), asignando semanas a cada módulo según sus lecciones (módulos de 1 o 2 temas asignan 1 semana por lección, permitiendo que el Módulo 1 tenga Semana 1 y 2, y el Módulo 2 inicie en la Semana 3).
+         - En `app/courses/[slug]/[topicSlug]/page.tsx`, se calculó `currentModule` y `currentWeek` para la lección activa, actualizando el badge superior a: `Módulo {moduleOrder} • Semana {weekNumber}` y el título de la unidad, eliminando la cadena estática 'Semana 1'.
+      2. **Catálogo Unificado y Taxonomía Curricular (`lib/curriculum-catalog.ts`)**:
+         - Creación del catálogo maestro oficial con las 21 asignaturas estructuradas por programa (11 de Pregrado en Ingeniería Industrial y 10 de Posgrado MIOE), áreas de formación (Investigación de Operaciones, Estadística, Administración, Finanzas, Producción, Ciencias Básicas), ciclos de maestría (S0 Nivelatorio, S1 Obligatorias, S2 Especializadas), códigos oficiales UTP (`II4D3`, `II7D3`, `IO113`, etc.), créditos UTP, ECTS, semestre y docentes coordinadores.
+      3. **Rediseño del Catálogo de Cursos (`app/courses/page.tsx` & `components/courses/CourseCatalog.tsx`)**:
+         - Pestaña 1: 'Todos los Cursos' (21 asignaturas).
+         - Pestaña 2: 'Pregrado en Ingeniería Industrial' (11 asignaturas) con filtro reactivo por 6 áreas de formación.
+         - Pestaña 3: 'Posgrado: Maestría en IO y Estadística (MIOE)' (10 asignaturas) con filtro reactivo por ciclos S0, S1 y S2.
+         - Buscador reactivo instantáneo por código oficial, título, semestre, área temática o palabras clave.
+         - Tarjetas académicas interactivas con badges de código UTP, semestre, conteo de unidades y lecciones, créditos y botón de acceso directo.
+      4. **Rediseño del Dashboard con las 21 Asignaturas (`app/(protected)/dashboard/page.tsx` & `components/dashboard/CourseGrid.tsx`)**:
+         - Actualización de `AVAILABLE_COURSES` a las 21 asignaturas oficiales indexadas en `lib/curriculum-catalog.ts`.
+         - Cálculo en tiempo real del porcentaje de avance comparando los tópicos completados en `localStorage` (`stats_edu_progress_v1`) contra el total de lecciones de cada asignatura.
+         - Cálculo de calificaciones promedio de quizzes por materia y ponderado general.
+         - Selector de filtros rápidos: Todas (21), Pregrado (11), Posgrado (10), En Curso / Iniciadas.
+         - Banner destacado de acceso a la certificación y reporte oficial.
+      5. **Generador de Certificado y Reporte Académico Oficial en PDF (`components/dashboard/AcademicCertificateModal.tsx`)**:
+         - Modal interactivo con doble vista:
+           a) *Reporte Oficial de Calificaciones y Avance Curricular* (Sábana de notas con membrete oficial UTP, datos del estudiante desde su perfil en `localStorage`, tabla detallada de materias, lecciones completadas, porcentaje de avance, nota en escala UTP 0.0 a 5.0 y 0 a 100, y estado).
+           b) *Certificado Académico de Culminación* (Formato diploma con diseño heráldico formal, resumen de lecciones y créditos, firmas del Director de Pregrado Ing. Wilson Arenas y Director de Maestría Dr. José A. Soto Mejía).
+         - Sello de certificación digital con código hash verificable (`UTP-IOE-XXXX-XXXX-2026`) y fecha de expedición.
+         - Motor de impresión `@media print` optimizado para generación impecable de PDF vía `window.print()` sin cabeceras parásitas.
+    * **Verificación Técnica**:
+      - `node ./node_modules/typescript/bin/tsc --noEmit`: 0 errores.
+      - `node ./node_modules/next/dist/bin/next lint`: 0 errores, 0 warnings.
+      - `node ./node_modules/next/dist/bin/next build`: 165/165 páginas prerenderizadas en exportación estática Cloudflare Pages (`output: 'export'`) hacia `out/` con código de salida 0.
+  - **Subagente 2 (`Command Palette Developer`)**:
+    * **Estado:** ✅ Completado al 100%.
+    * **Acciones Ejecutadas**:
+      1. **Componente Central de Búsqueda (`components/shared/CommandPalette.tsx`)**:
+         - Implementado como componente reactivo 100% `'use client'` con diseño de modal flotante centrado, desenfoque de fondo (`backdrop-blur-sm`), bloqueo de scroll del body (`overflow = 'hidden'`), encabezado de búsqueda con auto-foco inmediato (`autoFocus` / `inputRef.focus()`), atajo de teclado global `Cmd+K` / `Ctrl+K` para abrir/alternar, y tecla `Escape` o backdrop click para cerrar.
+         - Barra de herramientas con buscador inteligente que normaliza diacríticos (acentos $á, é, í, ó, ú \to a, e, i, o, u$), tokens múltiples y scoring ponderado dando prioridad a códigos oficiales de asignatura, coincidencias en título, subtítulo y etiquetas.
+         - Resultados agrupados visualmente en las 4 categorías solicitadas:
+           * *Asignaturas*: Las 21 asignaturas oficiales UTP (código `II4D3`, `II5A3`, `II7D3`, `II8B3`, `IO113`, etc., programa Pregrado/Posgrado MIOE y enlace `/courses/{slug}`).
+           * *Herramientas Computacionales*: Las 6 calculadoras y simuladores interactivos de la plataforma (`/tools#simplex`, `/tools#queueing`, `/tools#markov`, `/tools#economics`, `/tools#dea`, `/tools#distributions`).
+           * *Lecciones & Contenidos*: 136 temas y módulos temáticos de pregrado y posgrado con enlace `/courses/{slug}/{topicSlug}`.
+           * *Navegación*: Accesos rápidos a *Inicio* (`/`), *Aulas Virtuales* (`/courses`), *Suite de Herramientas* (`/tools`) y *Mi Progreso* (`/dashboard`).
+         - Navegación bidireccional por teclado con flechas `↑` y `↓` (`ArrowDown` / `ArrowUp`), selección con `Enter` para enrutamiento directo con `router.push`, sincronización con hover del cursor del mouse y auto-desplazamiento del elemento activo a la vista (`scrollIntoView({ block: 'nearest' })`).
+         - Estado vacío estilizado (*"No se encontraron resultados para «{query}»"*) con sugerencias académicas de búsqueda y botón para limpiar búsqueda.
+         - Función exportada `openCommandPalette()` para disparar la apertura del modal desde cualquier componente mediante el evento personalizado `statsedu:open-command-palette`.
+      2. **Índice de Búsqueda Dinámico & Generador (`lib/search-data.ts` & `scripts/build-search-index.mjs`)**:
+         - Creación del script extractor `scripts/build-search-index.mjs` que escanea automáticamente todas las carpetas y frontmatters MDX de `content/courses/*`, generando `lib/search-data.ts` con tipado estricto (`SearchItem`, `SearchCategory`).
+         - Total indexado: 167 elementos (21 asignaturas oficiales, 6 herramientas interactivas, 4 accesos rápidos y 136 lecciones temáticas).
+      3. **Integración Global en la Plataforma**:
+         - `app/layout.tsx`: Montado de `<CommandPalette />` globalmente dentro de los providers para accesibilidad inmediata desde cualquier ruta.
+         - `components/shared/PublicNavbar.tsx`: Agregado botón de búsqueda rápida en desktop (lupa + *"Buscar tema o herramienta..."* + badge `Ctrl K` / `⌘K`) y botón con icono de lupa en la barra superior móvil y dentro del cajón móvil.
+         - `components/shared/Navbar.tsx`: Reemplazo del campo de búsqueda estático por el disparador del Command Palette con badge `Ctrl K` / `⌘K` en desktop y botón de lupa en móvil.
+         - `app/tools/page.tsx`: Agregada sincronización automática con el hash de la URL (`hashchange` event listener) para que seleccionar una herramienta en el Command Palette (ej. `/tools#simplex` o `/tools#dea`) active automáticamente el componente correspondiente y realice scroll suave al panel de simulación activo (`#workspace`).
+         - `app/error.tsx`: Creación del componente de captura de errores client-side para manejo robusto de contingencias en la exportación estática.
+      4. **Suite de Pruebas Automatizadas (`scripts/test-command-palette.mjs`)**:
+         - Script de verificación unitaria para indexación de las 21 asignaturas, 6 herramientas, 4 rutas de navegación, normalización de acentos y queries representativas: 100% de pruebas aprobadas.
+    * **Verificación Técnica**:
+      - `node ./node_modules/typescript/bin/tsc --noEmit`: 0 errores.
+      - `node ./node_modules/next/dist/bin/next lint`: 0 errores, 0 warnings.
+      - `node scripts/test-command-palette.mjs`: 100% de pruebas aprobadas con éxito.
+  - **Subagente 3 (`Interactive Exporter & Runner Developer`)**:
+    * **Estado:** ✅ Completado al 100%.
+    * **Capacidades Implementadas**:
+      1. **Utilidades de Exportación Reutilizables (`lib/export-utils.ts`)**:
+         - `downloadCsvFile(filename, rows)`: Formateo RFC 4180 con escape de comillas/comas, prefijo UTF-8 BOM (`\uFEFF`) para visualización inmediata en Microsoft Excel / Calc sin problemas de codificación de caracteres matemáticos ($\lambda, \mu, \pi, \theta, \rho$), creación de Blob y descarga automática en cliente.
+         - `copyToClipboard(text)`: Copia segura al portapapeles con API moderna y fallback para contextos restrictivos.
+         - `formatMarkdownTable(headers, rows)`: Generador de tablas Markdown alineadas para informes académicos y de laboratorio.
+         - `getExportTimestamp()`: Marcador temporal para nomenclatura de archivos.
+      2. **Exportación a CSV y Resumen en Calculadoras de `/tools`**:
+         - `QueueingTheoryCalculator.tsx`: Botón "Exportar a CSV" (parámetros operacionales, métricas de Little $L, L_q, W, W_q, \rho, P_0$, costos y distribución de probabilidades $P_n$ $n=0\dots 15$, tabla de optimización de servidores) y botón "Copiar Resumen" (tabla en Markdown para informes).
+         - `SimplexSolverTool.tsx`: Botón "Exportar Tablas a CSV" (secuencia completa de tablas simplex inicial, intermedias y óptima con variables básicas, costos reducidos y precios sombra duales) y botón "Copiar Resumen".
+         - `EngineeringEconomicsCalculator.tsx`: Botón "Exportar Flujo de Caja a CSV" (flujos netos $FNC_t$, factores de descuento, flujos descontados a VP, acumulados, VPN, TIR, B/C y Payback simple/descontado) y botón "Copiar Resumen".
+         - `MarkovChainAnalyzer.tsx`: Botón "Exportar Matriz a CSV" (matriz estocástica $P$, matriz a $n$ pasos $P^n$ y vector de distribución estacionaria $\pi$) y botón "Copiar Resumen".
+         - `DeaEfficiencyCalculator.tsx`: Botón "Exportar Eficiencia DEA a CSV" (matriz de DMUs, insumos reales, outputs, scores $\theta$, condición, metas proyectadas y pares de benchmarking) y botón "Copiar Resumen".
+      3. **Ejecutor de Código Python en Vivo (`components/interactive/PyodideRunner.tsx`)**:
+         - Componente interactivo para lecciones MDX con editor de texto enriquecido, numeración de líneas sincronizada, soporte de indentación con tecla Tab (4 espacios), ejecución con atajo `Ctrl+Enter` / `Cmd+Enter`.
+         - Compatibilidad dual: usa el contexto `PyodideProvider` si está montado en la página o inicializa un WebWorker local autónomo (`/pyodide.worker.js?v=2`) si se utiliza fuera del provider.
+         - Botones de acción: "▶ Ejecutar Código", "Restablecer Código Original", "Copiar Código" y "Limpiar Consola".
+         - Soporte de salida en tiempo real: stdout, stderr/tracebacks coloreados, tiempo de ejecución en milisegundos y renderizado de gráficos Matplotlib generados en WebAssembly con botón de descarga PNG.
+         - Exportado en `components/interactive/index.ts` y registrado en `components/mdx/MDXComponents.tsx`.
+         - Demostrado e integrado en lecciones clave:
+           * `content/courses/investigacion-operaciones-i/02-metodo-simplex/02-algoritmo-simplex-tabular.mdx` (resolución de programación lineal con `scipy.optimize.linprog`).
+           * `content/courses/estadistica-i/03-distribuciones-continuas/01-distribucion-normal.mdx` (cálculo de probabilidades gaussiana y gráfico de densidad con `scipy.stats.norm`).
+- **Verificación Técnica**:
+  - `node ./node_modules/typescript/bin/tsc --noEmit`: 0 errores.
+  - `node ./node_modules/next/dist/bin/next lint`: 0 errores, 0 warnings.
+- **Estado General**: Todo operativo y verificado estáticamente.
+

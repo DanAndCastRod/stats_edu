@@ -8,7 +8,7 @@ type WorkerMessage =
     | { id: number, type: 'error', error: string }
     | { type: 'status', content?: string, text?: string }
 
-interface PyodideContextType {
+export interface PyodideContextType {
     isReady: boolean
     runCode: (code: string, callbacks: {
         onStdout: (text: string) => void
@@ -18,7 +18,7 @@ interface PyodideContextType {
     terminate: () => void
 }
 
-const PyodideContext = createContext<PyodideContextType | null>(null)
+export const PyodideContext = createContext<PyodideContextType | null>(null)
 
 export function PyodideProvider({ children }: { children: React.ReactNode }) {
     const [isReady, setIsReady] = useState(false)
@@ -90,4 +90,8 @@ export function usePyodide() {
         throw new Error("usePyodide must be used within a PyodideProvider")
     }
     return context
+}
+
+export function usePyodideSafe() {
+    return useContext(PyodideContext)
 }

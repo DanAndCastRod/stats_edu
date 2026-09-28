@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
     GraduationCap,
@@ -14,12 +14,21 @@ import {
     X,
     Building2,
     ArrowRight,
-    Calculator
+    Calculator,
+    Search
 } from "lucide-react"
 import { ThemeToggle } from "./ThemeToggle"
+import { openCommandPalette } from "./CommandPalette"
 
 export function Navbar() {
     const [mobileOpen, setMobileOpen] = useState(false)
+    const [isMac, setIsMac] = useState(false)
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || navigator.userAgent))
+        }
+    }, [])
 
     return (
         <header className="sticky top-0 w-full z-50 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/90 backdrop-blur-md transition-colors">
@@ -114,7 +123,33 @@ export function Navbar() {
                 </nav>
 
                 {/* Right Actions */}
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-2.5">
+                    {/* Desktop Quick Search Button */}
+                    <button
+                        type="button"
+                        onClick={() => openCommandPalette()}
+                        className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-100/90 dark:bg-slate-900/90 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 transition-all cursor-pointer group shadow-2xs"
+                        title="Buscar asignaturas, temas o herramientas (Ctrl+K)"
+                    >
+                        <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors" />
+                        <span className="hidden xl:inline text-slate-600 dark:text-slate-400 font-medium">Buscar tema o herramienta...</span>
+                        <span className="xl:hidden text-slate-600 dark:text-slate-400 font-medium">Buscar...</span>
+                        <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded shadow-2xs">
+                            {isMac ? "⌘K" : "Ctrl K"}
+                        </kbd>
+                    </button>
+
+                    {/* Mobile Quick Search Button */}
+                    <button
+                        type="button"
+                        onClick={() => openCommandPalette()}
+                        className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer"
+                        aria-label="Buscar tema o herramienta"
+                        title="Buscar tema o herramienta"
+                    >
+                        <Search className="h-4 w-4" />
+                    </button>
+
                     <ThemeToggle />
 
                     <Link
@@ -149,6 +184,23 @@ export function Navbar() {
             {/* Mobile Navigation Drawer */}
             {mobileOpen && (
                 <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMobileOpen(false)
+                            openCommandPalette()
+                        }}
+                        className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-800 mb-2"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Search className="h-4 w-4 text-blue-900 dark:text-blue-400" />
+                            <span>Buscar tema o herramienta...</span>
+                        </div>
+                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 rounded">
+                            {isMac ? "⌘K" : "Ctrl K"}
+                        </kbd>
+                    </button>
+
                     <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2">
                         Portal Académico UTP
                     </div>

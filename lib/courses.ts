@@ -79,7 +79,12 @@ export async function getCourseData(slug: string): Promise<CourseWithNavigation 
             return fs.statSync(p).isDirectory()
         })
 
-        const modules: ModuleInfo[] = []
+        const rawModules: {
+            modDir: string
+            modTitle: string
+            modOrder: number
+            topics: TopicInfo[]
+        }[] = []
 
         for (const modDir of moduleDirs) {
             const modPath = path.join(courseDir, modDir)
@@ -117,22 +122,61 @@ export async function getCourseData(slug: string): Promise<CourseWithNavigation 
 
             topics.sort((a, b) => a.order - b.order)
 
-            modules.push({
-                id: `${slug}-${modDir}`,
-                title: modTitle,
-                order: modOrder,
-                weeks: [
-                    {
-                        id: `${slug}-${modDir}-w1`,
-                        title: "Contenido del Módulo",
-                        number: 1,
-                        topics
-                    }
-                ]
+            rawModules.push({
+                modDir,
+                modTitle,
+                modOrder,
+                topics
             })
         }
 
-        modules.sort((a, b) => a.order - b.order)
+        // Sort modules by order before computing chronological weeks
+        rawModules.sort((a, b) => a.modOrder - b.modOrder)
+
+        const modules: ModuleInfo[] = []
+        let currentWeekNumber = 1
+
+        for (const rawMod of rawModules) {
+            const weeks: WeekInfo[] = []
+
+            if (rawMod.topics.length === 0) {
+                weeks.push({
+                    id: `${slug}-${rawMod.modDir}-w${currentWeekNumber}`,
+                    title: `Semana ${currentWeekNumber}`,
+                    number: currentWeekNumber++,
+                    topics: []
+                })
+            } else if (rawMod.topics.length <= 2) {
+                // Modules with 1 or 2 topics allocate 1 week per topic
+                for (const topic of rawMod.topics) {
+                    weeks.push({
+                        id: `${slug}-${rawMod.modDir}-w${currentWeekNumber}`,
+                        title: `Semana ${currentWeekNumber}`,
+                        number: currentWeekNumber++,
+                        topics: [topic]
+                    })
+                }
+            } else {
+                // Modules with >2 topics group topics into weeks (2 topics per week)
+                const chunkSize = 2
+                for (let i = 0; i < rawMod.topics.length; i += chunkSize) {
+                    const chunk = rawMod.topics.slice(i, i + chunkSize)
+                    weeks.push({
+                        id: `${slug}-${rawMod.modDir}-w${currentWeekNumber}`,
+                        title: `Semana ${currentWeekNumber}`,
+                        number: currentWeekNumber++,
+                        topics: chunk
+                    })
+                }
+            }
+
+            modules.push({
+                id: `${slug}-${rawMod.modDir}`,
+                title: rawMod.modTitle,
+                order: rawMod.modOrder,
+                weeks
+            })
+        }
 
         return {
             id: slug,

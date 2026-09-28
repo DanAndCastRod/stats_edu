@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react"
 import { getStudentProfile, saveStudentProfile, exportProgressBackup, importProgressBackup, type StudentProfile } from "@/lib/progress"
-import { User, Download, Upload, Check, Edit2, ShieldCheck, GraduationCap } from "lucide-react"
+import { User, Download, Upload, Check, Edit2, ShieldCheck, GraduationCap, Award } from "lucide-react"
 
-export function DashboardHeader() {
+export function DashboardHeader({ onOpenCertificate }: { onOpenCertificate?: () => void } = {}) {
     const [profile, setProfile] = useState<StudentProfile>({
         name: "Estudiante UTP",
         email: "estudiante@utp.edu.co",
@@ -115,6 +115,18 @@ export function DashboardHeader() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                    {onOpenCertificate && (
+                        <button
+                            type="button"
+                            onClick={onOpenCertificate}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-900 dark:text-blue-100 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/50 border border-amber-300 dark:border-amber-700 rounded-lg transition-colors shadow-sm"
+                            title="Generar Certificado y Reporte de Notas Oficial UTP"
+                        >
+                            <Award className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            Certificado y Reporte
+                        </button>
+                    )}
+
                     <button
                         onClick={() => setIsEditing(!isEditing)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors"

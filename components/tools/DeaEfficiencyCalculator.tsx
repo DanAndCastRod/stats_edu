@@ -13,9 +13,13 @@ import {
     Layers,
     Plus,
     Trash2,
-    RefreshCw
+    RefreshCw,
+    Download,
+    Copy,
+    Check
 } from "lucide-react"
 import { solveDEACCR, DMUData, DEAResult } from "@/lib/tools-math"
+import { downloadCsvFile, copyToClipboard, getExportTimestamp } from "@/lib/export-utils"
 import { MathFormula } from "./MathFormula"
 
 const INITIAL_DMUS: DMUData[] = [
@@ -97,6 +101,99 @@ export function DeaEfficiencyCalculator() {
         }
     }
 
+    const [copied, setCopied] = useState(false)
+
+    const handleExportCsv = () => {
+        const efficientCount = results.filter((r) => r.isEfficient).length
+        const avgTheta = results.reduce((acc, r) => acc + r.theta, 0) / results.length
+
+        const rows: (string | number)[][] = [
+            ["# STATSEDU UTP - ANALISIS ENVOLVENTE DE DATOS (DEA CCR)"],
+            ["# Facultad de Ingenieria Industrial - Universidad Tecnologica de Pereira"],
+            ["# Fecha de Generacion", new Date().toLocaleString("es-CO")],
+            [""],
+            ["SECCION: CONFIGURACION DEL MODELO DEA"],
+            ["Modelo", "DEA CCR Envolvente Orientado a Insumos (CRS)"],
+            ["Total de Unidades de Decision (DMUs)", results.length],
+            ["Unidades en Frontera Eficiente", efficientCount],
+            ["Unidades Ineficientes", results.length - efficientCount],
+            ["Score Promedio de Eficiencia Tecnica", `${(avgTheta * 100).toFixed(2)}%`],
+            ["Variable Insumo 1", input1Name],
+            ["Variable Insumo 2", input2Name],
+            ["Variable Producto / Output", output1Name],
+            [""],
+            ["SECCION: RESULTADOS DETALLADOS DE EFICIENCIA POR DMU"],
+            [
+                "ID",
+                "Nombre DMU",
+                `${input1Name} (Real)`,
+                `${input2Name} (Real)`,
+                `${output1Name} (Real)`,
+                "Score Eficiencia (theta)",
+                "Eficiencia (%)",
+                "Condicion",
+                `Meta ${input1Name} (Proyectada)`,
+                `Meta ${input2Name} (Proyectada)`,
+                "Reduccion Requerida (%)",
+                "Pares de Referencia (Peers y Lambdas)"
+            ]
+        ]
+
+        results.forEach((r) => {
+            const peerStr =
+                r.benchmarks.map((b) => `${b.name} (λ=${b.weight.toFixed(3)})`).join("; ") ||
+                "Unidad de Referencia Propia"
+
+            rows.push([
+                r.id,
+                r.name,
+                r.inputs[0],
+                r.inputs[1],
+                r.outputs[0],
+                r.theta.toFixed(4),
+                (r.theta * 100).toFixed(2),
+                r.isEfficient ? "Eficiente (Frontera Best Practice)" : "Ineficiente",
+                (r.projectedInputs[0] ?? r.inputs[0]).toFixed(2),
+                (r.projectedInputs[1] ?? r.inputs[1]).toFixed(2),
+                ((1 - r.theta) * 100).toFixed(2),
+                peerStr
+            ])
+        })
+
+        const filename = `dea_eficiencia_ccr_${getExportTimestamp()}`
+        downloadCsvFile(filename, rows)
+    }
+
+    const handleCopySummary = async () => {
+        const efficientCount = results.filter((r) => r.isEfficient).length
+        const avgTheta = results.reduce((acc, r) => acc + r.theta, 0) / results.length
+
+        const dmuRows = results
+            .map((r) => {
+                const goals = r.isEfficient
+                    ? "En frontera"
+                    : `x₁: ${r.projectedInputs[0]?.toFixed(2)}, x₂: ${r.projectedInputs[1]?.toFixed(2)}`
+                return `| ${r.name} | ${r.inputs[0]} | ${r.inputs[1]} | ${r.outputs[0]} | ${(r.theta * 100).toFixed(1)}% | ${r.isEfficient ? "★ Eficiente" : "Ineficiente"} | ${goals} |`
+            })
+            .join("\n")
+
+        const markdown = `### Reporte de Eficiencia Técnica — Modelo DEA CCR (StatsEdu UTP)
+**Modelo:** DEA-CCR Envolvente orientado a entradas (CRS) | **Total Unidades:** ${results.length} DMUs  
+**Eficiencia Promedio:** ${(avgTheta * 100).toFixed(1)}% | **Unidades en Frontera Eficiente:** ${efficientCount} de ${results.length}  
+
+| Unidad (DMU) | ${input1Name} | ${input2Name} | ${output1Name} | Score $\\theta$ | Condición | Metas Proyectadas |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+${dmuRows}
+
+*Generado por la Suite de Computación e Investigación Operativa — Universidad Tecnológica de Pereira.*`
+
+        const ok = await copyToClipboard(markdown)
+        if (ok) {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2500)
+        }
+    }
+
     // Chart Geometry: Normalized Inputs Plot (x1/y vs x2/y)
     const svgWidth = 560
     const svgHeight = 280
@@ -175,8 +272,8 @@ export function DeaEfficiencyCalculator() {
                         </p>
                     </div>
 
-                    {/* Presets */}
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Presets and Export Actions */}
+                    <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
                             <Bookmark className="h-3 w-3" /> Casos UTP:
                         </span>
@@ -191,6 +288,32 @@ export function DeaEfficiencyCalculator() {
                             className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-sky-600 hover:text-sky-600 transition-colors"
                         >
                             5 Sucursales Logísticas
+                        </button>
+
+                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1" />
+
+                        {/* Export Buttons */}
+                        <button
+                            onClick={handleExportCsv}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/50 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Descargar reporte completo de eficiencia técnica DEA en formato CSV"
+                        >
+                            <Download className="h-3.5 w-3.5" /> Exportar Eficiencia DEA a CSV
+                        </button>
+                        <button
+                            onClick={handleCopySummary}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Copiar tabla de resultados y metas proyectadas en formato Markdown"
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Copiado!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-3.5 w-3.5 text-slate-500" /> Copiar Resumen
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>

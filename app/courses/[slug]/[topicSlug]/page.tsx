@@ -35,6 +35,15 @@ export default async function LessonPage({
     const prevTopic = currentIndex > 0 ? allTopics[currentIndex - 1] : undefined
     const nextTopic = currentIndex < allTopics.length - 1 ? allTopics[currentIndex + 1] : undefined
 
+    const currentModule = course.modules.find(m =>
+        m.weeks.some(w => w.topics.some(t => t.id === currentTopic.id))
+    )
+    const currentWeek = currentModule?.weeks.find(w =>
+        w.topics.some(t => t.id === currentTopic.id)
+    )
+    const moduleOrder = currentModule?.order || (course.modules.findIndex(m => m.id === currentModule?.id) + 1)
+    const weekNumber = currentWeek?.number || 1
+
     // 2. Get MDX Content from File System
     const content = await getTopicContent(slug, topicSlug)
 
@@ -45,12 +54,12 @@ export default async function LessonPage({
                     {/* Header section with breadcrumbs-like info */}
                     <div className="mb-12 border-b border-slate-200 dark:border-slate-800 pb-8 animate-in fade-in slide-in-from-top-4 duration-1000">
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="bg-brand-blue/10 text-brand-blue text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
-                                Semana {course.modules.find(m => m.weeks.some(w => w.topics.some(t => t.id === currentTopic.id)))?.weeks.find(w => w.topics.some(t => t.id === currentTopic.id))?.number}
+                            <span className="bg-brand-blue/10 text-brand-blue dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
+                                Módulo {moduleOrder} • Semana {weekNumber}
                             </span>
-                            <div className="h-1 w-1 rounded-full bg-slate-300" />
-                            <span className="text-slate-500 text-[10px] font-medium uppercase tracking-widest">
-                                {course.modules.find(m => m.weeks.some(w => w.topics.some(t => t.id === currentTopic.id)))?.title}
+                            <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                            <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold uppercase tracking-widest">
+                                {currentModule?.title}
                             </span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50 mb-4">

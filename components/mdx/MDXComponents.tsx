@@ -7,6 +7,7 @@ import { StatsChart } from "./StatsChart"
 import { VarianceExplainer } from "@/components/interactive/VarianceExplainer"
 import { LinearProgrammingVisualizer } from "@/components/interactive/LinearProgrammingVisualizer"
 import { HypothesisTestingVisualizer } from "@/components/interactive/HypothesisTestingVisualizer"
+import { PyodideRunner } from "@/components/interactive/PyodideRunner"
 import {
     CLTSimulation,
     DraggableScatter,
@@ -147,6 +148,7 @@ export const components = {
     // Custom Components
     Mermaid,
     PythonEditor,
+    PyodideRunner,
     Quiz,
     StatsChart,
     VarianceExplainer,

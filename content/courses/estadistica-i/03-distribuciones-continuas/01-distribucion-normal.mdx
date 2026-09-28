@@ -73,42 +73,51 @@ Esto significa que el estudiante está **1.5 desviaciones estándar por encima d
 
 ---
 
-# 3. Calculando Probabilidades
+# 3. Calculando Probabilidades en Vivo con Python
 
-En lugar de usar tablas Z (método anticuado), usaremos Python.
+En lugar de recurrir a tablas impresas tradicionales, experimenta calculando probabilidades exactas con `scipy.stats.norm` directamente en tu navegador:
 
-```python
-import numpy as np
+<PyodideRunner
+  title="Laboratorio de Inferencia con SciPy: Distribución Normal"
+  description="Calcula probabilidades de cola, percentiles y genera el gráfico de la función de densidad gaussiana en WebAssembly."
+  initialCode={`import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
-# Parámetros de nuestra distribución
-mu = 70      # Media del examen
-sigma = 10   # Desviación estándar
+# Parámetros de la distribución de calificaciones (Examen Parcial UTP)
+mu = 70.0      # Media
+sigma = 10.0   # Desviación estándar
 
-# Pregunta: ¿Qué probabilidad hay de sacar más de 85?
-prob_mayor_85 = 1 - norm.cdf(85, mu, sigma)
-print(f"P(X > 85) = {prob_mayor_85:.4f} = {prob_mayor_85*100:.2f}%")
+# 1. Probabilidad de que un estudiante obtenga más de 85 puntos: P(X > 85)
+prob_mayor_85 = 1 - norm.cdf(85, loc=mu, scale=sigma)
+print("=== CALCULO DE PROBABILIDADES GAUSSIANAS ===")
+print(f"P(X > 85) = {prob_mayor_85:.4f} ({prob_mayor_85 * 100:.2f}%)")
 
-# Pregunta: ¿Entre qué valores está el 95% central?
-limite_inferior = norm.ppf(0.025, mu, sigma)
-limite_superior = norm.ppf(0.975, mu, sigma)
-print(f"El 95% de los estudiantes sacan entre {limite_inferior:.1f} y {limite_superior:.1f}")
+# 2. Intervalo que contiene el 95% central de los estudiantes
+limite_inf = norm.ppf(0.025, loc=mu, scale=sigma)
+limite_sup = norm.ppf(0.975, loc=mu, scale=sigma)
+print(f"Intervalo del 95% central: [{limite_inf:.2f}, {limite_sup:.2f}] puntos")
 
-# Visualización
-x = np.linspace(mu - 4*sigma, mu + 4*sigma, 200)
-y = norm.pdf(x, mu, sigma)
+# 3. Generación y visualización de la curva de densidad
+x = np.linspace(mu - 3.5 * sigma, mu + 3.5 * sigma, 250)
+y = norm.pdf(x, loc=mu, scale=sigma)
 
-plt.figure(figsize=(10, 6))
-plt.plot(x, y, 'b-', linewidth=2, label='Distribución Normal')
-plt.fill_between(x, y, where=(x >= 85), alpha=0.3, color='red', label=f'P(X>85) = {prob_mayor_85:.2%}')
-plt.axvline(mu, color='green', linestyle='--', label=f'μ = {mu}')
-plt.title(f'Distribución Normal (μ={mu}, σ={sigma})')
-plt.xlabel('Calificación')
-plt.ylabel('Densidad de Probabilidad')
-plt.legend()
+plt.figure(figsize=(8, 4.5), dpi=100)
+plt.plot(x, y, color="#1E3A8A", linewidth=2.5, label="f(x) Normal(μ=70, σ=10)")
+plt.fill_between(x, y, where=(x >= 85), color="#EF4444", alpha=0.4, label=f"P(X ≥ 85) = {prob_mayor_85:.1%}")
+plt.axvline(mu, color="#059669", linestyle="--", linewidth=1.5, label="Media μ = 70")
+plt.axvline(85, color="#DC2626", linestyle=":", linewidth=1.5, label="Umbral X = 85")
+
+plt.title("Distribución Normal — Calificaciones de Ingeniería UTP", fontsize=12, fontweight="bold", pad=10)
+plt.xlabel("Calificación Obtenida", fontsize=10)
+plt.ylabel("Densidad de Probabilidad", fontsize=10)
+plt.grid(True, linestyle="--", alpha=0.3)
+plt.legend(frameon=True, facecolor="white", framealpha=0.9)
+plt.tight_layout()
 plt.show()
-```
+`}
+/>
+
 
 ---
 

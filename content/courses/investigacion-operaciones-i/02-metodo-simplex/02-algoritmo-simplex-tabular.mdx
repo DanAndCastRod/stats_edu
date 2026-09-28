@@ -50,29 +50,50 @@ graph TD
 
 ---
 
-# 3. Código en Python con `scipy.optimize`
+# 3. Laboratorio Computacional: Simplex en Vivo con SciPy
 
-```python
+Experimenta directamente en el navegador resolviendo este modelo de programación lineal mediante el solver HiGHS / Simplex de `scipy.optimize` ejecutado en WebAssembly:
+
+<PyodideRunner
+  title="Laboratorio Simplex con SciPy (WebAssembly)"
+  description="Modifica la función objetivo o las restricciones para comprobar cómo se recalculan los vértices y el valor óptimo de Z en tiempo real sin servidor."
+  initialCode={`import numpy as np
 from scipy.optimize import linprog
 
-# Maximizar Z = 3*x1 + 5*x2
-# Equivalente a minimizar -3*x1 - 5*x2
+# Maximizar Z = 3*x1 + 5*x2  -> Equivalente a minimizar -3*x1 - 5*x2
 c = [-3, -5]
 
+# Restricciones de desigualdad (A_ub * x <= b_ub)
+# 1) 1*x1 + 0*x2 <= 4
+# 2) 0*x1 + 2*x2 <= 12
+# 3) 3*x1 + 2*x2 <= 18
 A = [
-    [1, 0],   # x1 <= 4
-    [0, 2],   # 2*x2 <= 12
-    [3, 2]    # 3*x1 + 2*x2 <= 18
+    [1, 0],
+    [0, 2],
+    [3, 2]
 ]
 b = [4, 12, 18]
 
-res = linprog(c, A_ub=A, b_ub=b, method='simplex')
+# Límites de no negatividad: x1 >= 0, x2 >= 0
+x_bounds = (0, None)
 
-print("Éxito:", res.success)
-print(f"Solución: x1 = {res.x[0]}, x2 = {res.x[1]}")
-print(f"Valor óptimo de Z = {-res.fun}")
-print(f"Número de iteraciones simplex: {res.nit}")
-```
+res = linprog(c, A_ub=A, b_ub=b, bounds=[x_bounds, x_bounds], method='highs')
+
+print("=" * 48)
+print("  RESULTADOS DEL SOLVER DE PROGRAMACION LINEAL")
+print("=" * 48)
+print(f"Estado de convergencia : {res.message}")
+print(f"Solucion optima x1*    : {res.x[0]:.4f}")
+print(f"Solucion optima x2*    : {res.x[1]:.4f}")
+print(f"Valor optimo Max Z*    : {-res.fun:.4f}")
+print(f"Iteraciones requeridas : {res.nit}")
+print("-" * 48)
+print("Precios sombra duales (margen de recursos):")
+for i, dual in enumerate(res.ineqlin.marginals):
+    print(f"  Restriccion {i+1} (b_{i+1} = {b[i]}): y_{i+1} = {-dual:.4f} USD/unidad")
+`}
+/>
+
 
 ---
 

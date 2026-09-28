@@ -130,6 +130,23 @@ export default function ToolsSuitePage() {
     const [searchQuery, setSearchQuery] = useState<string>("")
     const [activeToolId, setActiveToolId] = useState<string>("distributions")
 
+    // Synchronize active tool with URL hash (e.g. /tools#simplex)
+    React.useEffect(() => {
+        const syncHash = () => {
+            if (typeof window !== "undefined" && window.location.hash) {
+                const hash = window.location.hash.replace("#", "")
+                if (TOOLS_CATALOG.some((t) => t.id === hash)) {
+                    setActiveToolId(hash)
+                    const el = document.getElementById("workspace")
+                    if (el) el.scrollIntoView({ behavior: "smooth" })
+                }
+            }
+        }
+        syncHash()
+        window.addEventListener("hashchange", syncHash)
+        return () => window.removeEventListener("hashchange", syncHash)
+    }, [])
+
     // Filter tools
     const filteredTools = TOOLS_CATALOG.filter((tool) => {
         const matchesCategory =

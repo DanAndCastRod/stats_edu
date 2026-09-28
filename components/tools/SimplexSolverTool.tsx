@@ -15,9 +15,13 @@ import {
     Sparkles,
     ChevronLeft,
     ChevronRight,
-    TrendingUp
+    TrendingUp,
+    Download,
+    Copy,
+    Check
 } from "lucide-react"
 import { solvePrimalSimplex, LPConstraint, LPSolverResult } from "@/lib/tools-math"
+import { downloadCsvFile, copyToClipboard, getExportTimestamp } from "@/lib/export-utils"
 import { MathFormula } from "./MathFormula"
 
 export function SimplexSolverTool() {
@@ -105,6 +109,114 @@ export function SimplexSolverTool() {
         setCurrentStepIdx(0)
     }
 
+    const [copied, setCopied] = useState(false)
+
+    const handleExportCsv = () => {
+        const rows: (string | number)[][] = [
+            ["# STATSEDU UTP - RESOLUTOR DEL METODO SIMPLEX PRIMAL"],
+            ["# Facultad de Ingenieria Industrial - Universidad Tecnologica de Pereira"],
+            ["# Fecha de Generacion", new Date().toLocaleString("es-CO")],
+            [""],
+            ["SECCION: CONFIGURACION DEL MODELO LINEAL"],
+            ["Sentido de Optimizacion", sense.toUpperCase()],
+            ["Funcion Objetivo", `Z = ${c1}*x1 + ${c2}*x2`],
+            ["Estado del Algoritmo", result.status === "optimal" ? "Optimo Global Encontrado" : result.status.toUpperCase()],
+            ["Valor Optimo de Z*", result.objectiveValue.toFixed(4)],
+            ["Solucion x1*", (result.solution[0] ?? 0).toFixed(4)],
+            ["Solucion x2*", (result.solution[1] ?? 0).toFixed(4)],
+            ["Numero de Iteraciones Realizadas", result.steps.length - 1],
+            [""],
+            ["SECCION: RESTRICCIONES ESTRUCTURALES Y PRECIOS SOMBRA DUALES"],
+            ["Restriccion", "Coef x1", "Coef x2", "Operador", "Lado Derecho (RHS)", "Precio Sombra Dual (y_i)"]
+        ]
+
+        constraints.forEach((c, idx) => {
+            rows.push([
+                `R${idx + 1}`,
+                c.coeffs[0],
+                c.coeffs[1],
+                c.op,
+                c.rhs,
+                (result.shadowPrices[idx] ?? 0).toFixed(4)
+            ])
+        })
+
+        if (result.reducedCosts && result.reducedCosts.length > 0) {
+            rows.push([""])
+            rows.push(["SECCION: COSTOS REDUCIDOS DE VARIABLES"])
+            rows.push(["Variable", "Costo Reducido", "Condicion"])
+            result.reducedCosts.forEach((rc, idx) => {
+                rows.push([
+                    `x${idx + 1}`,
+                    rc.toFixed(4),
+                    Math.abs(rc) < 1e-6 ? "Variable Basica (Costo Reducido = 0)" : "Variable No Basica"
+                ])
+            })
+        }
+
+        // Sequence of tableaus
+        rows.push([""])
+        rows.push(["SECCION: SECUENCIA DE TABLAS SIMPLEX PASO A PASO"])
+        result.steps.forEach((step) => {
+            rows.push([""])
+            rows.push([
+                `=== TABLA DE LA ITERACION ${step.stepIndex} ${step.isOptimal ? "(SOLUCION OPTIMA FINAL)" : ""} ===`
+            ])
+            rows.push(["Descripcion de la Iteracion", step.description])
+            if (step.enteringVar) rows.push(["Variable Entrante a la Base", step.enteringVar])
+            if (step.leavingVar) rows.push(["Variable Saliente de la Base", step.leavingVar])
+            if (step.pivotRow !== undefined && step.pivotCol !== undefined && step.tableau[step.pivotRow]) {
+                rows.push([
+                    "Elemento Pivote (Fila, Col)",
+                    `R${step.pivotRow}, C${step.pivotCol} = ${step.tableau[step.pivotRow][step.pivotCol].toFixed(4)}`
+                ])
+            }
+            // Tableau header
+            rows.push(["Base", ...step.colHeaders])
+            // Tableau data
+            step.tableau.forEach((row, rIdx) => {
+                const rowLabel = step.rowHeaders[rIdx] || `Fila ${rIdx}`
+                rows.push([rowLabel, ...row.map((val) => val.toFixed(4))])
+            })
+        })
+
+        const filename = `simplex_${sense}_${getExportTimestamp()}`
+        downloadCsvFile(filename, rows)
+    }
+
+    const handleCopySummary = async () => {
+        const constraintLines = constraints
+            .map(
+                (c, i) =>
+                    `| Restricción $R_{${i + 1}}$ | $${c.coeffs[0]}x_1 + ${c.coeffs[1]}x_2 ${c.op === "<=" ? "\\le" : c.op === ">=" ? "\\ge" : "="} ${c.rhs}$ | $${c.rhs}$ | $${(result.shadowPrices[i] ?? 0).toFixed(4)} USD/unidad |`
+            )
+            .join("\n")
+
+        const markdown = `### Reporte de Optimización: Método Simplex Primal (StatsEdu UTP)
+**Problema:** ${sense === "max" ? "Maximizar" : "Minimizar"} $Z = ${c1}x_1 + ${c2}x_2$  
+**Estado:** ${result.status === "optimal" ? "Factible y Óptimo Global" : result.status}  
+**Iteraciones requeridas:** ${result.steps.length - 1}  
+
+| Variable / Objetivo | Valor Óptimo | Naturaleza |
+| :--- | :--- | :--- |
+| **Función Objetivo $Z^*$** | **${result.objectiveValue.toFixed(4)}** | Valor Óptimo Global |
+| **Variable de Decisión $x_1^*$** | ${result.solution[0]?.toFixed(4) ?? "0.0000"} | Nivel de actividad |
+| **Variable de Decisión $x_2^*$** | ${result.solution[1]?.toFixed(4) ?? "0.0000"} | Nivel de actividad |
+
+#### Precios Sombra Duales y Análisis de Recursos
+| Restricción | Formulación | Disponibilidad ($b_i$) | Precio Sombra ($y_i$) |
+| :--- | :--- | :--- | :--- |
+${constraintLines}
+
+*Generado por la Suite de Computación e Investigación Operativa — Universidad Tecnológica de Pereira.*`
+
+        const ok = await copyToClipboard(markdown)
+        if (ok) {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2500)
+        }
+    }
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             {/* Header */}
@@ -123,8 +235,8 @@ export function SimplexSolverTool() {
                         </p>
                     </div>
 
-                    {/* Presets */}
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Presets and Export Actions */}
+                    <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
                             <Bookmark className="h-3 w-3" /> Casos UTP:
                         </span>
@@ -139,6 +251,32 @@ export function SimplexSolverTool() {
                             className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-600 hover:text-blue-600 transition-colors"
                         >
                             3 Recursos Limitados
+                        </button>
+
+                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1" />
+
+                        {/* Export Buttons */}
+                        <button
+                            onClick={handleExportCsv}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Descargar la secuencia completa de tablas Simplex en formato CSV"
+                        >
+                            <Download className="h-3.5 w-3.5" /> Exportar Tablas a CSV
+                        </button>
+                        <button
+                            onClick={handleCopySummary}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Copiar resumen óptimo y precios sombra en formato Markdown"
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Copiado!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-3.5 w-3.5 text-slate-500" /> Copiar Resumen
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>

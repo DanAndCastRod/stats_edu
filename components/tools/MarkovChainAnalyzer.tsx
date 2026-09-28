@@ -12,9 +12,13 @@ import {
     ArrowRight,
     TrendingUp,
     Sparkles,
-    Play
+    Play,
+    Download,
+    Copy,
+    Check
 } from "lucide-react"
 import { matrixPower, solveMarkovSteadyState } from "@/lib/tools-math"
+import { downloadCsvFile, copyToClipboard, formatMarkdownTable, getExportTimestamp } from "@/lib/export-utils"
 import { MathFormula } from "./MathFormula"
 
 export function MarkovChainAnalyzer() {
@@ -134,6 +138,93 @@ export function MarkovChainAnalyzer() {
         resetSimulation()
     }
 
+    const [copied, setCopied] = useState(false)
+
+    const handleExportCsv = () => {
+        const rows: (string | number)[][] = [
+            ["# STATSEDU UTP - ANALISIS MATRICIAL DE CADENAS DE MARKOV"],
+            ["# Facultad de Ingenieria Industrial - Universidad Tecnologica de Pereira"],
+            ["# Fecha de Generacion", new Date().toLocaleString("es-CO")],
+            [""],
+            ["SECCION: CONFIGURACION DE LA CADENA"],
+            ["Dimension del Espacio de Estados", `${size} Estados (${size}x${size})`],
+            ["Pasos de Proyeccion Temporal (n)", steps],
+            ["Validez de Conservacion Estocastica", isStochasticValid ? "Valida (Suma de probabilidades = 1.0)" : "Invalida (Requiere normalizacion)"],
+            [""],
+            ["SECCION: MATRIZ DE PROBABILIDADES DE TRANSICION DE UN PASO (P)"],
+            ["Estado Inicial \\ Estado Siguiente", ...stateNames]
+        ]
+
+        activeMatrix.forEach((row, i) => {
+            rows.push([stateNames[i], ...row.map((val) => val.toFixed(4))])
+        })
+
+        rows.push([""])
+        rows.push([`SECCION: MATRIZ DE TRANSICION A ${steps} PASOS (P^${steps})`])
+        rows.push(["Estado Inicial \\ Estado Futuro", ...stateNames])
+        powerMatrix.forEach((row, i) => {
+            rows.push([stateNames[i], ...row.map((val) => val.toFixed(4))])
+        })
+
+        rows.push([""])
+        rows.push(["SECCION: DISTRIBUCION DE PROBABILIDAD DE ESTADO ESTACIONARIO (pi = pi * P)"])
+        rows.push(["Indice", "Estado", "Probabilidad Estacionaria (pi_i)", "Porcentaje (%)", "Tiempo Medio de Retorno (pasos)"])
+        steadyState.forEach((prob, idx) => {
+            rows.push([
+                idx + 1,
+                stateNames[idx],
+                prob.toFixed(6),
+                (prob * 100).toFixed(4),
+                prob > 0 ? (1 / prob).toFixed(2) : "Infinito"
+            ])
+        })
+
+        const filename = `cadena_markov_${size}x${size}_n${steps}_${getExportTimestamp()}`
+        downloadCsvFile(filename, rows)
+    }
+
+    const handleCopySummary = async () => {
+        const pTable = formatMarkdownTable(
+            ["Origen \\ Destino", ...stateNames.map((_, i) => `S_${i + 1}`)],
+            activeMatrix.map((row, i) => [`$S_{${i + 1}}$`, ...row.map((v) => v.toFixed(3))])
+        )
+
+        const pnTable = formatMarkdownTable(
+            ["Origen \\ Destino", ...stateNames.map((_, i) => `S_${i + 1}`)],
+            powerMatrix.map((row, i) => [`$S_{${i + 1}}$`, ...row.map((v) => v.toFixed(4))])
+        )
+
+        const steadyRows = steadyState
+            .map(
+                (prob, i) =>
+                    `| Estado $S_{${i + 1}}$ | ${stateNames[i]} | ${(prob * 100).toFixed(2)}% | ${prob > 0 ? `${(1 / prob).toFixed(2)} pasos` : "∞"} |`
+            )
+            .join("\n")
+
+        const markdown = `### Reporte de Procesos Estocásticos: Cadenas de Markov (StatsEdu UTP)
+**Dimensión:** Cadena homogénea finita de ${size} estados | **Proyección temporal:** $P^{${steps}}$  
+**Conservación estocástica:** ${isStochasticValid ? "Válida (filas suman 1.0)" : "Ajuste numérico requerido"}  
+
+#### Distribución de Régimen Estacionario ($\\pi = \\pi P$)
+| Estado | Descripción | Probabilidad a Largo Plazo | Tiempo Medio de Retorno ($1/\\pi_i$) |
+| :--- | :--- | :--- | :--- |
+${steadyRows}
+
+#### Matriz de Transición de Un Paso ($P$)
+${pTable}
+
+#### Matriz de Transición a ${steps} Pasos ($P^{${steps}}$)
+${pnTable}
+
+*Generado por la Suite de Computación e Investigación Operativa — Universidad Tecnológica de Pereira.*`
+
+        const ok = await copyToClipboard(markdown)
+        if (ok) {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2500)
+        }
+    }
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             {/* Header */}
@@ -152,8 +243,8 @@ export function MarkovChainAnalyzer() {
                         </p>
                     </div>
 
-                    {/* Presets */}
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Presets and Export Actions */}
+                    <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
                             <Bookmark className="h-3 w-3" /> Casos UTP:
                         </span>
@@ -174,6 +265,32 @@ export function MarkovChainAnalyzer() {
                             className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-purple-600 hover:text-purple-600 transition-colors"
                         >
                             Mantenimiento Maquinaria
+                        </button>
+
+                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1" />
+
+                        {/* Export Buttons */}
+                        <button
+                            onClick={handleExportCsv}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Descargar la matriz P, P^n y el vector estacionario en formato CSV"
+                        >
+                            <Download className="h-3.5 w-3.5" /> Exportar Matriz a CSV
+                        </button>
+                        <button
+                            onClick={handleCopySummary}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Copiar matrices y distribución estacionaria en formato Markdown"
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Copiado!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-3.5 w-3.5 text-slate-500" /> Copiar Resumen
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>

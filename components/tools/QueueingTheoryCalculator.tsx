@@ -12,9 +12,13 @@ import {
     CheckCircle2,
     BarChart3,
     Bookmark,
-    TrendingDown
+    TrendingDown,
+    Download,
+    Copy,
+    Check
 } from "lucide-react"
 import { solveQueueingModel, QueueingResults } from "@/lib/tools-math"
+import { downloadCsvFile, copyToClipboard, getExportTimestamp } from "@/lib/export-utils"
 import { MathFormula } from "./MathFormula"
 
 export function QueueingTheoryCalculator() {
@@ -104,6 +108,102 @@ export function QueueingTheoryCalculator() {
         }
     }
 
+    const [copied, setCopied] = useState(false)
+
+    const handleExportCsv = () => {
+        const rows: (string | number)[][] = [
+            ["# STATSEDU UTP - REPORTE DE TEORIA DE COLAS Y MODELOS DE ESPERA"],
+            ["# Facultad de Ingenieria Industrial - Universidad Tecnologica de Pereira"],
+            ["# Fecha de Generacion", new Date().toLocaleString("es-CO")],
+            [""],
+            ["SECCION: CONFIGURACION DEL MODELO"],
+            ["Modelo", model],
+            ["Tasa de llegada (lambda)", lambda, "clientes/hora"],
+            ["Tasa de servicio por servidor (mu)", mu, "clientes/hora"],
+            ["Servidores en paralelo (s)", model === "M/M/1" ? 1 : servers, "servidores"],
+            ["Capacidad maxima del sistema (K)", model === "M/M/s/K" ? capacityK : "Infinita", "clientes"],
+            ["Costo unitario por servidor (Cs)", costServer, "$/h"],
+            ["Costo unitario por espera en cola (Cw)", costWait, "$/h por cliente"],
+            [""],
+            ["SECCION: METRICAS DE RENDIMIENTO DE LITTLE"],
+            ["Metrica", "Simbolo", "Valor", "Unidad"],
+            ["Factor de utilizacion del sistema", "rho", (results.rho * 100).toFixed(2), "%"],
+            ["Estado del sistema", "Condicion", results.isStable ? "Estable (rho < 1)" : "Cola Infinita / Inestable", "-"],
+            ["Probabilidad de sistema vacio / ocioso", "P0", (results.P0 * 100).toFixed(4), "%"],
+            ["Numero esperado de clientes en el sistema", "L", results.isStable ? results.L.toFixed(4) : "Infinito", "clientes"],
+            ["Numero esperado de clientes en cola", "Lq", results.isStable ? results.Lq.toFixed(4) : "Infinito", "clientes"],
+            ["Tiempo promedio de permanencia en sistema (horas)", "W", results.isStable ? results.W.toFixed(4) : "Infinito", "horas"],
+            ["Tiempo promedio de permanencia en sistema (minutos)", "W_min", results.isStable ? (results.W * 60).toFixed(2) : "Infinito", "minutos"],
+            ["Tiempo promedio de espera en cola (horas)", "Wq", results.isStable ? results.Wq.toFixed(4) : "Infinito", "horas"],
+            ["Tiempo promedio de espera en cola (minutos)", "Wq_min", results.isStable ? (results.Wq * 60).toFixed(2) : "Infinito", "minutos"],
+            [
+                model === "M/M/s/K" ? "Probabilidad de bloqueo / perdida de clientes" : "Probabilidad de que un cliente deba esperar",
+                model === "M/M/s/K" ? "P_K" : "P(W > 0)",
+                model === "M/M/s/K" ? ((results.pLoss ?? 0) * 100).toFixed(4) : ((results.pWait ?? 0) * 100).toFixed(4),
+                "%"
+            ],
+            [""],
+            ["SECCION: ESTRUCTURA DE COSTOS ECONOMICOS"],
+            ["Concepto", "Costo ($/h)"],
+            ["Costo de Operacion de Servidores", results.serverCost.toFixed(2)],
+            ["Costo de Espera de Clientes en Cola", results.waitingCost.toFixed(2)],
+            ["Costo Total Esperado del Sistema", results.totalCost.toFixed(2)],
+            [""],
+            ["SECCION: DISTRIBUCION DE PROBABILIDAD DE ESTADO ESTACIONARIO (P_n)"],
+            ["n (Clientes en Sistema)", "Probabilidad P_n", "Porcentaje (%)"]
+        ]
+
+        results.Pn.forEach((p, n) => {
+            rows.push([n, p.toFixed(5), (p * 100).toFixed(3)])
+        })
+
+        if (model !== "M/M/1" && serverComparison.length > 0) {
+            rows.push([""])
+            rows.push(["SECCION: SENSIBILIDAD ECONOMICA Y OPTIMIZACION DE SERVIDORES"])
+            rows.push(["Servidores (s)", "Utilizacion rho (%)", "Clientes en Cola (Lq)", "Costo Total ($/h)", "Dictamen", "Es Optimo"])
+            serverComparison.forEach((sc) => {
+                rows.push([
+                    sc.s,
+                    (sc.rho * 100).toFixed(1),
+                    sc.isStable ? sc.Lq.toFixed(2) : "Infinito",
+                    sc.isStable && Number.isFinite(sc.totalCost) ? sc.totalCost.toFixed(2) : "Inestable",
+                    sc.isStable ? "Factible" : "Sobrecarga",
+                    sc.s === optimalServers ? "SI - COSTO MINIMO" : "NO"
+                ])
+            })
+        }
+
+        const filename = `teoria_colas_${model.replace(/\//g, "_")}_${getExportTimestamp()}`
+        downloadCsvFile(filename, rows)
+    }
+
+    const handleCopySummary = async () => {
+        const markdown = `### Reporte de Simulación: Teoría de Colas (StatsEdu UTP)
+**Modelo Analizado:** ${model}  
+**Parámetros:** $\\lambda = ${lambda}$ clientes/h, $\\mu = ${mu}$ clientes/h/servidor, $s = ${model === "M/M/1" ? 1 : servers}${model === "M/M/s/K" ? `, K = ${capacityK}` : ""}  
+**Costos:** Servidor = $${costServer}/h, Espera = $${costWait}/h/cliente  
+
+| Métrica de Desempeño | Símbolo | Valor Calculado | Unidad |
+| :--- | :--- | :--- | :--- |
+| **Factor de Utilización** | $\\rho$ | ${(results.rho * 100).toFixed(2)}% | % |
+| **Estado del Sistema** | — | ${results.isStable ? "Estable (\\rho < 1)" : "Inestable (\\rho \\ge 1)"} | — |
+| **Probabilidad de Ocio** | $P_0$ | ${(results.P0 * 100).toFixed(2)}% | % |
+| **Clientes en Sistema** | $L$ | ${results.isStable ? results.L.toFixed(3) : "∞"} | clientes |
+| **Clientes en Cola** | $L_q$ | ${results.isStable ? results.Lq.toFixed(3) : "∞"} | clientes |
+| **Tiempo en Sistema** | $W$ | ${results.isStable ? `${(results.W * 60).toFixed(1)} min (${results.W.toFixed(3)} h)` : "∞"} | tiempo |
+| **Tiempo en Cola** | $W_q$ | ${results.isStable ? `${(results.Wq * 60).toFixed(1)} min (${results.Wq.toFixed(3)} h)` : "∞"} | tiempo |
+| **${model === "M/M/s/K" ? "Probabilidad Bloqueo (P_K)" : "Probabilidad de Esperar"}** | ${model === "M/M/s/K" ? "$P_K$" : "$P(W > 0)$"} | ${model === "M/M/s/K" ? `${((results.pLoss ?? 0) * 100).toFixed(2)}%` : `${((results.pWait ?? 0) * 100).toFixed(2)}%`} | % |
+| **Costo Total por Hora** | $TC$ | $${results.totalCost.toFixed(2)}/h | USD/h |
+
+*Generado por la Suite de Computación e Investigación Operativa — Universidad Tecnológica de Pereira.*`
+
+        const ok = await copyToClipboard(markdown)
+        if (ok) {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2500)
+        }
+    }
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             {/* Header */}
@@ -122,8 +222,8 @@ export function QueueingTheoryCalculator() {
                         </p>
                     </div>
 
-                    {/* Presets */}
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Presets and Export Actions */}
+                    <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
                             <Bookmark className="h-3 w-3" /> Casos UTP:
                         </span>
@@ -144,6 +244,32 @@ export function QueueingTheoryCalculator() {
                             className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-indigo-600 hover:text-indigo-600 transition-colors"
                         >
                             Buffer Finito M/M/s/K
+                        </button>
+
+                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1" />
+
+                        {/* Export Buttons */}
+                        <button
+                            onClick={handleExportCsv}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Descargar archivo estructurado en formato CSV para Excel/Calc"
+                        >
+                            <Download className="h-3.5 w-3.5" /> Exportar a CSV
+                        </button>
+                        <button
+                            onClick={handleCopySummary}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Copiar tabla de resultados en formato Markdown para informes"
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Copiado!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-3.5 w-3.5 text-slate-500" /> Copiar Resumen
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>

@@ -13,7 +13,10 @@ import {
     Sliders,
     Bookmark,
     AlertCircle,
-    Info
+    Info,
+    Download,
+    Copy,
+    Check
 } from "lucide-react"
 import {
     computeNPV,
@@ -21,6 +24,7 @@ import {
     computePayback,
     computeBenefitCostRatio
 } from "@/lib/tools-math"
+import { downloadCsvFile, copyToClipboard, getExportTimestamp } from "@/lib/export-utils"
 import { MathFormula } from "./MathFormula"
 
 export function EngineeringEconomicsCalculator() {
@@ -98,6 +102,109 @@ export function EngineeringEconomicsCalculator() {
         }
     }
 
+    const [copied, setCopied] = useState(false)
+
+    const handleExportCsv = () => {
+        const rows: (string | number)[][] = [
+            ["# STATSEDU UTP - EVALUACION FINANCIERA E INGENIERIA ECONOMICA"],
+            ["# Facultad de Ingenieria Industrial - Universidad Tecnologica de Pereira"],
+            ["# Fecha de Generacion", new Date().toLocaleString("es-CO")],
+            [""],
+            ["SECCION: PARAMETROS DEL PROYECTO"],
+            ["Inversion Inicial (I_0)", initialInvestment, "USD"],
+            ["Tasa de Oportunidad (TIO / WACC)", discountRatePct, "%"],
+            ["Horizonte de Evaluacion", horizonYears, "anos"],
+            ["Dictamen Financiero", isViable ? "PROYECTO INDUSTRIAL VIABLE Y RECOMENDADO" : "PROYECTO FINANCIERAMENTE NO VIABLE"],
+            [""],
+            ["SECCION: INDICADORES FINANCIEROS Y METRICAS DE DECISION"],
+            ["Indicador", "Simbolo", "Valor Calculado", "Criterio de Aceptacion", "Resultado"],
+            ["Valor Presente Neto", "VPN", npv.toFixed(2), "VPN >= 0", npv >= 0 ? "Aceptable" : "Rechazado"],
+            [
+                "Tasa Interna de Retorno",
+                "TIR",
+                irr !== null ? `${(irr * 100).toFixed(2)}%` : "N/D",
+                `TIR >= TIO (${discountRatePct}%)`,
+                irr !== null && irr * 100 >= discountRatePct ? "Aceptable" : "Rechazado"
+            ],
+            ["Relacion Beneficio / Costo", "B/C", bcRatio.toFixed(4), "B/C >= 1.0", bcRatio >= 1.0 ? "Aceptable" : "Rechazado"],
+            [
+                "Periodo de Recuperacion Simple (Payback)",
+                "PR",
+                simplePayback !== null ? `${simplePayback.toFixed(2)} anos` : `> ${horizonYears} anos`,
+                `PR <= ${horizonYears} anos`,
+                simplePayback !== null ? "Recupera capital" : "No recupera"
+            ],
+            [
+                "Periodo de Recuperacion Descontado",
+                "PRI",
+                discountedPayback !== null ? `${discountedPayback.toFixed(2)} anos` : `> ${horizonYears} anos`,
+                `PRI <= ${horizonYears} anos`,
+                discountedPayback !== null ? "Recupera capital a valor presente" : "No recupera"
+            ],
+            [""],
+            ["SECCION: TABLA DE FLUJO DE CAJA ANUAL Y VALORES PRESENTES DESCONTADOS"],
+            ["Periodo (t)", "Flujo Neto de Caja (FNC_t)", "Factor Descuento (1/(1+i)^t)", "Flujo Descontado a VP", "Flujo Acumulado Descontado"]
+        ]
+
+        // Period 0
+        rows.push([0, -initialInvestment, "1.0000", (-initialInvestment).toFixed(2), (-initialInvestment).toFixed(2)])
+
+        // Periods 1 to horizon
+        let accum = -initialInvestment
+        activeFlows.forEach((flow, idx) => {
+            const t = idx + 1
+            const discountFactor = 1 / Math.pow(1 + rate, t)
+            const discVal = flow * discountFactor
+            accum += discVal
+            rows.push([
+                t,
+                flow.toFixed(2),
+                discountFactor.toFixed(4),
+                discVal.toFixed(2),
+                accum.toFixed(2)
+            ])
+        })
+
+        const filename = `ingenieria_economica_flujos_${getExportTimestamp()}`
+        downloadCsvFile(filename, rows)
+    }
+
+    const handleCopySummary = async () => {
+        const flowRows = activeFlows
+            .map((f, i) => {
+                const t = i + 1
+                const vp = f / Math.pow(1 + rate, t)
+                return `| Año ${t} | $${f.toLocaleString("en-US")} | $${vp.toFixed(0)} |`
+            })
+            .join("\n")
+
+        const markdown = `### Reporte de Ingeniería Económica y Evaluación Financiera (StatsEdu UTP)
+**Inversión Inicial ($I_0$):** $${initialInvestment.toLocaleString("en-US")} | **Tasa de Oportunidad (TIO):** ${discountRatePct}% | **Horizonte:** ${horizonYears} años  
+**Dictamen:** ${isViable ? "★ PROYECTO INDUSTRIAL VIABLE Y RECOMENDADO" : "✕ PROYECTO NO VIABLE"}  
+
+| Indicador Financiero | Valor | Criterio de Aceptación | Diagnóstico |
+| :--- | :--- | :--- | :--- |
+| **Valor Presente Neto (VPN)** | **$${npv.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}** | $VPN \\ge 0$ | ${npv >= 0 ? "Genera riqueza neta" : "Destruye valor"} |
+| **Tasa Interna de Retorno (TIR)** | **${irr !== null ? `${(irr * 100).toFixed(2)}%` : "N/D"}** | $TIR \\ge ${discountRatePct}\\%$ | ${irr !== null && irr * 100 >= discountRatePct ? "Rentabilidad superior a TIO" : "Rentabilidad insuficiente"} |
+| **Relación Beneficio / Costo (B/C)** | **${bcRatio.toFixed(3)}** | $B/C \\ge 1.0$ | ${bcRatio >= 1.0 ? "Aceptable" : "Inviable"} |
+| **Payback Descontado (PRI)** | **${discountedPayback !== null ? `${discountedPayback.toFixed(1)} años` : `> ${horizonYears} años`}** | $\\le ${horizonYears}$ años | ${discountedPayback !== null ? "Recupera en horizonte" : "No recupera"} |
+| **Payback Simple** | ${simplePayback !== null ? `${simplePayback.toFixed(1)} años` : "N/A"} | Nominal | ${simplePayback !== null ? `${simplePayback.toFixed(1)}a` : "N/A"} |
+
+#### Flujos Netos de Caja Anuales
+| Periodo | Flujo Neto (FNC) | Valor Presente (VP) |
+| :--- | :--- | :--- |
+| Año 0 (Inversión) | -$${initialInvestment.toLocaleString("en-US")} | -$${initialInvestment.toLocaleString("en-US")} |
+${flowRows}
+
+*Generado por la Suite de Computación e Investigación Operativa — Universidad Tecnológica de Pereira.*`
+
+        const ok = await copyToClipboard(markdown)
+        if (ok) {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2500)
+        }
+    }
+
     // Chart SVG Geometry
     const svgWidth = 560
     const svgHeight = 240
@@ -141,8 +248,8 @@ export function EngineeringEconomicsCalculator() {
                         </p>
                     </div>
 
-                    {/* Presets */}
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Presets and Export Actions */}
+                    <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
                             <Bookmark className="h-3 w-3" /> Casos UTP:
                         </span>
@@ -163,6 +270,32 @@ export function EngineeringEconomicsCalculator() {
                             className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-emerald-600 hover:text-emerald-600 transition-colors"
                         >
                             Proyecto Alto Riesgo
+                        </button>
+
+                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1" />
+
+                        {/* Export Buttons */}
+                        <button
+                            onClick={handleExportCsv}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Descargar tabla completa de flujos de caja y VP en formato CSV"
+                        >
+                            <Download className="h-3.5 w-3.5" /> Exportar Flujo de Caja a CSV
+                        </button>
+                        <button
+                            onClick={handleCopySummary}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
+                            title="Copiar tabla de resultados e indicadores en formato Markdown"
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Copiado!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-3.5 w-3.5 text-slate-500" /> Copiar Resumen
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
