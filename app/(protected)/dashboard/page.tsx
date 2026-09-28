@@ -1,119 +1,84 @@
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect, useState } from "react"
 import { DashboardHeader } from "@/components/dashboard/Header"
 import { StatsCards } from "@/components/dashboard/StatsCards"
 import { CourseGrid } from "@/components/dashboard/CourseGrid"
-import { Course } from "@prisma/client"
+import { getAllUserProgress } from "@/lib/progress"
 
-export default async function DashboardPage() {
-    const session = await auth()
-    const userId = session?.user?.id
+const AVAILABLE_COURSES = [
+    {
+        id: "estadistica-i",
+        title: "Estadística I",
+        code: "511-23",
+        slug: "estadistica-i",
+        description: "Fundamentos de Estadística Descriptiva y Probabilidad para la toma de decisiones basada en datos.",
+        isMock: false,
+    },
+    {
+        id: "estadistica-ii",
+        title: "Estadística II",
+        code: "511-24",
+        slug: "estadistica-ii",
+        description: "Inferencia estadística avanzada, intervalos de confianza, pruebas de hipótesis y ANOVA.",
+        isMock: false,
+    },
+    {
+        id: "investigacion-operaciones-i",
+        title: "Investigación de Operaciones I",
+        code: "511-31",
+        slug: "investigacion-operaciones-i",
+        description: "Programación lineal, método simplex, teoría de la dualidad, análisis de sensibilidad y optimización.",
+        isMock: false,
+    },
+    {
+        id: "investigacion-operaciones-ii",
+        title: "Investigación de Operaciones II",
+        code: "511-32",
+        slug: "investigacion-operaciones-ii",
+        description: "Programación dinámica, cadenas de Markov, teoría de colas, inventarios probabilísticos y simulación.",
+        isMock: false,
+    },
+]
 
-    // Robustness: Handle unauthenticated state
-    // Robustness: Handle unauthenticated state
-    if (!userId) {
-        redirect("/api/auth/signin")
-    }
+export default function DashboardPage() {
+    const [progressData, setProgressData] = useState<Record<string, { completed: boolean; score?: number }>>({})
+    const [mounted, setMounted] = useState(false)
 
-    // Verify user exists in DB (handle zombie sessions after DB reset)
-    const userExists = await db.user.findUnique({ where: { id: userId } })
-    if (!userExists) {
-        // Force re-login to recreate user
-        redirect("/api/auth/signin?error=SessionExpired")
-    }
+    useEffect(() => {
+        setMounted(true)
+        setProgressData(getAllUserProgress())
+    }, [])
 
-    // 1. Get existing enrollments
-    let enrollments = await db.enrollment.findMany({
-        where: { userId },
-        include: {
-            course: {
-                select: {
-                    id: true,
-                    title: true,
-                    code: true,
-                    slug: true,
-                    description: true,
-                    isMock: true
-                }
-            }
+    const progressEntries = Object.values(progressData)
+    const completedCount = progressEntries.filter(p => p.completed).length
+    const scores = progressEntries.filter(p => typeof p.score === "number").map(p => p.score as number)
+    const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
+
+    const enrollments = AVAILABLE_COURSES.map(course => {
+        const courseTopics = progressEntries.length > 0 ? completedCount : 0
+        const progress = Math.min(100, courseTopics > 0 ? (courseTopics * 5) : 0)
+        return {
+            course,
+            progress
         }
     })
-
-    // 2. Demo Onboarding: If no enrollments, auto-enroll in Mock Courses
-    if (enrollments.length === 0) {
-        const mockCourses = await db.course.findMany({
-            where: { isMock: true }
-        })
-
-        if (mockCourses.length > 0) {
-            console.log(`✨ Auto-enrolling user ${userId} in ${mockCourses.length} mock courses.`)
-
-            // Transaction to ensure atomicity
-            await db.$transaction(
-                mockCourses.map((course: Course) =>
-                    db.enrollment.create({
-                        data: {
-                            userId: userId,
-                            courseId: course.id
-                        }
-                    })
-                )
-            )
-
-            // Refresh enrollments for display
-            enrollments = await db.enrollment.findMany({
-                where: { userId },
-                include: {
-                    course: {
-                        select: {
-                            id: true,
-                            title: true,
-                            code: true,
-                            slug: true,
-                            description: true,
-                            isMock: true
-                        }
-                    }
-                }
-            })
-        }
-    }
-
-    // 3. Calculate Real Stats
-    const totalCourses = enrollments.length
-
-    // Calculate Avg Score (Mock implementation until QuizAttempt is populated)
-    const stats = await db.quizAttempt.aggregate({
-        where: { userId },
-        _avg: { score: true },
-        _count: { id: true }
-    })
-
-    const averageScore = stats._avg.score || 0
-    const completedModules = 0
-
-    // Transform data for the grid
-    const formattedEnrollments = enrollments.map(e => ({
-        course: e.course,
-        progress: e.progress
-    }))
 
     return (
         <div className="space-y-8">
             <DashboardHeader />
 
             <StatsCards
-                totalCourses={totalCourses}
-                averageScore={averageScore || 0}
-                completedModules={completedModules}
+                totalCourses={AVAILABLE_COURSES.length}
+                averageScore={averageScore}
+                completedModules={completedCount}
             />
 
             <div>
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
                     Mis Cursos
                 </h2>
-                <CourseGrid enrollments={formattedEnrollments} />
+                <CourseGrid enrollments={enrollments} />
             </div>
         </div>
     )

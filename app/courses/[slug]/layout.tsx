@@ -1,6 +1,5 @@
 import { getCourseData } from "@/lib/courses"
 import { notFound } from "next/navigation"
-import { auth } from "@/auth"
 import Navbar from "@/components/shared/Navbar"
 import { CourseSidebar } from "./components/CourseSidebar"
 import { MobileBottomNav } from "@/components/shared/MobileBottomNav"
@@ -14,12 +13,6 @@ export default async function CourseLayout({
     children: React.ReactNode
     params: Promise<{ slug: string }>
 }) {
-    let session = null
-    try {
-        session = await auth()
-    } catch {
-        // auth optional for guest viewing
-    }
 
     // Await params
     const { slug } = await params
@@ -31,7 +24,7 @@ export default async function CourseLayout({
     return (
         <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
             {/* Top Navbar */}
-            <Navbar user={session?.user} />
+            <Navbar />
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Desktop Sidebar */}

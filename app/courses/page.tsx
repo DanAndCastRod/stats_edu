@@ -1,23 +1,10 @@
-import { db } from "@/lib/db"
+import { getAllCourses } from "@/lib/courses"
 import Link from "next/link"
 import { Navbar } from "@/components/shared/PublicNavbar"
 import { BookOpen, Clock, Users, ArrowRight } from "lucide-react"
 
 export default async function CoursesPage() {
-    const courses = await db.course.findMany({
-        include: {
-            modules: {
-                include: {
-                    weeks: {
-                        include: {
-                            topics: true
-                        }
-                    }
-                }
-            }
-        },
-        orderBy: { title: 'asc' }
-    })
+    const courses = await getAllCourses()
 
     // Calculate stats for each course
     const coursesWithStats = courses.map(course => {

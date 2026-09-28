@@ -4,7 +4,7 @@ import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-import { markTopicAsCompleted } from "@/app/actions/progress"
+import { markTopicAsCompleted } from "@/lib/progress"
 
 interface TopicNavInfo {
     title: string

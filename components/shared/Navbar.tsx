@@ -1,6 +1,11 @@
 import Link from "next/link"
-import { User as AuthUser } from "next-auth"
 import { LogOut, User as UserIcon, BookOpen, LayoutDashboard, Settings, Bell, Search } from "lucide-react"
+
+interface AuthUser {
+    name?: string | null
+    email?: string | null
+    image?: string | null
+}
 
 export default function Navbar({ user }: { user?: AuthUser }) {
     return (

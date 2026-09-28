@@ -30,15 +30,9 @@ export function Navbar() {
                     </Link>
                     <Link
                         href="/dashboard"
-                        className="text-sm font-semibold text-slate-300 hover:text-white transition-colors hidden sm:flex items-center gap-1.5"
+                        className="text-sm font-semibold text-slate-300 hover:text-white transition-colors flex items-center gap-1.5"
                     >
                         <span>Mi Progreso</span>
-                    </Link>
-                    <Link
-                        href="/api/auth/signin"
-                        className="text-sm font-semibold text-slate-300 hover:text-white transition-colors"
-                    >
-                        Ingresar
                     </Link>
                     <Link
                         href="/courses"

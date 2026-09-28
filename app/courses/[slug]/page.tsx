@@ -1,5 +1,10 @@
-import { getCourseData } from "@/lib/courses"
+import { getCourseData, getAllCourseSlugs } from "@/lib/courses"
 import { notFound, redirect } from "next/navigation"
+
+export async function generateStaticParams() {
+    const slugs = await getAllCourseSlugs()
+    return slugs.map((slug) => ({ slug }))
+}
 
 export default async function CourseRootPage({
     params

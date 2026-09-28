@@ -5,7 +5,7 @@ import { useQuizStore } from "@/lib/store/useQuizStore"
 import { cn } from "@/lib/utils"
 import { CheckCircle2, XCircle, ChevronRight, ChevronLeft, RefreshCcw, HelpCircle, Trophy, Loader2 } from "lucide-react"
 import { useTopicContext } from "@/components/providers/TopicProvider"
-import { submitQuizResult } from "@/app/actions/progress"
+import { submitQuizResult } from "@/lib/progress"
 
 interface Option {
     id: string

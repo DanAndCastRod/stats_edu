@@ -8,6 +8,7 @@ export interface TopicInfo {
     title: string
     slug: string
     order: number
+    contentMdx?: string
 }
 
 export interface WeekInfo {
@@ -145,3 +146,57 @@ export async function getCourseData(slug: string): Promise<CourseWithNavigation 
         return null
     }
 }
+
+export async function getAllCourseSlugs(): Promise<string[]> {
+    try {
+        if (fs.existsSync(CONTENT_DIR)) {
+            const dirs = fs.readdirSync(CONTENT_DIR).filter(f => {
+                const p = path.join(CONTENT_DIR, f)
+                const metaFile = path.join(p, "metadata.json")
+                if (!fs.statSync(p).isDirectory() || !fs.existsSync(metaFile)) return false
+                try {
+                    const meta = JSON.parse(fs.readFileSync(metaFile, "utf-8"))
+                    return !meta.isMock
+                } catch {
+                    return true
+                }
+            })
+            if (dirs.length > 0) return dirs
+        }
+    } catch {
+        // ignore
+    }
+    return [
+        "estadistica-i",
+        "estadistica-ii",
+        "investigacion-operaciones-i",
+        "investigacion-operaciones-ii"
+    ]
+}
+
+
+export async function getAllCourses(): Promise<CourseWithNavigation[]> {
+    const slugs = await getAllCourseSlugs()
+    const courses: CourseWithNavigation[] = []
+    for (const slug of slugs) {
+        const course = await getCourseData(slug)
+        if (course) courses.push(course)
+    }
+    return courses
+}
+
+export async function getAllCourseTopicParams(): Promise<{ slug: string; topicSlug: string }[]> {
+    const courses = await getAllCourses()
+    const params: { slug: string; topicSlug: string }[] = []
+    for (const course of courses) {
+        for (const mod of course.modules) {
+            for (const week of mod.weeks) {
+                for (const topic of week.topics) {
+                    params.push({ slug: course.slug, topicSlug: topic.slug })
+                }
+            }
+        }
+    }
+    return params
+}
+

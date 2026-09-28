@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { getCourseData } from "@/lib/courses"
+import { getCourseData, getAllCourseTopicParams } from "@/lib/courses"
 import { getTopicContent, mdxOptions } from "@/lib/mdx"
 import { MDXRemote } from "next-mdx-remote/rsc"
 import { components } from "@/components/mdx/MDXComponents"
@@ -7,6 +7,10 @@ import { TopicNavigator } from "../components/TopicNavigator"
 // Provider for shared Python execution context across the lesson
 import { PyodideProvider } from "@/components/providers/PyodideProvider"
 import { TopicProvider } from "@/components/providers/TopicProvider"
+
+export async function generateStaticParams() {
+    return getAllCourseTopicParams()
+}
 
 export default async function LessonPage({
     params

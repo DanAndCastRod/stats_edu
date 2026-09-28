@@ -1,11 +1,6 @@
 "use client"
 
-import { useSession } from "next-auth/react"
-
 export function DashboardHeader() {
-    const { data: session } = useSession()
-    const user = session?.user
-
     const getGreeting = () => {
         const hour = new Date().getHours()
         if (hour < 12) return "Buenos días"
@@ -19,7 +14,7 @@ export function DashboardHeader() {
                 Dashboard
             </h1>
             <p className="text-slate-500 dark:text-slate-400">
-                {getGreeting()}, <span className="font-semibold text-slate-700 dark:text-slate-200">{user?.name || "Estudiante"}</span>.
+                {getGreeting()}, <span className="font-semibold text-slate-700 dark:text-slate-200">Estudiante</span>.
                 Aquí tienes tu resumen académico de hoy.
             </p>
         </div>

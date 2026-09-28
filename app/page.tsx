@@ -53,6 +53,11 @@ export default function Home() {
                     Investigación de Operaciones I
                   </Link>
                 </li>
+                <li>
+                  <Link href="/courses/investigacion-operaciones-ii" className="hover:text-white transition-colors">
+                    Investigación de Operaciones II
+                  </Link>
+                </li>
               </ul>
             </div>
 

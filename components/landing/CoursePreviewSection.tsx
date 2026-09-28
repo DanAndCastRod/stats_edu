@@ -1,60 +1,18 @@
-import { db } from "@/lib/db"
+import { getAllCourses } from "@/lib/courses"
 import Link from "next/link"
 import { ArrowRight, BookOpen, Layers, Clock, Sparkles } from "lucide-react"
 
 export async function CoursePreviewSection() {
-    let courses: Array<{
-        id: string
-        title: string
-        code: string
-        slug: string
-        description: string | null
-        isMock: boolean
-        _count: { modules: number }
-    }> = []
-
-    try {
-        courses = await db.course.findMany({
-            include: {
-                _count: {
-                    select: { modules: true }
-                }
-            },
-            orderBy: { code: 'asc' },
-            take: 6
-        })
-    } catch {
-        // Fallback for static generation or when DB is initializing
-        courses = [
-            {
-                id: "course-1",
-                title: "Estadística I",
-                code: "511-23",
-                slug: "estadistica-i",
-                description: "Fundamentos de Estadística Descriptiva, Probabilidad, Variables Aleatorias y Distribuciones Continuas.",
-                isMock: false,
-                _count: { modules: 6 }
-            },
-            {
-                id: "course-2",
-                title: "Estadística II",
-                code: "511-24",
-                slug: "estadistica-ii",
-                description: "Inferencia estadística avanzada, ANOVA, diseño de experimentos, pruebas no paramétricas y control de calidad.",
-                isMock: false,
-                _count: { modules: 6 }
-            },
-            {
-                id: "course-3",
-                title: "Investigación de Operaciones I",
-                code: "511-31",
-                slug: "investigacion-operaciones-i",
-                description: "Programación lineal, método simplex, teoría de la dualidad, análisis de sensibilidad y optimización de redes.",
-                isMock: false,
-                _count: { modules: 5 }
-            }
-        ]
-    }
+    const allCourses = await getAllCourses()
+    const courses = allCourses.map(c => ({
+        id: c.id,
+        title: c.title,
+        code: c.code,
+        slug: c.slug,
+        description: c.description,
+        isMock: false,
+        _count: { modules: c.modules.length }
+    }))
 
     return (
         <section id="courses" className="py-24 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
